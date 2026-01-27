@@ -3,7 +3,7 @@
 /**
  * Database seed script
  *
- * Creates test account for Swagger auto-login
+ * Creates test account for Swagger auto-login using better-auth schema
  *
  * Usage: pnpm run db:seed
  */
@@ -12,31 +12,54 @@ import bcrypt from 'bcrypt'
 import { config } from 'dotenv'
 import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/node-postgres'
-import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core' // Inline schema to avoid ESM/path alias issues
+import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 import pg from 'pg'
 
 // Load environment variables
 config()
 
+// Inline schema definitions matching better-auth structure
 const usersTable = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  username: text('username').notNull(),
-  email: text('email').notNull().unique(),
-  role: text('role').notNull().default('user'),
-  status: text('status').notNull().default('active'),
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+  emailVerified: boolean('email_verified').notNull().default(false),
+  image: text('image'),
+  role: text('role'),
+  banned: boolean('banned').default(false),
+  banReason: text('ban_reason'),
+  banExpires: timestamp('ban_expires'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
-const credentialsTable = pgTable('credentials', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
+const accountsTable = pgTable('accounts', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
     .notNull()
     .references(() => usersTable.id, { onDelete: 'cascade' }),
-  passwordHash: text('password_hash').notNull(),
+  accountId: text('account_id').notNull(),
+  providerId: text('provider_id').notNull(),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  idToken: text('id_token'),
+  accessTokenExpiresAt: timestamp('access_token_expires_at', { withTimezone: true }),
+  refreshTokenExpiresAt: timestamp('refresh_token_expires_at', { withTimezone: true }),
+  scope: text('scope'),
+  password: text('password'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+// Simple nanoid-like ID generator
+function generateId(length = 21): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let result = ''
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
+}
 
 async function seed() {
   const databaseUrl = process.env.DATABASE_URL
@@ -75,14 +98,17 @@ async function seed() {
     console.log('📝 Creating test account...')
 
     const passwordHash = await bcrypt.hash(password, 10)
+    const userId = generateId()
 
     const [newUser] = await db
       .insert(usersTable)
       .values({
-        username: 'testuser',
+        id: userId,
+        name: 'Test User',
         email,
+        emailVerified: true,
         role: 'user',
-        status: 'active',
+        banned: false,
       })
       .returning()
 
@@ -90,15 +116,19 @@ async function seed() {
       throw new Error('Failed to create user')
     }
 
-    // Create credentials
-    await db.insert(credentialsTable).values({
+    // Create account with password (email provider)
+    await db.insert(accountsTable).values({
+      id: generateId(),
       userId: newUser.id,
-      passwordHash,
+      accountId: email,
+      providerId: 'email',
+      password: passwordHash,
     })
 
     console.log('✅ Test account created successfully!')
     console.log(`   Email: ${email}`)
-    console.log(`   Username: testuser`)
+    console.log(`   Name: Test User`)
+    console.log(`   Role: user`)
   } catch (error) {
     console.error('❌ Seed failed:', error)
     process.exit(1)
