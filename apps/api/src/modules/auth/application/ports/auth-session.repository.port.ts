@@ -1,4 +1,4 @@
-import type { AuthSession } from '@/modules/auth/domain/entities/auth-session.entity'
+import type { AuthSessionDto } from '@/modules/auth/application/dtos/auth-session.dto'
 
 /**
  * Auth Session Repository token
@@ -17,27 +17,27 @@ export interface AuthSessionRepository {
   /**
    * Save session
    */
-  save(session: AuthSession): Promise<void>
+  save(session: AuthSessionDto): Promise<void>
 
   /**
    * Find by ID
    */
-  findById(id: string): Promise<AuthSession | null>
+  findById(id: string): Promise<AuthSessionDto | null>
 
   /**
    * Find by token
    */
-  findByToken(token: string): Promise<AuthSession | null>
+  findByToken(token: string): Promise<AuthSessionDto | null>
 
   /**
    * Find all active sessions by user ID (not expired)
    */
-  findActiveByUserId(userId: string): Promise<AuthSession[]>
+  findActiveByUserId(userId: string): Promise<AuthSessionDto[]>
 
   /**
    * Find all sessions by user ID
    */
-  findAllByUserId(userId: string): Promise<AuthSession[]>
+  findAllByUserId(userId: string): Promise<AuthSessionDto[]>
 
   /**
    * Delete session (revoke = delete)

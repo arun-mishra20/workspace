@@ -1,21 +1,12 @@
 {
-  "extends": "@workspace/typescript-config/tsconfig.nestjs.json",
-  "compilerOptions": {
-    "baseUrl": "./",
-    "paths": {
-      "@/*": ["src/*"]
-    }
-  },
-  "include": [
-    "src/**/*",
-    "scripts/seed.ts",
-    "*.config.ts",
-    "*.config.mts"
-  ],
-  "exclude": [
-    "**/*.test.ts",
-    "**/*.spec.ts",
-    "**/__tests__/**/*",
-    "src/metadata.ts"
-  ]
+    "extends": "@workspace/typescript-config/tsconfig.nestjs.json",
+    "compilerOptions": {
+        "baseUrl": "./",
+        "ignoreDeprecations": "6.0",
+        "paths": {
+            "@/*": ["src/*"]
+        }
+    },
+    "include": ["src/**/*", "scripts/seed.ts", "*.config.ts", "*.config.mts"],
+    "exclude": ["**/*.test.ts", "**/*.spec.ts", "**/__tests__/**/*", "src/metadata.ts"]
 }
