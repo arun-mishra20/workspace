@@ -1,22 +1,32 @@
-import { appPaths } from '@/config/app-paths'
-import { fetchClient } from '@/lib/fetch-client'
-import { useQueryClient } from '@tanstack/react-query'
-import { Button } from '@workspace/ui/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@workspace/ui/components/ui/dropdown-menu'
-import { UserIcon } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { appPaths } from "@/config/app-paths";
+import { clearStoredTokens, getRefreshToken } from "@/lib/auth";
+import { fetchClient } from "@/lib/fetch-client";
+import { useQueryClient } from "@tanstack/react-query";
+import { Button } from "@workspace/ui/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/ui/dropdown-menu";
+import { UserIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-const NavUser = ({ username}: { username: string | undefined }) => {
-  const queryClient = useQueryClient()
-  const router = useRouter()
+const NavUser = ({ username }: { username: string | undefined }) => {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const logout = async () => {
     try {
-      await fetchClient.POST('/api/auth/logout', { body: { refreshToken: '' } }) // Route handler handles refreshToken
+      const refreshToken = getRefreshToken();
+      await fetchClient.POST("/api/auth/logout", {
+        body: { refreshToken: refreshToken ?? "" },
+      }); // Route handler handles refreshToken
     } finally {
-      queryClient.clear()
-      router.push(appPaths.auth.login.getHref())
+      clearStoredTokens();
+      queryClient.clear();
+      navigate(appPaths.auth.login.getHref());
     }
-  }
+  };
 
   return (
     <DropdownMenu>
@@ -30,7 +40,7 @@ const NavUser = ({ username}: { username: string | undefined }) => {
         <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
-}
+  );
+};
 
-export { NavUser }
+export { NavUser };

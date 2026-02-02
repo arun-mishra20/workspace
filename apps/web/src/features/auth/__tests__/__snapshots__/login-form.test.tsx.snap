@@ -53,7 +53,7 @@ exports[`LoginForm > should match snapshot 1`] = `
               data-slot="input"
               name="email"
               placeholder="Enter your email"
-              value="user@example.com"
+              value="test@example.com"
             />
           </div>
           <div
@@ -76,7 +76,7 @@ exports[`LoginForm > should match snapshot 1`] = `
               name="password"
               placeholder="Enter your password"
               type="password"
-              value="Pass123456"
+              value="TestPassword123"
             />
           </div>
         </div>
@@ -107,7 +107,7 @@ exports[`LoginForm > should match snapshot 1`] = `
           Don't have an account?
            
           <a
-            class="underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors text-primary"
+            data-discover="true"
             href="/register"
           >
             Sign up

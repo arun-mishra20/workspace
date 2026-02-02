@@ -2,10 +2,12 @@
   "name": "web",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next dev -p 8000",
-    "build": "next build",
-    "start": "next start",
+    "dev": "vite --port 8000",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "start": "vite preview",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "check-types": "tsc --noEmit",
@@ -23,20 +25,19 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-dialog": "^1.1.15",
-    "@t3-oss/env-nextjs": "^0.13.8",
     "@tanstack/react-query": "^5.90.11",
+    "@tanstack/react-router": "^1.108.10",
     "@workspace/ui": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.561.0",
-    "next": "16.0.10",
-    "next-themes": "^0.4.6",
     "openapi-fetch": "^0.15.0",
     "openapi-react-query": "^0.5.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-error-boundary": "^6.0.0",
     "react-hook-form": "^7.68.0",
+    "react-router-dom": "^7.6.3",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "zod": "^4.1.13"
@@ -70,7 +71,7 @@
     "postcss-import": "^16.1.1",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3",
-    "vite-tsconfig-paths": "^5.1.4",
+    "vite": "6.0.11",
     "vitest": "^4.0.15"
   }
 }
