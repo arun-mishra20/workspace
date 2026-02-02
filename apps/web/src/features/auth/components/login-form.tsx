@@ -58,7 +58,7 @@ const LoginForm = () => {
         });
       }
 
-      navigate("/");
+      navigate(appPaths.auth.dashboard.getHref());
     } catch {
       return;
     }

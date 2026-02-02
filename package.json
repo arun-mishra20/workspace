@@ -1,5 +1,5 @@
 {
-  "name": "boilerplate",
+  "name": "workspace-repo",
   "type": "module",
   "scripts": {
     "start:dev": "turbo run dev",

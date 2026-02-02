@@ -5,7 +5,7 @@ import {
   type RenderResult,
 } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import type { ReactElement, ReactNode } from "react";
 
 // Create test QueryClient

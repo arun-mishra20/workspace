@@ -4,7 +4,7 @@ import React from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
 import { MainErrorFallback } from "@/components/errors/main";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import { env } from "@/config/env";
 import { queryConfig } from "@/lib/react-query";
 
