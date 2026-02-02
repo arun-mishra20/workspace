@@ -1,7 +1,5 @@
-'use client'
-
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, Controller } from "react-hook-form";
 import {
   Card,
   CardContent,
@@ -9,44 +7,62 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@workspace/ui/components/ui/card'
+} from "@workspace/ui/components/ui/card";
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from '@workspace/ui/components/ui/field'
-import { Input } from '@workspace/ui/components/ui/input'
-import { Button } from '@workspace/ui/components/ui/button'
-import { Spinner } from '@workspace/ui/components/ui/spinner'
+} from "@workspace/ui/components/ui/field";
+import { Input } from "@workspace/ui/components/ui/input";
+import { Button } from "@workspace/ui/components/ui/button";
+import { Spinner } from "@workspace/ui/components/ui/spinner";
 
-import { useRouter } from 'next/navigation'
-import { Link } from '@/components/link'
-import { appPaths } from '@/config/app-paths'
+import { useNavigate, Link } from "react-router-dom";
+import { appPaths } from "@/config/app-paths";
 
-import { $api } from '@/lib/fetch-client'
-import { toast } from 'sonner'
-import { loginSchema, type LoginFormData } from '../schemas'
+import { $api } from "@/lib/fetch-client";
+import { setStoredTokens } from "@/lib/auth";
+import { toast } from "sonner";
+import { loginSchema, type LoginFormData } from "../schemas";
 
 const LoginForm = () => {
-  const router = useRouter()
+  const navigate = useNavigate();
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'user@example.com',
-      password: 'Pass123456',
+      email: "test@example.com",
+      password: "TestPassword123",
     },
-  })
+  });
 
-  const { mutateAsync, isPending } = $api.useMutation('post', '/api/auth/login')
+  const { mutateAsync, isPending } = $api.useMutation(
+    "post",
+    "/api/auth/login",
+  );
 
   const onSubmit = async (data: LoginFormData) => {
-    await mutateAsync({ body: data }, {
-      onError: (error) => toast.error(error.detail ?? 'Login failed'),
-    })
-    router.push('/')
-  }
+    try {
+      const result = await mutateAsync(
+        { body: data },
+        {
+          onError: (error) => toast.error(error.detail ?? "Login failed"),
+        },
+      );
+
+      if (result?.accessToken && result?.refreshToken) {
+        setStoredTokens({
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        });
+      }
+
+      navigate("/");
+    } catch {
+      return;
+    }
+  };
 
   return (
     <Card className="w-full sm:max-w-md">
@@ -100,15 +116,13 @@ const LoginForm = () => {
             Login
           </Button>
           <FieldDescription className="text-center">
-            Don&apos;t have an account?
-            {' '}
-            <Link href={appPaths.auth.register.getHref()}>Sign up</Link>
+            Don&apos;t have an account?{" "}
+            <Link to={appPaths.auth.register.getHref()}>Sign up</Link>
           </FieldDescription>
         </Field>
-
       </CardFooter>
     </Card>
-  )
-}
+  );
+};
 
-export { LoginForm }
+export { LoginForm };

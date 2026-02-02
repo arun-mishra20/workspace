@@ -1,17 +1,16 @@
-import { createEnv } from '@t3-oss/env-nextjs'
-import { z } from 'zod'
+import { z } from "zod";
 
-export const env = createEnv({
-  server: {
-    // Backend URL (for proxy.ts and auth route handlers)
-    API_UPSTREAM_BASE_URL: z.string(),
-  },
-  client: {},
-  shared: {
-    NODE_ENV: z.enum(['development', 'test', 'production']),
-  },
-  runtimeEnv: {
-    API_UPSTREAM_BASE_URL: process.env.API_UPSTREAM_BASE_URL,
-    NODE_ENV: process.env.NODE_ENV,
-  },
-})
+const envSchema = z.object({
+  // Backend URL (Vite proxy handles /api requests)
+  VITE_API_BASE_URL: z.string().default("http://localhost:3000"),
+  NODE_ENV: z
+    .enum(["development", "test", "production"])
+    .default("development"),
+  MODE: z.string().optional(),
+});
+
+export const env = envSchema.parse({
+  VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+  NODE_ENV: import.meta.env.NODE_ENV || import.meta.env.MODE,
+  MODE: import.meta.env.MODE,
+});

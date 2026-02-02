@@ -1,5 +1,5 @@
-import type { AuthIdentity } from '@/modules/auth/domain/aggregates/auth-identity.aggregate'
-import type { AuthProvider } from '@/modules/auth/domain/value-objects/auth-provider'
+import type { AuthProvider } from '@/modules/auth/application/constants/auth-provider'
+import type { AuthIdentityDto } from '@/modules/auth/application/dtos/auth-identity.dto'
 
 /**
  * Auth Identity Repository token
@@ -18,25 +18,22 @@ export interface AuthIdentityRepository {
   /**
    * Save authentication identity (create or update)
    */
-  save(identity: AuthIdentity): Promise<void>
+  save(identity: AuthIdentityDto): Promise<void>
 
   /**
    * Find by ID
    */
-  findById(id: string): Promise<AuthIdentity | null>
+  findById(id: string): Promise<AuthIdentityDto | null>
 
   /**
    * Find all authentication methods by user ID
    */
-  findByUserId(userId: string): Promise<AuthIdentity[]>
+  findByUserId(userId: string): Promise<AuthIdentityDto[]>
 
   /**
    * Find by user ID and provider
    */
-  findByUserIdAndProvider(
-    userId: string,
-    provider: AuthProvider,
-  ): Promise<AuthIdentity | null>
+  findByUserIdAndProvider(userId: string, provider: AuthProvider): Promise<AuthIdentityDto | null>
 
   /**
    * Find by provider and account ID (for login)
@@ -45,12 +42,12 @@ export interface AuthIdentityRepository {
   findByProviderAndIdentifier(
     provider: AuthProvider,
     accountId: string,
-  ): Promise<AuthIdentity | null>
+  ): Promise<AuthIdentityDto | null>
 
   /**
    * Find by account ID (regardless of provider)
    */
-  findByIdentifier(accountId: string): Promise<AuthIdentity | null>
+  findByIdentifier(accountId: string): Promise<AuthIdentityDto | null>
 
   /**
    * Check if account ID exists

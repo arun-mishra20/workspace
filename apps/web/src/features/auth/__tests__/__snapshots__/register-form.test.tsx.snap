@@ -152,7 +152,7 @@ exports[`RegisterForm > should match snapshot 1`] = `
           Already have an account?
            
           <a
-            class="underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors text-primary"
+            data-discover="true"
             href="/login"
           >
             Login
