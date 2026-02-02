@@ -1,15 +1,32 @@
 export const appPaths = {
   home: {
-    getHref: () => '/',
+    getHref: () => "/",
   },
   auth: {
     register: {
       getHref: (redirectTo?: string | null) =>
-        `/register${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ''}`,
+        `/register${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""}`,
     },
     login: {
       getHref: (redirectTo?: string | null) =>
-        `/login${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ''}`,
+        `/login${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""}`,
+    },
+    // Dashboard path
+    dashboard: {
+      getHref: () => "/dashboard",
+    },
+    // Themes path
+    themes: {
+      getHref: () => "/themes",
+    },
+    analytics: {
+      getHref: () => "/analytics",
+    },
+    patterns: {
+      getHref: () => "/patterns",
+    },
+    metrics: {
+      getHref: () => "/metrics",
     },
   },
-} as const
+} as const;

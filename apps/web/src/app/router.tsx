@@ -4,24 +4,81 @@ import { HomePage } from "@/pages/home";
 import { LoginPage } from "@/pages/auth/login";
 import { RegisterPage } from "@/pages/auth/register";
 import { NotFoundPage } from "@/pages/not-found";
+import { ProtectedRoute } from "@/components/protected-routes/protected-route";
+import Dashboard from "@/pages/dashboard";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <RootLayout />,
     children: [
+      // Public Routes
       {
         index: true,
-        element: <HomePage />,
+        element: (
+          <ProtectedRoute isPublic>
+            <HomePage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "login",
-        element: <LoginPage />,
+        element: (
+          <ProtectedRoute isPublic>
+            <LoginPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "register",
-        element: <RegisterPage />,
+        element: (
+          <ProtectedRoute isPublic>
+            <RegisterPage />
+          </ProtectedRoute>
+        ),
       },
+      // Protected Routes
+      {
+        path: "dashboard",
+        element: (
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "themes",
+        element: (
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "analytics",
+        element: (
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "patterns",
+        element: (
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "metrics",
+        element: (
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        ),
+      },
+      // Fallback Route
       {
         path: "*",
         element: <NotFoundPage />,

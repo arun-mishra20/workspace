@@ -1,11 +1,13 @@
-import { Nextdotjs as NextjsIcon } from "@workspace/icons";
+import { Cookie } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Logo = () => {
   return (
     <div className="flex items-center gap-2">
       <Link to="/">
-        <NextjsIcon className="w-6 h-6 fill-black dark:fill-white" />
+        <div className="rounded-full border-dotted border-border">
+          <Cookie className="size-6" />
+        </div>
       </Link>
     </div>
   );

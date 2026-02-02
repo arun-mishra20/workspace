@@ -1,6 +1,6 @@
 import { appPaths } from "@/config/app-paths";
 import { clearStoredTokens, getRefreshToken } from "@/lib/auth";
-import { fetchClient } from "@/lib/fetch-client";
+import { $api, fetchClient } from "@/lib/fetch-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@workspace/ui/components/ui/button";
 import {
@@ -23,7 +23,10 @@ const NavUser = ({ username }: { username: string | undefined }) => {
       }); // Route handler handles refreshToken
     } finally {
       clearStoredTokens();
-      queryClient.clear();
+      // Invalidate the session query to clear cached user data
+      await queryClient.invalidateQueries({
+        queryKey: $api.queryOptions("get", "/api/auth/session").queryKey,
+      });
       navigate(appPaths.auth.login.getHref());
     }
   };
