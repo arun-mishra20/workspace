@@ -85,15 +85,15 @@ export function FontSelector({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 p-1">
       <Label
         htmlFor={variableName}
-        className="text-sm text-muted-foreground font-medium"
+        className="text-xs text-muted-foreground font-medium"
       >
         {label}
       </Label>
       <Select value={selectValue} onValueChange={handleSelectChange}>
-        <SelectTrigger>
+        <SelectTrigger className="w-full">
           <SelectValue placeholder="Select a font" />
         </SelectTrigger>
         <SelectContent>

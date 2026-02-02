@@ -173,7 +173,7 @@ export function ColorPickerInput({
     <div className="flex flex-col gap-2">
       <Label
         htmlFor={variableName}
-        className="text-sm text-muted-foreground font-medium"
+        className="text-xs text-muted-foreground font-medium"
       >
         {label}
       </Label>
