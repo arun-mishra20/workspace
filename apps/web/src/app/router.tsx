@@ -6,6 +6,7 @@ import { RegisterPage } from "@/pages/auth/register";
 import { NotFoundPage } from "@/pages/not-found";
 import { ProtectedRoute } from "@/components/protected-routes/protected-route";
 import Dashboard from "@/pages/dashboard";
+import ThemeSettingsPage from "@/pages/theme";
 
 const router = createBrowserRouter([
   {
@@ -50,7 +51,7 @@ const router = createBrowserRouter([
         path: "themes",
         element: (
           <ProtectedRoute>
-            <Dashboard />
+            <ThemeSettingsPage />
           </ProtectedRoute>
         ),
       },
