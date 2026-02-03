@@ -193,14 +193,14 @@ export function ThemeEditorPanel() {
       <Separator className="my-4" />
 
       {/* BODY */}
-      <div className="grid grid-cols-[140px_1fr] gap-4 flex-1 overflow-hidden">
+      <div className="grid grid-cols-[100px_1fr] gap-4 flex-1 overflow-hidden">
         {/* CATEGORY SIDEBAR */}
         <div className="flex flex-col gap-1">
           {Object.keys(THEME_VARIABLES).map((category) => (
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className={`text-xs px-2 py-1.5 rounded-md text-left transition
+              className={`text-xs px-2.5 py-1.5 rounded-md text-left transition max-w-28
                 ${
                   activeCategory === category
                     ? "bg-accent text-accent-foreground"
@@ -213,8 +213,8 @@ export function ThemeEditorPanel() {
         </div>
 
         {/* VARIABLES */}
-        <ScrollArea className="h-full pr-3">
-          <div className="space-y-3">
+        <ScrollArea className="h-full pr-1">
+          <div className="space-y-2">
             {THEME_VARIABLES[
               activeCategory as keyof typeof THEME_VARIABLES
             ].map((variable) => {

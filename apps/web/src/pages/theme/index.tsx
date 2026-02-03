@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/ui/card";
-import { ThemeEditorPanel } from "./components/theme-settings-dialog";
+import { ThemeEditorPanel } from "./components/theme-editor-panel";
 import { MainLayout } from "@/components/layouts/main-layout";
 
 export default function ThemeSettingsPage() {
