@@ -1,4 +1,6 @@
 import { useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { $api } from "@/lib/fetch-client";
 import { getAccessToken } from "@/lib/auth";
 
 /**
@@ -13,7 +15,13 @@ import { getAccessToken } from "@/lib/auth";
  */
 export function useIsAuthenticated(): boolean {
   const accessToken = getAccessToken();
-  return !!accessToken;
+  const sessionQuery = useQuery({
+    ...$api.queryOptions("get", "/api/auth/session"),
+    enabled: !!accessToken, // Only fetch session if user has a token
+    retry: false,
+  });
+
+  return !!sessionQuery.data?.user;
 }
 
 /**
@@ -27,7 +35,7 @@ export function useIsAuthenticated(): boolean {
  * }
  */
 export function useCanAccess() {
-  return useCallback(() => {
-    return !!getAccessToken();
-  }, []);
+  const isAuthenticated = useIsAuthenticated();
+
+  return useCallback(() => isAuthenticated, [isAuthenticated]);
 }
