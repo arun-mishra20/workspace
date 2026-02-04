@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ChartArea, LayoutDashboard, Paintbrush } from "lucide-react";
+import { ChartArea, LayoutDashboard, Mail, Paintbrush } from "lucide-react";
 
 import { appPaths } from "@/config/app-paths";
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/ui/tabs";
@@ -23,6 +23,11 @@ const navItems = [
     icon: ChartArea,
   },
   { label: "Metrics", href: appPaths.auth.metrics.getHref(), icon: ChartArea },
+  {
+    label: "Expenses",
+    href: appPaths.auth.expensesEmails.getHref(),
+    icon: Mail,
+  },
 ];
 
 const NavTabs = () => {

@@ -39,6 +39,8 @@ async function bootstrap() {
             // Exclude health check endpoints
             { path: "health", method: RequestMethod.ALL },
             { path: "health/{*path}", method: RequestMethod.ALL },
+            // Exclude Gmail OAuth callback (Google requires exact redirect URI)
+            { path: "auth/google/callback", method: RequestMethod.GET },
         ],
     });
 

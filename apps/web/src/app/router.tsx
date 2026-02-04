@@ -7,6 +7,7 @@ import { NotFoundPage } from "@/pages/not-found";
 import { ProtectedRoute } from "@/components/protected-routes/protected-route";
 import Dashboard from "@/pages/dashboard";
 import ThemeSettingsPage from "@/pages/theme";
+import ExpenseEmailsPage from "@/pages/expenses/emails";
 
 const router = createBrowserRouter([
   {
@@ -76,6 +77,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "expenses/emails",
+        element: (
+          <ProtectedRoute>
+            <ExpenseEmailsPage />
           </ProtectedRoute>
         ),
       },
