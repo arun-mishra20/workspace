@@ -1,5 +1,13 @@
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+  type ColumnDef,
+} from "@tanstack/react-table";
+import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { format } from "date-fns";
 
 import { MainLayout } from "@/components/layouts";
 import { connectGmail } from "@/features/expenses/api/connect-gmail";
@@ -15,7 +23,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/ui/card";
-import { Progress } from "@workspace/ui/components/ui/progress";
 import {
   Table,
   TableBody,
@@ -25,17 +32,117 @@ import {
   TableRow,
 } from "@workspace/ui/components/ui/table";
 
+type RawEmail = {
+  id: string;
+  userId: string;
+  provider: string;
+  providerMessageId: string;
+  from: string;
+  subject: string;
+  receivedAt: string;
+  bodyText: string;
+  bodyHtml?: string;
+  rawHeaders: Record<string, string>;
+};
+
+const formatDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return format(date, "MMM d, yyyy 'at' h:mm a");
+};
+
+const columns: ColumnDef<RawEmail>[] = [
+  {
+    accessorKey: "from",
+    header: "From",
+    cell: ({ row }) => (
+      <div className="font-medium text-foreground">
+        {row.getValue("from") || "Unknown sender"}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "subject",
+    header: "Subject",
+    cell: ({ row }) => (
+      <div className="max-w-125 truncate">
+        {row.getValue("subject") || "(no subject)"}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "receivedAt",
+    header: "Received",
+    cell: ({ row }) => formatDate(row.getValue("receivedAt")),
+  },
+  {
+    accessorKey: "provider",
+    header: "Provider",
+    cell: ({ row }) => (
+      <Badge variant="secondary" className="capitalize">
+        {row.getValue("provider")}
+      </Badge>
+    ),
+  },
+];
+
+function AnimatedNumber({ value }: { value: number }) {
+  const mv = useMotionValue(0);
+  const rounded = useTransform(mv, (latest) => Math.round(latest));
+
+  useEffect(() => {
+    const controls = animate(mv, value, {
+      duration: 0.4,
+      ease: "easeOut",
+    });
+    return controls.stop;
+  }, [value]);
+
+  return <motion.span>{rounded}</motion.span>;
+}
+
 const ExpenseEmailsPage = () => {
   const queryClient = useQueryClient();
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["expenses", "emails"],
-    queryFn: () => listExpenseEmails({ limit: 50, offset: 0 }),
+  const [pageIndex, setPageIndex] = useState(0);
+  const pageSize = 20;
+
+  const {
+    data: apiData,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["expenses", "emails", pageIndex + 1],
+    queryFn: () =>
+      listExpenseEmails({ page: pageIndex + 1, page_size: pageSize }),
+  });
+
+  const table = useReactTable({
+    data: apiData?.data ?? [],
+    columns,
+    pageCount: apiData ? Math.ceil(apiData.total / apiData.page_size) : 0,
+    state: {
+      pagination: {
+        pageIndex,
+        pageSize,
+      },
+    },
+    onPaginationChange: (updater) => {
+      if (typeof updater === "function") {
+        const newState = updater({ pageIndex, pageSize });
+        setPageIndex(newState.pageIndex);
+      } else {
+        setPageIndex(updater.pageIndex);
+      }
+    },
+    getCoreRowModel: getCoreRowModel(),
+    manualPagination: true,
   });
   const statusQuery = useQuery({
     queryKey: ["expenses", "gmail-status"],
     queryFn: fetchGmailStatus,
-    retry: false,
-    staleTime: 60_000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
@@ -45,13 +152,7 @@ const ExpenseEmailsPage = () => {
       window.location.assign(data.url);
     },
   });
-  const {
-    startSync,
-    job,
-    isSyncing,
-    progress,
-    error: syncError,
-  } = useSyncJob();
+  const { startSync, job, isSyncing } = useSyncJob();
   const disconnectMutation = useMutation({
     mutationFn: disconnectGmail,
     onSuccess: () => {
@@ -62,12 +163,10 @@ const ExpenseEmailsPage = () => {
       queryClient
         .invalidateQueries({ queryKey: ["expenses", "gmail-status"] })
         .then(() => {
-          statusQuery.refetch();
+          void statusQuery.refetch();
         });
     },
   });
-
-  const rows = useMemo(() => data ?? [], [data]);
 
   return (
     <MainLayout>
@@ -108,33 +207,35 @@ const ExpenseEmailsPage = () => {
                 variant="outline"
                 onClick={startSync}
                 disabled={!statusQuery.data?.connected || isSyncing}
+                className="relative overflow-hidden"
               >
-                {isSyncing ? "Syncing…" : "Sync Inbox"}
+                {/* progress fill */}
+                {isSyncing && (
+                  <div
+                    className="absolute inset-y-0 left-0 bg-primary/20 transition-all duration-300"
+                    style={{
+                      width: job?.totalEmails
+                        ? `${(job.processedEmails / job.totalEmails) * 100}%`
+                        : "5%",
+                    }}
+                  />
+                )}
+
+                <span className="relative z-10">
+                  {job?.status === "processing" && job.totalEmails ? (
+                    <>
+                      Syncing (<AnimatedNumber value={job.processedEmails} /> /{" "}
+                      {job.totalEmails})
+                    </>
+                  ) : job?.status === "completed" ? (
+                    "Synced"
+                  ) : (
+                    "Sync"
+                  )}
+                </span>
               </Button>
-              {isSyncing && (
-                <div className="flex flex-col gap-1 min-w-[200px]">
-                  <Progress value={progress} className="h-2" />
-                  <p className="text-xs text-muted-foreground">
-                    {job?.status === "pending" && "Starting sync..."}
-                    {job?.status === "processing" && job.totalEmails
-                      ? `Processing ${job.processedEmails} of ${job.totalEmails} emails`
-                      : job?.status === "processing"
-                        ? "Fetching emails..."
-                        : null}
-                    {job?.newEmails ? ` • ${job.newEmails} new` : ""}
-                  </p>
-                </div>
-              )}
-              {!isSyncing && job?.status === "completed" && (
-                <p className="text-xs text-green-600 dark:text-green-400">
-                  ✓ Synced {job.newEmails} new emails, {job.transactions}{" "}
-                  transactions
-                </p>
-              )}
-              {syncError && (
-                <p className="text-xs text-destructive">{syncError.message}</p>
-              )}
             </div>
+
             {statusQuery.data?.connected ? (
               <Badge variant="secondary">
                 Connected
@@ -151,7 +252,12 @@ const ExpenseEmailsPage = () => {
             <CardTitle className="text-base font-semibold">
               Recent Emails
             </CardTitle>
-            <Badge variant="outline">{rows.length} items</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">{apiData?.total ?? 0} total</Badge>
+              <Badge variant="secondary">
+                Page {pageIndex + 1} of {table.getPageCount() || 1}
+              </Badge>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -164,56 +270,83 @@ const ExpenseEmailsPage = () => {
                 We couldn’t load emails. Please try again in a moment.
               </p>
             ) : null}
-            {!isLoading && !isError && rows.length === 0 ? (
+            {!isLoading && !isError && table.getRowModel().rows.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No expense emails found yet.
               </p>
             ) : null}
-            {!isLoading && !isError && rows.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>From</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Received</TableHead>
-                    <TableHead>Provider</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((email) => (
-                    <TableRow key={email.id}>
-                      <TableCell className="font-medium text-foreground">
-                        {email.from || "Unknown sender"}
-                      </TableCell>
-                      <TableCell>{email.subject || "(no subject)"}</TableCell>
-                      <TableCell>{formatDate(email.receivedAt)}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="capitalize">
-                          {email.provider}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            {!isLoading && !isError && table.getRowModel().rows.length > 0 ? (
+              <div className="space-y-4">
+                <Table>
+                  <TableHeader>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => (
+                          <TableHead key={header.id}>
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {table.getRowModel().rows.map((row) => (
+                      <TableRow key={row.id}>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {table.getPageCount() > 1 && (
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {pageIndex * pageSize + 1} to{" "}
+                      {Math.min(
+                        (pageIndex + 1) * pageSize,
+                        apiData?.total ?? 0,
+                      )}{" "}
+                      of {apiData?.total ?? 0} emails
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : null}
           </CardContent>
         </Card>
       </div>
     </MainLayout>
   );
-};
-
-const formatDate = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
 };
 
 export default ExpenseEmailsPage;

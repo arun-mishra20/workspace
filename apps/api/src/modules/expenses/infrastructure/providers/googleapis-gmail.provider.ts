@@ -25,20 +25,47 @@ export class GoogleApisGmailProvider implements GmailProvider {
         userId: string;
         query: string;
         after?: string;
+        maxResults?: number;
     }): Promise<Array<{ id: string }>> {
         const oauth2Client = await this.getOAuthClient(params.userId);
-        const res = await this.gmail.users.messages.list({
-            auth: oauth2Client,
-            userId: "me",
-            q: params.query,
-            pageToken: params.after,
-        });
+        const allMessages: Array<{ id: string }> = [];
+        let pageToken: string | undefined = params.after;
+        const maxResultsPerPage = 500; // Gmail API limit
+        const totalMaxResults = params.maxResults ?? 1000; // Default to 1000 emails
 
-        console.log("Gmail API response: listExpenseEmails", res.data);
+        // Fetch all pages until we have enough results or no more pages
+        while (allMessages.length < totalMaxResults) {
+            const res = await this.gmail.users.messages.list({
+                auth: oauth2Client,
+                userId: "me",
+                q: params.query,
+                maxResults: Math.min(maxResultsPerPage, totalMaxResults - allMessages.length),
+                pageToken,
+            });
 
-        return (res.data.messages ?? [])
-            .filter((message): message is { id: string } => Boolean(message?.id))
-            .map((message) => ({ id: message.id }));
+            console.log(`Gmail API response: listExpenseEmails (page ${pageToken ?? "first"})`, {
+                messagesCount: res.data.messages?.length ?? 0,
+                nextPageToken: res.data.nextPageToken,
+                resultSizeEstimate: res.data.resultSizeEstimate,
+            });
+
+            const messages = (res.data.messages ?? [])
+                .filter((message): message is { id: string } => Boolean(message?.id))
+                .map((message) => ({ id: message.id }));
+
+            allMessages.push(...messages);
+
+            // If no more pages or we've reached the limit, stop
+            if (!res.data.nextPageToken || allMessages.length >= totalMaxResults) {
+                break;
+            }
+
+            pageToken = res.data.nextPageToken;
+        }
+
+        console.log(`Gmail API: Fetched total of ${allMessages.length} email references`);
+
+        return allMessages;
     }
 
     async fetchEmailContent(params: { userId: string; emailId: string }): Promise<RawEmail> {

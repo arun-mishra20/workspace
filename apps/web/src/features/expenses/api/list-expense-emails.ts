@@ -3,22 +3,29 @@ import { z } from "zod";
 import { apiRequest } from "@/lib/api-request";
 import { RawEmailSchema } from "@workspace/domain";
 
-const listExpenseEmailsSchema = z.array(RawEmailSchema);
+const listExpenseEmailsSchema = z.object({
+  object: z.literal("list"),
+  data: z.array(RawEmailSchema),
+  page: z.number(),
+  page_size: z.number(),
+  total: z.number(),
+  has_more: z.boolean(),
+});
 
 export type ListExpenseEmailsResponse = z.infer<typeof listExpenseEmailsSchema>;
 
 export async function listExpenseEmails(params?: {
-  limit?: number;
-  offset?: number;
+  page?: number;
+  page_size?: number;
 }): Promise<ListExpenseEmailsResponse> {
   const searchParams = new URLSearchParams();
 
-  if (params?.limit) {
-    searchParams.set("limit", params.limit.toString());
+  if (params?.page) {
+    searchParams.set("page", params.page.toString());
   }
 
-  if (params?.offset) {
-    searchParams.set("offset", params.offset.toString());
+  if (params?.page_size) {
+    searchParams.set("page_size", params.page_size.toString());
   }
 
   const url = `/api/expenses/emails${searchParams.toString() ? `?${searchParams}` : ""}`;

@@ -20,7 +20,7 @@ export const rawEmailsTable = pgTable(
   "raw_emails",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: text("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
     provider: text("provider").notNull(),
@@ -53,7 +53,7 @@ export const rawEmailsTable = pgTable(
  */
 export const statementsTable = pgTable("statements", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id")
+  userId: uuid("user_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   issuer: text("issuer").notNull(),
@@ -77,7 +77,7 @@ export const statementsTable = pgTable("statements", {
  */
 export const transactionsTable = pgTable("transactions", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id")
+  userId: uuid("user_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   merchant: text("merchant").notNull(),
@@ -128,7 +128,7 @@ export type SyncJobStatus = (typeof SyncJobStatus)[keyof typeof SyncJobStatus];
  */
 export const syncJobsTable = pgTable("sync_jobs", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id")
+  userId: uuid("user_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   status: text("status").notNull().$type<SyncJobStatus>().default("pending"),

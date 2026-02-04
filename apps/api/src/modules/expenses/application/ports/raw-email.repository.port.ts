@@ -13,6 +13,7 @@ export interface RawEmailRepository {
         providerMessageId: string;
     }): Promise<RawEmail | null>;
     listByUser(params: { userId: string; limit: number; offset: number }): Promise<RawEmail[]>;
+    countByUser(userId: string): Promise<number>;
 }
 
 export const RAW_EMAIL_REPOSITORY = Symbol("RAW_EMAIL_REPOSITORY");

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 
 import { syncJobsTable, type SyncJobStatus } from "@workspace/database";
 
@@ -44,7 +44,16 @@ export class SyncJobRepositoryImpl implements SyncJobRepository {
 
         return records.map((r) => this.toDomain(r));
     }
+    async findLastCompletedByUserId(userId: string): Promise<SyncJob | null> {
+        const result = await this.db
+            .select()
+            .from(syncJobsTable)
+            .where(and(eq(syncJobsTable.userId, userId), eq(syncJobsTable.status, "completed")))
+            .orderBy(desc(syncJobsTable.completedAt))
+            .limit(1);
 
+        return result[0] ? this.toDomain(result[0]) : null;
+    }
     async update(id: string, params: UpdateSyncJobParams): Promise<SyncJob | null> {
         const updateData: Record<string, unknown> = {};
 

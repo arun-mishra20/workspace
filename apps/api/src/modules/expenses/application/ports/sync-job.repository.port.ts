@@ -38,6 +38,7 @@ export interface SyncJobRepository {
     create(params: CreateSyncJobParams): Promise<SyncJob>;
     findById(id: string): Promise<SyncJob | null>;
     findByUserId(userId: string, limit?: number): Promise<SyncJob[]>;
+    findLastCompletedByUserId(userId: string): Promise<SyncJob | null>;
     update(id: string, params: UpdateSyncJobParams): Promise<SyncJob | null>;
     incrementProgress(
         id: string,

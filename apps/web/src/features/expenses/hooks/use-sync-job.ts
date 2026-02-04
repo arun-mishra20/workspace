@@ -25,7 +25,7 @@ interface UseSyncJobReturn {
 }
 
 export function useSyncJob(options: UseSyncJobOptions = {}): UseSyncJobReturn {
-  const { onComplete, onError, pollingInterval = 1000 } = options;
+  const { onComplete, onError, pollingInterval = 3000 } = options;
   const queryClient = useQueryClient();
 
   const [job, setJob] = useState<SyncJob | null>(null);

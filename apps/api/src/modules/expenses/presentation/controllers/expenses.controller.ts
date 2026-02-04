@@ -21,6 +21,7 @@ import { ExpensesService } from "@/modules/expenses/application/services/expense
 import { GmailOAuthService } from "@/modules/expenses/application/services/gmail-oauth.service";
 import { SyncExpensesDto } from "@/modules/expenses/presentation/dtos/sync-expenses.dto";
 import { ListExpenseEmailsDto } from "@/modules/expenses/presentation/dtos/list-expense-emails.dto";
+import { OffsetListResponseDto } from "@/shared/infrastructure/dtos/list-response.dto";
 import type { RawEmail } from "@workspace/domain";
 import type { Env } from "@/app/config/env.schema";
 import type { Response } from "express";
@@ -95,17 +96,30 @@ export class ExpensesController {
     @ApiOperation({ summary: "List expense-related emails" })
     @ApiResponse({
         status: 200,
-        description: "Returns expense email list",
+        description: "Returns paginated expense email list",
     })
     async listExpenseEmails(
         @Request() req: Express.Request & { user: { id: string } },
         @Query() query: ListExpenseEmailsDto,
-    ): Promise<RawEmail[]> {
-        return this.expensesService.listExpenseEmails({
+    ): Promise<OffsetListResponseDto<RawEmail>> {
+        const page = query.page ?? 1;
+        const page_size = query.page_size ?? 20;
+        const offset = (page - 1) * page_size;
+
+        const { data, total } = await this.expensesService.listExpenseEmails({
             userId: req.user.id,
-            limit: query.limit ?? 500,
-            offset: query.offset ?? 0,
+            limit: page_size,
+            offset,
         });
+
+        return {
+            object: "list",
+            data,
+            page,
+            page_size,
+            total,
+            has_more: offset + data.length < total,
+        };
     }
 
     @Get("gmail/connect")

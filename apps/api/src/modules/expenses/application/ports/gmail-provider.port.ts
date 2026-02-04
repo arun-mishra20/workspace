@@ -6,16 +6,14 @@ import type { RawEmail } from "@workspace/domain";
  * Abstracts access to Gmail API (googleapis SDK implementation)
  */
 export interface GmailProvider {
-  listExpenseEmails(params: {
-    userId: string;
-    query: string;
-    after?: string;
-  }): Promise<Array<{ id: string }>>;
+    listExpenseEmails(params: {
+        userId: string;
+        query: string;
+        after?: string;
+        maxResults?: number;
+    }): Promise<Array<{ id: string }>>;
 
-  fetchEmailContent(params: {
-    userId: string;
-    emailId: string;
-  }): Promise<RawEmail>;
+    fetchEmailContent(params: { userId: string; emailId: string }): Promise<RawEmail>;
 }
 
 export const GMAIL_PROVIDER = Symbol("GMAIL_PROVIDER");

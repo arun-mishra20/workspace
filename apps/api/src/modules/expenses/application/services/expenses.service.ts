@@ -86,7 +86,24 @@ export class ExpensesService {
         jobId: string,
         params: { userId: string; query?: string },
     ): Promise<void> {
-        const query = params.query ?? "subject:(statement OR receipt OR purchase) newer_than:30d";
+        let query = params.query;
+
+        // If no custom query, build one based on last sync time
+        if (!query) {
+            const lastSync = await this.syncJobRepository.findLastCompletedByUserId(params.userId);
+
+            if (lastSync?.completedAt) {
+                // Incremental sync: fetch emails since last completed sync
+                const afterDate = this.formatGmailDate(lastSync.completedAt);
+                query = `subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank) after:${afterDate}`;
+                this.logger.log(`Incremental sync for user ${params.userId} after ${afterDate}`);
+            } else {
+                // First sync: fetch emails from last 6 months
+                query =
+                    "subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank) newer_than:180d";
+                this.logger.log(`First sync for user ${params.userId}, fetching last 6 months`);
+            }
+        }
 
         try {
             // Mark job as processing
@@ -119,7 +136,9 @@ export class ExpensesService {
                         emailId: ref.id,
                     });
 
+                    this.logger.debug(`Upserting email ${ref.id} for job ${jobId}`);
                     const { isNew, id: emailId } = await this.rawEmailRepository.upsert(rawEmail);
+                    this.logger.debug(`Email ${ref.id} upserted: isNew=${isNew}, id=${emailId}`);
 
                     // Update progress
                     await this.syncJobRepository.incrementProgress(jobId, "processedEmails");
@@ -185,11 +204,25 @@ export class ExpensesService {
         userId: string;
         limit: number;
         offset: number;
-    }): Promise<RawEmail[]> {
-        return this.rawEmailRepository.listByUser(params);
+    }): Promise<{ data: RawEmail[]; total: number }> {
+        const [data, total] = await Promise.all([
+            this.rawEmailRepository.listByUser(params),
+            this.rawEmailRepository.countByUser(params.userId),
+        ]);
+        return { data, total };
     }
 
     private findParser(email: RawEmail): EmailParser | null {
         return this.parsers.find((parser) => parser.canParse(email)) ?? null;
+    }
+
+    /**
+     * Format date for Gmail query (YYYY/MM/DD)
+     */
+    private formatGmailDate(date: Date): string {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}/${month}/${day}`;
     }
 }
