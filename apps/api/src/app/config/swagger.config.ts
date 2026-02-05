@@ -113,6 +113,7 @@ export async function setupSwagger(app: INestApplication): Promise<void> {
         "/docs",
         apiReference({
             content: document,
+            withFastify: true,
         }),
     );
 }

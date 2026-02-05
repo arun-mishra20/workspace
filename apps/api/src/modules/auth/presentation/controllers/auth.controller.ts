@@ -10,6 +10,7 @@ import { RevokeSessionDto, RevokeSessionResponseDto } from '@/modules/auth/prese
 import { SessionResponseDto } from '@/modules/auth/presentation/dtos/session-response.dto'
 import { SessionsListResponseDto } from '@/modules/auth/presentation/dtos/sessions-list-response.dto'
 import { JwtAuthGuard } from '@/modules/auth/presentation/guards/jwt-auth.guard'
+import type { FastifyRequest } from 'fastify'
 
 /**
  * Auth Controller v1
@@ -64,7 +65,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current session info' })
   @ApiResponse({ status: 200, type: SessionResponseDto })
   async getSession(
-    @Request() req: Express.Request & { user: { id: string, email: string, roles: string[], sessionId: string } },
+    @Request() req: FastifyRequest & { user: { id: string, email: string, roles: string[], sessionId: string } },
   ): Promise<SessionResponseDto> {
     const role = req.user.roles[0] ?? null
     return this.authService.getSession(req.user.sessionId, req.user.id, req.user.email, role)
@@ -79,7 +80,7 @@ export class AuthController {
   @ApiOperation({ summary: 'List sessions' })
   @ApiResponse({ status: 200, type: SessionsListResponseDto })
   async listSessions(
-    @Request() req: Express.Request & { user: { id: string, sessionId: string } },
+    @Request() req: FastifyRequest & { user: { id: string, sessionId: string } },
   ): Promise<SessionsListResponseDto> {
     return this.authService.listSessions(req.user.id, req.user.sessionId)
   }
@@ -110,7 +111,7 @@ export class AuthController {
   @ApiResponse({ status: 200, type: RevokeSessionResponseDto })
   async revokeSession(
     @Body() dto: RevokeSessionDto,
-    @Request() req: Express.Request & { user: { id: string, sessionId: string } },
+    @Request() req: FastifyRequest & { user: { id: string, sessionId: string } },
   ): Promise<RevokeSessionResponseDto> {
     return this.authService.revokeSession(dto.sessionId, req.user.id, req.user.sessionId)
   }
@@ -124,7 +125,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Revoke all sessions' })
   @ApiResponse({ status: 200, type: LogoutAllResponseDto })
   async revokeSessions(
-    @Request() req: Express.Request & { user: { id: string } },
+    @Request() req: FastifyRequest & { user: { id: string } },
   ): Promise<LogoutAllResponseDto> {
     const revokedCount = await this.authService.revokeAllSessions(req.user.id)
     return {

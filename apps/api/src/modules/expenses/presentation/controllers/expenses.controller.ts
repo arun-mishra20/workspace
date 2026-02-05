@@ -24,7 +24,7 @@ import { ListExpenseEmailsDto } from "@/modules/expenses/presentation/dtos/list-
 import { OffsetListResponseDto } from "@/shared/infrastructure/dtos/list-response.dto";
 import type { RawEmail } from "@workspace/domain";
 import type { Env } from "@/app/config/env.schema";
-import type { Response } from "express";
+import type { FastifyReply, FastifyRequest } from "fastify";
 
 @ApiTags("expenses")
 @Controller("expenses")
@@ -44,7 +44,7 @@ export class ExpensesController {
         description: "Sync job started, returns job ID for status polling",
     })
     async syncExpenses(
-        @Request() req: Express.Request & { user: { id: string } },
+        @Request() req: FastifyRequest & { user: { id: string } },
         @Body() dto: SyncExpensesDto,
     ): Promise<{ jobId: string; message: string }> {
         const { jobId } = await this.expensesService.startSyncJob({
@@ -67,7 +67,7 @@ export class ExpensesController {
         description: "Returns sync job status and progress",
     })
     async getSyncJobStatus(
-        @Request() req: Express.Request & { user: { id: string } },
+        @Request() req: FastifyRequest & { user: { id: string } },
         @Param("jobId") jobId: string,
     ) {
         const job = await this.expensesService.getSyncJobStatus(jobId);
@@ -85,7 +85,7 @@ export class ExpensesController {
         description: "Returns list of recent sync jobs",
     })
     async listSyncJobs(
-        @Request() req: Express.Request & { user: { id: string } },
+        @Request() req: FastifyRequest & { user: { id: string } },
         @Query("limit") limit?: string,
     ) {
         return this.expensesService.getUserSyncJobs(req.user.id, limit ? parseInt(limit, 10) : 10);
@@ -99,7 +99,7 @@ export class ExpensesController {
         description: "Returns paginated expense email list",
     })
     async listExpenseEmails(
-        @Request() req: Express.Request & { user: { id: string } },
+        @Request() req: FastifyRequest & { user: { id: string } },
         @Query() query: ListExpenseEmailsDto,
     ): Promise<OffsetListResponseDto<RawEmail>> {
         const page = query.page ?? 1;
@@ -127,7 +127,7 @@ export class ExpensesController {
     @ApiOperation({ summary: "Start Gmail OAuth flow" })
     @ApiResponse({ status: 200, description: "Returns OAuth URL" })
     async connectGmail(
-        @Request() req: Express.Request & { user: { id: string } },
+        @Request() req: FastifyRequest & { user: { id: string } },
     ): Promise<{ url: string }> {
         const url = this.gmailOAuthService.getAuthUrl(req.user.id);
         return { url };
@@ -138,13 +138,13 @@ export class ExpensesController {
     @ApiOperation({ summary: "Get Gmail connection status" })
     @ApiResponse({ status: 200, description: "Returns Gmail connection status" })
     async gmailStatus(
-        @Request() req: Express.Request & { user: { id: string } },
-        @Res({ passthrough: true }) res: Response,
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Res({ passthrough: true }) res: FastifyReply,
     ): Promise<{ connected: boolean; email?: string | null }> {
         // Disable caching and ETag for dynamic status endpoint
-        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        res.setHeader("Pragma", "no-cache");
-        res.setHeader("Expires", "0");
+        res.header("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.header("Pragma", "no-cache");
+        res.header("Expires", "0");
         return this.gmailOAuthService.getStatus(req.user.id);
     }
 
@@ -153,10 +153,10 @@ export class ExpensesController {
     async gmailCallback(
         @Query("code") code: string | undefined,
         @Query("state") state: string | undefined,
-        @Res() res: Response,
+        @Res() res: FastifyReply,
     ) {
         if (!code || !state) {
-            return res.status(400).json({ message: "Missing OAuth code or state" });
+            return res.code(400).send({ message: "Missing OAuth code or state" });
         }
 
         await this.gmailOAuthService.handleCallback({ code, state });

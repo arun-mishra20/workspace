@@ -7,7 +7,7 @@ import type {
 } from "@/shared/infrastructure/dtos/problem-details.dto";
 import type { ValidationErrorItem } from "@/shared/infrastructure/types/validation-error";
 import type { ExceptionFilter, ArgumentsHost } from "@nestjs/common";
-import type { Request, Response } from "express";
+import type { FastifyReply, FastifyRequest } from "fastify";
 
 /**
  * RFC 9457 Problem Details exception filter
@@ -26,14 +26,14 @@ export class ProblemDetailsFilter implements ExceptionFilter {
 
     catch(exception: HttpException, host: ArgumentsHost) {
         const context = host.switchToHttp();
-        const response = context.getResponse<Response>();
-        const request = context.getRequest<Request>();
+        const response = context.getResponse<FastifyReply>();
+        const request = context.getRequest<FastifyRequest>();
         const status = exception.getStatus();
         const exceptionResponse = exception.getResponse();
 
         // Silent handling for specific paths
         if (status === 404 && this.#silentPaths.includes(request.url)) {
-            response.status(404).end();
+            response.code(404).send();
             return;
         }
 
@@ -69,10 +69,10 @@ export class ProblemDetailsFilter implements ExceptionFilter {
             this.logger.warn(logMessage);
         }
 
-        response.setHeader("Content-Type", "application/problem+json");
-        response.setHeader("Cache-Control", "no-store");
+        response.header("Content-Type", "application/problem+json");
+        response.header("Cache-Control", "no-store");
 
-        response.status(status).json(problemDetails);
+        response.code(status).send(problemDetails);
     }
 
     /**

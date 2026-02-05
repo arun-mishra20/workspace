@@ -4,7 +4,7 @@ import { ConfigService } from "@nestjs/config";
 
 import { GmailOAuthService } from "@/modules/expenses/application/services/gmail-oauth.service";
 import type { Env } from "@/app/config/env.schema";
-import type { Response } from "express";
+import type { FastifyReply } from "fastify";
 
 @ApiTags("expenses")
 @Controller("auth/google")
@@ -17,11 +17,11 @@ export class GmailOAuthController {
   @Get("callback")
   @ApiOperation({ summary: "Gmail OAuth callback (public)" })
   @ApiResponse({ status: 302, description: "Redirects back to web app" })
-  async gmailCallback(
-    @Query("code") code: string | undefined,
-    @Query("state") state: string | undefined,
-    @Res() res: Response,
-  ) {
+    async gmailCallback(
+        @Query("code") code: string | undefined,
+        @Query("state") state: string | undefined,
+        @Res() res: FastifyReply,
+    ) {
     if (!code || !state) {
       throw new BadRequestException("Missing OAuth code or state");
     }
