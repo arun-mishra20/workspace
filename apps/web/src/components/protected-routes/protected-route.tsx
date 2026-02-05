@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { getAccessToken } from "@/lib/auth";
+import { useQuery } from "@tanstack/react-query";
+import { $api } from "@/lib/fetch-client";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -29,7 +31,17 @@ export function ProtectedRoute({
   isPublic = false,
 }: ProtectedRouteProps) {
   const accessToken = getAccessToken();
-  const isAuthenticated = !!accessToken;
+  const sessionQuery = useQuery({
+    ...$api.queryOptions("get", "/api/auth/session"),
+    enabled: !!accessToken, // Only fetch session if user has a token
+    retry: false,
+  });
+
+  const isAuthenticated = !!sessionQuery.data?.user;
+
+  if (accessToken && sessionQuery.isLoading) {
+    return null;
+  }
 
   if (isPublic) {
     // Public routes (login, register, home) should redirect to dashboard if already logged in

@@ -84,6 +84,6 @@ import type { Env } from "@/app/config/env.schema";
             useClass: UserRepositoryImpl,
         },
     ],
-    exports: [AuthService, USER_ROLE_REPOSITORY],
+    exports: [AuthService, USER_ROLE_REPOSITORY, AUTH_IDENTITY_REPOSITORY],
 })
 export class AuthModule {}

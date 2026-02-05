@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { parseTraceparent } from "@/shared/infrastructure/utils/trace-context.util";
 
-import type { Request } from "express";
+import type { FastifyRequest } from "fastify";
 import type { ClsModuleOptions, ClsService } from "nestjs-cls";
 
 /**
@@ -15,9 +15,10 @@ export function createClsConfig(): ClsModuleOptions {
         middleware: {
             mount: true,
             generateId: true,
-            idGenerator: (request: Request) => {
+            idGenerator: (request: FastifyRequest) => {
                 // Use client X-Request-Id or generate new UUID
-                return (request.headers["x-request-id"] as string) || randomUUID();
+                const requestId = getHeaderValue(request.headers["x-request-id"]);
+                return requestId || randomUUID();
             },
             setup: setupClsContext,
         },
@@ -27,19 +28,19 @@ export function createClsConfig(): ClsModuleOptions {
 /**
  * Extract and store tracing info from request headers
  */
-function setupClsContext(cls: ClsService, request: Request) {
+function setupClsContext(cls: ClsService, request: FastifyRequest) {
     // Basic request info
-    cls.set("userAgent", request.headers["user-agent"]);
+    cls.set("userAgent", getHeaderValue(request.headers["user-agent"]));
     cls.set("ip", request.ip);
     cls.set("method", request.method);
     cls.set("url", request.url);
 
     // Correlation ID for business tracing
-    const correlationId = (request.headers["x-correlation-id"] as string) || randomUUID();
+    const correlationId = getHeaderValue(request.headers["x-correlation-id"]) || randomUUID();
     cls.set("correlationId", correlationId);
 
     // W3C Trace Context for distributed tracing
-    const traceparent = request.headers.traceparent as string;
+    const traceparent = getHeaderValue(request.headers.traceparent);
     if (traceparent) {
         const traceContext = parseTraceparent(traceparent);
         if (traceContext) {
@@ -50,15 +51,23 @@ function setupClsContext(cls: ClsService, request: Request) {
     }
 
     // Optional tracestate
-    const tracestate = request.headers.tracestate as string;
+    const tracestate = getHeaderValue(request.headers.tracestate);
     if (tracestate) {
         cls.set("tracestate", tracestate);
     }
 
     // API version
     const apiVersion =
-        (request.headers["api-version"] as string) || (request.headers["x-api-version"] as string);
+        getHeaderValue(request.headers["api-version"])
+        || getHeaderValue(request.headers["x-api-version"]);
     if (apiVersion) {
         cls.set("apiVersion", apiVersion);
     }
+}
+
+function getHeaderValue(header: string | string[] | undefined): string | undefined {
+    if (!header) {
+        return undefined;
+    }
+    return Array.isArray(header) ? header[0] : header;
 }

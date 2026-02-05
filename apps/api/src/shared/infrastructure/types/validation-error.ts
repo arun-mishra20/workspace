@@ -8,7 +8,7 @@ export interface ValidationErrorItem {
 }
 
 /**
- * Express Response extension type
+ * Response extension type
  */
 export interface TypedResponse {
   statusCode: number

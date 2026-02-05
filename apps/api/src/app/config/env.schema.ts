@@ -100,6 +100,14 @@ export const envSchema = z.object({
   // Swagger auto-login (dev only)
   SWAGGER_TEST_EMAIL: z.email().optional(),
   SWAGGER_TEST_PASSWORD: z.string().optional(),
+
+  // Gmail OAuth (expenses)
+  GMAIL_CLIENT_ID: z.string().optional(),
+  GMAIL_CLIENT_SECRET: z.string().optional(),
+  GMAIL_REDIRECT_URI: z.string().url().optional(),
+
+  // Web app base URL (OAuth redirect target)
+  WEB_APP_URL: z.string().url().default('http://localhost:8000'),
 })
 
 /**

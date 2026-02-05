@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 
 import type { ProblemDetailsDto } from "@/shared/infrastructure/dtos/problem-details.dto";
 import type { NestMiddleware } from "@nestjs/common";
-import type { Request, Response, NextFunction } from "express";
+import type { IncomingMessage, ServerResponse } from "node:http";
 
 /**
  * API version control middleware (Google AIP-185, Stripe-style)
@@ -20,8 +20,9 @@ export class ApiVersionMiddleware implements NestMiddleware {
 
     private readonly RETIRED_VERSIONS: string[] = [];
 
-    use(request: Request, res: Response, next: NextFunction) {
-        let version = request.headers["api-version"] as string;
+    use(request: IncomingMessage & { apiVersion?: string }, res: ServerResponse, next: () => void) {
+        const headerVersion = request.headers["api-version"];
+        let version = Array.isArray(headerVersion) ? headerVersion[0] : headerVersion;
 
         if (!version) {
             version = this.DEFAULT_VERSION;
@@ -35,7 +36,7 @@ export class ApiVersionMiddleware implements NestMiddleware {
             return this.handleUnsupportedVersion(request, res, version);
         }
 
-        (request as Request & { apiVersion?: string }).apiVersion = version;
+        request.apiVersion = version;
         res.setHeader("API-Version", version);
 
         next();
@@ -44,13 +45,13 @@ export class ApiVersionMiddleware implements NestMiddleware {
     /**
      * Handle unsupported version (400 Bad Request)
      */
-    private handleUnsupportedVersion(request: Request, res: Response, version: string) {
+    private handleUnsupportedVersion(request: IncomingMessage, res: ServerResponse, version: string) {
         const problemDetails: ProblemDetailsDto = {
             type: `${process.env.API_BASE_URL ?? "https://api.example.com"}/errors/unsupported-api-version`,
             title: "Unsupported API Version",
             status: 400,
             detail: `API version ${version} is not supported. Please use a supported version.`,
-            instance: request.url,
+            instance: request.url ?? "/",
             timestamp: new Date().toISOString(),
         };
 
@@ -61,19 +62,21 @@ export class ApiVersionMiddleware implements NestMiddleware {
         extendedDetails.supported_versions = this.SUPPORTED_VERSIONS;
         extendedDetails.latest_version = this.DEFAULT_VERSION;
 
-        res.status(400).setHeader("Content-Type", "application/problem+json").json(problemDetails);
+        res.statusCode = 400;
+        res.setHeader("Content-Type", "application/problem+json");
+        res.end(JSON.stringify(problemDetails));
     }
 
     /**
      * Handle retired version (410 Gone)
      */
-    private handleRetiredVersion(request: Request, res: Response, version: string) {
+    private handleRetiredVersion(request: IncomingMessage, res: ServerResponse, version: string) {
         const problemDetails: ProblemDetailsDto = {
             type: `${process.env.API_BASE_URL ?? "https://api.example.com"}/errors/version-retired`,
             title: "API Version Retired",
             status: 410,
             detail: `API version ${version} has been permanently retired.`,
-            instance: request.url,
+            instance: request.url ?? "/",
             timestamp: new Date().toISOString(),
         };
 
@@ -86,6 +89,8 @@ export class ApiVersionMiddleware implements NestMiddleware {
         extendedDetails.current_version = this.DEFAULT_VERSION;
         extendedDetails.migration_guide = `${process.env.API_BASE_URL ?? "https://api.example.com"}/migration/${version}-to-${this.DEFAULT_VERSION}`;
 
-        res.status(410).setHeader("Content-Type", "application/problem+json").json(problemDetails);
+        res.statusCode = 410;
+        res.setHeader("Content-Type", "application/problem+json");
+        res.end(JSON.stringify(problemDetails));
     }
 }

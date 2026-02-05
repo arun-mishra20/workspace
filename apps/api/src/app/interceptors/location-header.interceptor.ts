@@ -7,7 +7,7 @@ import type {
   NestInterceptor,
   ExecutionContext,
   CallHandler } from '@nestjs/common'
-import type { Response, Request } from 'express'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { Observable } from 'rxjs'
 
 /**
@@ -20,8 +20,8 @@ export class LocationHeaderInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap((data: unknown) => {
         const httpContext = context.switchToHttp()
-        const response = httpContext.getResponse<Response>()
-        const request = httpContext.getRequest<Request>()
+        const response = httpContext.getResponse<FastifyReply>()
+        const request = httpContext.getRequest<FastifyRequest>()
 
         // Only handle 201 Created responses
         if (response.statusCode !== 201) {
@@ -38,10 +38,13 @@ export class LocationHeaderInterceptor implements NestInterceptor {
           return
         }
 
-        const baseUrl = `${request.protocol}://${request.get('host')}`
-        const resourcePath = this.buildResourcePath(request.path, data.id)
+        const protocol = request.protocol ?? 'http'
+        const host = request.headers.host ?? 'localhost'
+        const requestPath = request.url.split('?')[0] ?? request.url
+        const baseUrl = `${protocol}://${host}`
+        const resourcePath = this.buildResourcePath(requestPath, data.id)
 
-        response.setHeader('Location', `${baseUrl}${resourcePath}`)
+        response.header('Location', `${baseUrl}${resourcePath}`)
       }),
     )
   }

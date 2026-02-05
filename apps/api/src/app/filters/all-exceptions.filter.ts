@@ -13,7 +13,7 @@ import { ProblemDetailsFilter } from '@/app/filters/problem-details.filter'
 import type {
   ExceptionFilter,
   ArgumentsHost } from '@nestjs/common'
-import type { Request, Response } from 'express'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 
 /**
  * Global exception filter - catches all unhandled exceptions
@@ -32,8 +32,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost) {
     const context = host.switchToHttp()
-    const response = context.getResponse<Response>()
-    const request = context.getRequest<Request>()
+    const response = context.getResponse<FastifyReply>()
+    const request = context.getRequest<FastifyRequest>()
 
     // Delegate HTTP exceptions to ProblemDetailsFilter
     if (exception instanceof HttpException && this.problemDetailsFilter) {
@@ -82,8 +82,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       this.logger.error(logMessage, JSON.stringify(exception))
     }
 
-    response.setHeader('Cache-Control', 'no-store')
-    response.status(status).json(errorResponse)
+    response.header('Cache-Control', 'no-store')
+    response.code(status).send(errorResponse)
   }
 
   /**

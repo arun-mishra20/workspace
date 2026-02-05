@@ -1,5 +1,7 @@
 import { RequestMethod } from "@nestjs/common";
 import { NestFactory, Reflector } from "@nestjs/core";
+import { FastifyAdapter, type NestFastifyApplication } from "@nestjs/platform-fastify";
+import fastifyCors from "@fastify/cors";
 import { Logger } from "nestjs-pino";
 
 import { corsConfig } from "@/app/config/security.config";
@@ -20,7 +22,7 @@ import { TransformInterceptor } from "@/app/interceptors/transform.interceptor";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule, {
+    const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
         bufferLogs: true, // Buffer logs until Logger is ready
     });
 
@@ -28,7 +30,7 @@ async function bootstrap() {
     app.useLogger(app.get(Logger));
 
     // CORS config
-    app.enableCors(corsConfig);
+    await app.register(fastifyCors, corsConfig);
 
     // Global route prefix
     app.setGlobalPrefix("api", {
@@ -39,6 +41,8 @@ async function bootstrap() {
             // Exclude health check endpoints
             { path: "health", method: RequestMethod.ALL },
             { path: "health/{*path}", method: RequestMethod.ALL },
+            // Exclude Gmail OAuth callback (Google requires exact redirect URI)
+            { path: "auth/google/callback", method: RequestMethod.GET },
         ],
     });
 
@@ -78,8 +82,8 @@ async function bootstrap() {
     // Swagger docs
     await setupSwagger(app);
 
-    const port = process.env.PORT ?? 3000;
-    await app.listen(port);
+    const port = Number(process.env.PORT ?? 3000);
+    await app.listen(port, "0.0.0.0");
 
     const logger = app.get(Logger);
     const env = process.env.NODE_ENV ?? "development";

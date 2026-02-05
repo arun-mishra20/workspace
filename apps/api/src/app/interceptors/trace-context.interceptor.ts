@@ -8,7 +8,7 @@ import type {
   NestInterceptor,
   ExecutionContext,
   CallHandler } from '@nestjs/common'
-import type { Response } from 'express'
+import type { FastifyReply } from 'fastify'
 import type { Observable } from 'rxjs'
 
 /**
@@ -21,12 +21,12 @@ export class TraceContextInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const httpContext = context.switchToHttp()
-    const response = httpContext.getResponse<Response>()
+    const response = httpContext.getResponse<FastifyReply>()
 
     const traceId = this.cls.get<string>('traceId')
 
     if (traceId) {
-      response.setHeader('Trace-Id', traceId)
+      response.header('Trace-Id', traceId)
     }
 
     return next.handle().pipe(

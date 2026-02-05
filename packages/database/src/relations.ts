@@ -5,6 +5,9 @@ import {
   profilesTable,
   accountsTable,
   sessionsTable,
+  rawEmailsTable,
+  statementsTable,
+  transactionsTable,
 } from './schemas/index.js'
 
 /**
@@ -20,6 +23,12 @@ export const usersRelations = relations(usersTable, ({ one, many }) => ({
   accounts: many(accountsTable),
   // 1:N with auth_sessions
   sessions: many(sessionsTable),
+  // 1:N with raw_emails
+  rawEmails: many(rawEmailsTable),
+  // 1:N with statements
+  statements: many(statementsTable),
+  // 1:N with transactions
+  transactions: many(transactionsTable),
 }))
 
 /**
@@ -52,5 +61,59 @@ export const sessionsRelations = relations(sessionsTable, ({ one }) => ({
   user: one(usersTable, {
     fields: [sessionsTable.userId],
     references: [usersTable.id],
+  }),
+}))
+
+/**
+ * Raw Emails table relations
+ */
+export const rawEmailsRelations = relations(rawEmailsTable, ({ one, many }) => ({
+  // N:1 with users
+  user: one(usersTable, {
+    fields: [rawEmailsTable.userId],
+    references: [usersTable.id],
+  }),
+  // 1:N with transactions
+  transactions: many(transactionsTable),
+  // 1:N with statements
+  statements: many(statementsTable),
+}))
+
+/**
+ * Statements table relations
+ */
+export const statementsRelations = relations(statementsTable, ({ one, many }) => ({
+  // N:1 with users
+  user: one(usersTable, {
+    fields: [statementsTable.userId],
+    references: [usersTable.id],
+  }),
+  // N:1 with raw_emails
+  sourceEmail: one(rawEmailsTable, {
+    fields: [statementsTable.sourceEmailId],
+    references: [rawEmailsTable.id],
+  }),
+  // 1:N with transactions
+  transactions: many(transactionsTable),
+}))
+
+/**
+ * Transactions table relations
+ */
+export const transactionsRelations = relations(transactionsTable, ({ one }) => ({
+  // N:1 with users
+  user: one(usersTable, {
+    fields: [transactionsTable.userId],
+    references: [usersTable.id],
+  }),
+  // N:1 with raw_emails
+  sourceEmail: one(rawEmailsTable, {
+    fields: [transactionsTable.sourceEmailId],
+    references: [rawEmailsTable.id],
+  }),
+  // N:1 with statements
+  statement: one(statementsTable, {
+    fields: [transactionsTable.statementId],
+    references: [statementsTable.id],
   }),
 }))

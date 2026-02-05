@@ -1,6 +1,13 @@
-import { jsonb, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core'
+import {
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
 
-import { usersTable } from './users.schema.js'
+import { usersTable } from "./users.schema.js";
 
 /**
  * User preferences
@@ -10,13 +17,13 @@ import { usersTable } from './users.schema.js'
  */
 export interface UserPreferences {
   /** Theme: light/dark/system */
-  theme?: 'light' | 'dark' | 'system'
+  theme?: "light" | "dark" | "system";
   /** Language preference */
-  lang?: string
+  lang?: string;
   /** Timezone */
-  timezone?: string
+  timezone?: string;
   /** Notifications enabled */
-  notifications?: boolean
+  notifications?: boolean;
 }
 
 /**
@@ -27,40 +34,40 @@ export interface UserPreferences {
  * - Can be updated independently without affecting core user data
  * - Uses JSONB for preferences to avoid frequent schema changes
  */
-export const profilesTable = pgTable('profiles', {
+export const profilesTable = pgTable("profiles", {
   // Primary key + Foreign key (1:1 relation)
-  userId: text('user_id')
+  userId: uuid("user_id")
     .primaryKey()
-    .references(() => usersTable.id, { onDelete: 'cascade' }),
+    .references(() => usersTable.id, { onDelete: "cascade" }),
 
   // Display name/nickname
-  displayName: varchar('display_name', { length: 50 }),
+  displayName: varchar("display_name", { length: 50 }),
 
   // Avatar URL
-  avatarUrl: text('avatar_url'),
+  avatarUrl: text("avatar_url"),
 
   // Bio
-  bio: varchar('bio', { length: 500 }),
+  bio: varchar("bio", { length: 500 }),
 
   // User preferences (JSONB)
-  preferences: jsonb('preferences').$type<UserPreferences>().default({}),
+  preferences: jsonb("preferences").$type<UserPreferences>().default({}),
 
   // Timestamps
-  createdAt: timestamp('created_at', { withTimezone: true })
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
-})
+});
 
 /**
  * Profile database type (inferred from table)
  */
-export type ProfileDatabase = typeof profilesTable.$inferSelect
+export type ProfileDatabase = typeof profilesTable.$inferSelect;
 
 /**
  * Insert profile type (inferred from table)
  */
-export type InsertProfileDatabase = typeof profilesTable.$inferInsert
+export type InsertProfileDatabase = typeof profilesTable.$inferInsert;

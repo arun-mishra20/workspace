@@ -28,5 +28,8 @@ export const appPaths = {
     metrics: {
       getHref: () => "/metrics",
     },
+    expensesEmails: {
+      getHref: () => "/expenses/emails",
+    },
   },
 } as const;

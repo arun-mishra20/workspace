@@ -7,7 +7,7 @@ import type {
   NestInterceptor,
   ExecutionContext,
   CallHandler } from '@nestjs/common'
-import type { Response, Request } from 'express'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { Observable } from 'rxjs'
 
 /**
@@ -27,10 +27,10 @@ export class DeprecationInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(() => {
         const httpContext = context.switchToHttp()
-        const request = httpContext.getRequest<Request>()
-        const response = httpContext.getResponse<Response>()
+        const request = httpContext.getRequest<FastifyRequest>()
+        const response = httpContext.getResponse<FastifyReply>()
 
-        const apiVersion = (request as Request & { apiVersion?: string })
+        const apiVersion = (request as FastifyRequest & { apiVersion?: string })
           .apiVersion
 
         if (!apiVersion) {
@@ -43,7 +43,7 @@ export class DeprecationInterceptor implements NestInterceptor {
         }
 
         // Add Deprecation header (RFC 9110)
-        response.setHeader(
+        response.header(
           'Deprecation',
           deprecationInfo.deprecatedAt.toUTCString(),
         )
@@ -55,12 +55,12 @@ export class DeprecationInterceptor implements NestInterceptor {
         )
 
         if (now >= sixMonthsBeforeSunset) {
-          response.setHeader('Sunset', deprecationInfo.sunsetAt.toUTCString())
+          response.header('Sunset', deprecationInfo.sunsetAt.toUTCString())
         }
 
         // Add Link header pointing to migration guide
         const linkRel = now >= sixMonthsBeforeSunset ? 'sunset' : 'deprecation'
-        response.setHeader(
+        response.header(
           'Link',
           `<${deprecationInfo.migrationGuide}>; rel="${linkRel}"`,
         )
@@ -71,7 +71,7 @@ export class DeprecationInterceptor implements NestInterceptor {
             ? `API version ${apiVersion} will sunset on ${deprecationInfo.sunsetAt.toISOString().split('T')[0]}`
             : `API version ${apiVersion} is deprecated`
 
-        response.setHeader('Warning', `299 - "${warningMessage}"`)
+        response.header('Warning', `299 - "${warningMessage}"`)
       }),
     )
   }

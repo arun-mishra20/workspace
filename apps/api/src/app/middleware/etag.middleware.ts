@@ -3,7 +3,7 @@ import * as crypto from 'node:crypto'
 import { Injectable } from '@nestjs/common'
 
 import type { NestMiddleware } from '@nestjs/common'
-import type { Request, Response, NextFunction } from 'express'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 
 /**
  * ETag middleware (RFC 9110 §8.8.3)
@@ -13,16 +13,16 @@ import type { Request, Response, NextFunction } from 'express'
  */
 @Injectable()
 export class ETagMiddleware implements NestMiddleware {
-  use(request: Request, res: Response, next: NextFunction) {
+  use(request: FastifyRequest, res: FastifyReply, next: () => void) {
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       return next()
     }
 
-    const originalJson = res.json.bind(res) as (body: unknown) => Response
+    const originalSend = res.send.bind(res) as (body?: unknown) => FastifyReply
 
-    res.json = ((body: unknown) => {
-      return this.handleETag(request, res, body, originalJson)
-    }) as typeof res.json
+    res.send = ((body?: unknown) => {
+      return this.handleETag(request, res, body, originalSend)
+    }) as typeof res.send
 
     next()
   }
@@ -31,41 +31,47 @@ export class ETagMiddleware implements NestMiddleware {
    * Generate and validate ETag
    */
   private handleETag(
-    request: Request,
-    res: Response,
+    request: FastifyRequest,
+    res: FastifyReply,
     body: unknown,
-    originalJson: (body: unknown) => Response,
-  ): Response {
-    if (res.headersSent) {
-      return originalJson(body)
+    originalSend: (body?: unknown) => FastifyReply,
+  ): FastifyReply {
+    if (res.sent) {
+      return originalSend(body)
     }
 
     const etag = this.generateETag(body)
-    res.setHeader('ETag', etag)
+    res.header('ETag', etag)
 
     if (!res.getHeader('Cache-Control')) {
-      res.setHeader('Cache-Control', 'max-age=3600') // 1 hour
+      res.header('Cache-Control', 'max-age=3600') // 1 hour
     }
 
-    const ifNoneMatch = request.headers['if-none-match']
+    const ifNoneMatchHeader = request.headers['if-none-match']
+    const ifNoneMatch = Array.isArray(ifNoneMatchHeader)
+      ? ifNoneMatchHeader.join(',')
+      : ifNoneMatchHeader
+
     if (ifNoneMatch) {
       const etags = new Set(ifNoneMatch.split(',').map((e) => e.trim()))
 
       if (etags.has(etag) || etags.has('*')) {
-        return res.status(304).end()
+        res.code(304)
+        return originalSend()
       }
     }
 
-    return originalJson(body)
+    return originalSend(body)
   }
 
   /**
    * Generate strong ETag (MD5 hash)
    */
   private generateETag(data: unknown): string {
+    const json = JSON.stringify(data ?? null)
     const hash = crypto
       .createHash('md5')
-      .update(JSON.stringify(data))
+      .update(json)
       .digest('hex')
 
     return `"${hash}"`

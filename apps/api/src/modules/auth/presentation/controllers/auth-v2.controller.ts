@@ -7,6 +7,7 @@ import { RefreshTokenDto, RefreshTokenResponseDto } from '@/modules/auth/present
 import { RegisterDto, RegisterResponseDto } from '@/modules/auth/presentation/dtos/register.dto'
 import { SessionResponseDto } from '@/modules/auth/presentation/dtos/session-response.dto'
 import { JwtAuthGuard } from '@/modules/auth/presentation/guards/jwt-auth.guard'
+import type { FastifyRequest } from 'fastify'
 
 /**
  * Auth Controller v2
@@ -55,7 +56,7 @@ export class AuthV2Controller {
   @ApiResponse({ status: 200, type: SessionResponseDto })
   async getSession(
     @Request()
-    req: Express.Request & { user: { id: string, email: string, roles: string[], sessionId: string } },
+    req: FastifyRequest & { user: { id: string, email: string, roles: string[], sessionId: string } },
   ): Promise<SessionResponseDto> {
     const role = req.user.roles[0] ?? null
     return this.authService.getSession(req.user.sessionId, req.user.id, req.user.email, role)

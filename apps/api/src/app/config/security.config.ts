@@ -1,9 +1,9 @@
-import type { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface'
+import type { FastifyCorsOptions } from '@fastify/cors'
 
 /**
  * CORS configuration
  */
-export const corsConfig: CorsOptions = {
+export const corsConfig: FastifyCorsOptions = {
   // Allowed origins (production should specify exact domains)
   origin:
     process.env.NODE_ENV === 'production'
