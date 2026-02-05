@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/ui/table";
+import { Dot, MailSearch, RefreshCcw, Unplug } from "lucide-react";
 
 type RawEmail = {
   id: string;
@@ -189,6 +190,7 @@ const ExpenseEmailsPage = () => {
               onClick={() => connectMutation.mutate()}
               disabled={connectMutation.isPending}
             >
+              <MailSearch />
               {statusQuery.data?.connected
                 ? "Reconnect Gmail"
                 : "Connect Gmail"}
@@ -200,6 +202,7 @@ const ExpenseEmailsPage = () => {
                 !statusQuery.data?.connected || disconnectMutation.isPending
               }
             >
+              <Unplug />
               Disconnect Gmail
             </Button>
             <div className="flex flex-col gap-2">
@@ -209,6 +212,7 @@ const ExpenseEmailsPage = () => {
                 disabled={!statusQuery.data?.connected || isSyncing}
                 className="relative overflow-hidden"
               >
+                <RefreshCcw />
                 {/* progress fill */}
                 {isSyncing && (
                   <div
@@ -237,7 +241,8 @@ const ExpenseEmailsPage = () => {
             </div>
 
             {statusQuery.data?.connected ? (
-              <Badge variant="secondary">
+              <Badge variant="outline" className="flex gap-0 items-center">
+                <Dot className="text-teal-500 size-6" />
                 Connected
                 {statusQuery.data.email ? ` • ${statusQuery.data.email}` : ""}
               </Badge>
