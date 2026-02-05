@@ -1,20 +1,15 @@
 import { GmailConnectUrlSchema } from "@workspace/domain";
 
-import { apiRequest } from "@/lib/api-request";
+import { apiRequest } from "@/lib/api-client";
 
 export async function connectGmail(): Promise<{ url: string }> {
-  const response = await apiRequest("/api/expenses/gmail/connect", {
+  const json = await apiRequest({
     method: "GET",
-    credentials: "include",
+    url: "/api/expenses/gmail/connect",
     headers: {
       Accept: "application/json",
     },
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to start Gmail connection");
-  }
-
-  const json = await response.json();
   return GmailConnectUrlSchema.parse(json);
 }

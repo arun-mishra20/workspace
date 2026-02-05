@@ -5,46 +5,44 @@ import {
   type SyncJob,
 } from "@workspace/domain";
 
-import { apiRequest } from "@/lib/api-request";
+import { apiRequest } from "@/lib/api-client";
 
 /**
  * Start a new sync job (async)
  * Returns immediately with a job ID for polling
  */
 export async function startSyncJob(): Promise<StartSyncJobResponse> {
-  const response = await apiRequest("/api/expenses/sync", {
+  const json = await apiRequest({
     method: "POST",
-    credentials: "include",
+    url: "/api/expenses/sync",
     headers: {
       Accept: "application/json",
     },
+    toastSuccess: true,
+    successMessage: "Sync started",
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to start sync job");
-  }
-
-  const json = await response.json();
   return StartSyncJobResponseSchema.parse(json);
 }
 
 /**
  * Get the status of a sync job
+ * Note: toastError is disabled since this is called frequently in polling loops
  */
-export async function getSyncJobStatus(jobId: string): Promise<SyncJob> {
-  const response = await apiRequest(`/api/expenses/sync/${jobId}`, {
+export async function getSyncJobStatus(
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<SyncJob> {
+  const json = await apiRequest({
     method: "GET",
-    credentials: "include",
+    url: `/api/expenses/sync/${jobId}`,
     headers: {
       Accept: "application/json",
     },
+    signal,
+    toastError: false, // Disable toast for polling requests
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch sync job status");
-  }
-
-  const json = await response.json();
   return SyncJobSchema.parse(json);
 }
 

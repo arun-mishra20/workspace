@@ -18,7 +18,6 @@ import { RequestContextInterceptor } from "@/app/interceptors/request-context.in
 import { TraceContextInterceptor } from "@/app/interceptors/trace-context.interceptor";
 import { LoggerModule } from "@/app/logger/logger.module";
 import { ApiVersionMiddleware } from "@/app/middleware/api-version.middleware";
-import { ETagMiddleware } from "@/app/middleware/etag.middleware";
 import { SwaggerDevController } from "@/app/swagger/swagger-dev.controller";
 import { AuthModule } from "@/modules/auth/auth.module";
 import { ExpensesModule } from "@/modules/expenses/expenses.module";
@@ -98,8 +97,7 @@ export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
         // Register global middleware
         const middlewares = [
-            ApiVersionMiddleware, // API versioning (must be before ETag)
-            ...(process.env.NODE_ENV === "production" ? [ETagMiddleware] : []), // ETag only in production
+            ApiVersionMiddleware, // API versioning
         ];
         consumer.apply(...middlewares).forRoutes("{*path}"); // Apply to all routes
     }

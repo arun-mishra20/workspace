@@ -1,22 +1,19 @@
-import { apiRequest } from "@/lib/api-request";
+import { apiRequest } from "@/lib/api-client";
 import { GmailStatusSchema } from "@workspace/domain";
 
 export async function disconnectGmail(): Promise<{
   connected: boolean;
   email?: string | null;
 }> {
-  const response = await apiRequest("/api/expenses/gmail/disconnect", {
+  const json = await apiRequest({
     method: "DELETE",
-    credentials: "include",
+    url: "/api/expenses/gmail/disconnect",
     headers: {
       Accept: "application/json",
     },
+    toastSuccess: true,
+    successMessage: "Gmail disconnected",
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to disconnect Gmail");
-  }
-
-  const json = await response.json();
   return GmailStatusSchema.parse(json);
 }

@@ -1,6 +1,6 @@
 import { appPaths } from "@/config/app-paths";
 import { clearStoredTokens, getRefreshToken } from "@/lib/auth";
-import { $api, fetchClient } from "@/lib/fetch-client";
+import { apiRequest } from "@/lib/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@workspace/ui/components/ui/button";
 import {
@@ -18,14 +18,18 @@ const NavUser = ({ username }: { username: string | undefined }) => {
   const logout = async () => {
     try {
       const refreshToken = getRefreshToken();
-      await fetchClient.POST("/api/auth/logout", {
-        body: { refreshToken: refreshToken ?? "" },
-      }); // Route handler handles refreshToken
+      await apiRequest({
+        method: "POST",
+        url: "/api/auth/logout",
+        data: { refreshToken: refreshToken ?? "" },
+        toastSuccess: true,
+        successMessage: "Logged out",
+      });
     } finally {
       clearStoredTokens();
       // Invalidate the session query to clear cached user data
       await queryClient.invalidateQueries({
-        queryKey: $api.queryOptions("get", "/api/auth/session").queryKey,
+        queryKey: ["auth", "session"],
       });
       navigate(appPaths.auth.login.getHref());
     }

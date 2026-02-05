@@ -85,7 +85,7 @@ Next.js 16 with App Router:
 
 ```bash
 # Root workspace
-pnpm start:dev              # Starts both api (port 3000) and web (port 8000)
+pnpm start:dev              # Starts both api (port 3000) and web (port 5173)
 
 # Individual apps
 cd apps/api && pnpm dev     # API with hot-reload

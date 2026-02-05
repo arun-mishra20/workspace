@@ -22,7 +22,7 @@ export class ThrottlerExceptionFilter implements ExceptionFilter {
         const request = context.getRequest<FastifyRequest>();
 
         const ttl = 60; // 60 seconds
-        const limit = 100; // 10 requests per minute
+        const limit = 100; // 100 requests per minute
         const resetTime = Math.floor(Date.now() / 1000) + ttl;
 
         // RFC 6585 §4: Retry-After header (required)

@@ -64,9 +64,14 @@ export function useSyncJob(options: UseSyncJobOptions = {}): UseSyncJobReturn {
   useEffect(() => {
     if (!isPolling || !job?.id) return;
 
+    const abortController = new AbortController();
+
     const pollStatus = async () => {
       try {
-        const updatedJob = await getSyncJobStatus(job.id);
+        const updatedJob = await getSyncJobStatus(
+          job.id,
+          abortController.signal,
+        );
         setJob(updatedJob);
 
         if (updatedJob.status === "completed") {
@@ -80,6 +85,17 @@ export function useSyncJob(options: UseSyncJobOptions = {}): UseSyncJobReturn {
           onError?.(err);
         }
       } catch (err) {
+        // Ignore errors from aborted requests
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+        if (
+          err instanceof Error &&
+          err.message.toLowerCase().includes("cancel")
+        ) {
+          return;
+        }
+
         setIsPolling(false);
         const error =
           err instanceof Error ? err : new Error("Failed to poll status");
@@ -93,7 +109,10 @@ export function useSyncJob(options: UseSyncJobOptions = {}): UseSyncJobReturn {
     // Initial poll
     pollStatus();
 
-    return () => clearInterval(intervalId);
+    return () => {
+      clearInterval(intervalId);
+      abortController.abort(); // Cancel in-flight request on cleanup
+    };
   }, [isPolling, job?.id, pollingInterval, queryClient, onComplete, onError]);
 
   // Calculate progress percentage

@@ -44,6 +44,7 @@ export const rawEmailsTable = pgTable(
       table.userId,
       table.provider,
       table.providerMessageId,
+      table.receivedAt,
     ),
   ],
 );

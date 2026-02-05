@@ -13,7 +13,6 @@ import {
     NotFoundException,
 } from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiTags, ApiParam } from "@nestjs/swagger";
-import { ConfigService } from "@nestjs/config";
 import { SkipThrottle } from "@nestjs/throttler";
 
 import { JwtAuthGuard } from "@/modules/auth/presentation/guards/jwt-auth.guard";
@@ -23,7 +22,6 @@ import { SyncExpensesDto } from "@/modules/expenses/presentation/dtos/sync-expen
 import { ListExpenseEmailsDto } from "@/modules/expenses/presentation/dtos/list-expense-emails.dto";
 import { OffsetListResponseDto } from "@/shared/infrastructure/dtos/list-response.dto";
 import type { RawEmail } from "@workspace/domain";
-import type { Env } from "@/app/config/env.schema";
 import type { FastifyReply, FastifyRequest } from "fastify";
 
 @ApiTags("expenses")
@@ -32,7 +30,6 @@ export class ExpensesController {
     constructor(
         private readonly expensesService: ExpensesService,
         private readonly gmailOAuthService: GmailOAuthService,
-        private readonly configService: ConfigService<Env, true>,
     ) {}
 
     @Post("sync")
@@ -146,21 +143,5 @@ export class ExpensesController {
         res.header("Pragma", "no-cache");
         res.header("Expires", "0");
         return this.gmailOAuthService.getStatus(req.user.id);
-    }
-
-    @Get("gmail/callback")
-    @ApiOperation({ summary: "Gmail OAuth callback (legacy)" })
-    async gmailCallback(
-        @Query("code") code: string | undefined,
-        @Query("state") state: string | undefined,
-        @Res() res: FastifyReply,
-    ) {
-        if (!code || !state) {
-            return res.code(400).send({ message: "Missing OAuth code or state" });
-        }
-
-        await this.gmailOAuthService.handleCallback({ code, state });
-        const baseUrl = this.configService.get("WEB_APP_URL", { infer: true });
-        return res.redirect(`${baseUrl}/expenses/emails?gmail=connected`);
     }
 }

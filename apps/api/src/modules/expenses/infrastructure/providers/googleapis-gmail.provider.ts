@@ -98,6 +98,57 @@ export class GoogleApisGmailProvider implements GmailProvider {
         };
     }
 
+    /**
+     * Fetch multiple emails in batch to reduce API calls
+     * Processes emails in chunks to avoid memory issues and rate limits
+     */
+    async fetchEmailContentBatch(params: {
+        userId: string;
+        emailIds: string[];
+    }): Promise<RawEmail[]> {
+        const CHUNK_SIZE = 100; // Gmail API batch limit is 100 requests per batch
+        const results: RawEmail[] = [];
+
+        // Process emails in chunks
+        for (let i = 0; i < params.emailIds.length; i += CHUNK_SIZE) {
+            const chunk = params.emailIds.slice(i, i + CHUNK_SIZE);
+            this.logger.debug(
+                `Fetching email batch ${i / CHUNK_SIZE + 1}: ${chunk.length} emails (${i + 1}-${i + chunk.length} of ${params.emailIds.length})`,
+            );
+
+            // Use Promise.all for concurrent fetches within a reasonable chunk size
+            // This is more reliable than Gmail's batch API which can be flaky
+            const chunkResults = await Promise.allSettled(
+                chunk.map((emailId) => this.fetchEmailContent({ userId: params.userId, emailId })),
+            );
+
+            // Collect successful results and log failures
+            for (let j = 0; j < chunkResults.length; j++) {
+                const result = chunkResults[j];
+                if (!result) continue;
+
+                if (result.status === "fulfilled") {
+                    results.push(result.value);
+                } else {
+                    this.logger.warn(
+                        `Failed to fetch email ${chunk[j]} in batch: ${result.reason}`,
+                    );
+                }
+            }
+
+            // Add small delay between chunks to avoid rate limiting
+            if (i + CHUNK_SIZE < params.emailIds.length) {
+                await new Promise((resolve) => setTimeout(resolve, 200));
+            }
+        }
+
+        this.logger.log(
+            `Batch fetch completed: ${results.length} successful out of ${params.emailIds.length} total`,
+        );
+
+        return results;
+    }
+
     private headersToRecord(headers: Array<{ name?: string | null; value?: string | null }>) {
         return headers.reduce<Record<string, string>>((acc, header) => {
             if (header.name && header.value) {

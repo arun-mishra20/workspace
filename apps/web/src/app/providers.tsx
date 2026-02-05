@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import React from "react";
 import { ErrorBoundary } from "react-error-boundary";
+import { Toaster } from "sonner";
 
 import { MainErrorFallback } from "@/components/errors/main";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -25,6 +26,7 @@ export const AppProvider = ({ children }: AppProviderProperties) => {
       <ThemeProvider defaultTheme="system">
         <QueryClientProvider client={queryClient}>
           {env.NODE_ENV === "development" && <ReactQueryDevtools />}
+          <Toaster position="bottom-right" richColors closeButton />
           {children}
         </QueryClientProvider>
       </ThemeProvider>

@@ -57,9 +57,23 @@ export class ExpensesService {
             query: params.query,
         });
 
-        // Run the sync in the background (fire and forget)
-        this.runSyncJob(job.id, params).catch((error) => {
-            this.logger.error(`Sync job ${job.id} failed unexpectedly`, error);
+        // Run the sync in the background with proper error isolation
+        this.runSyncJob(job.id, params).catch(async (error) => {
+            this.logger.error(`Sync job ${job.id} failed unexpectedly outside try-catch`, error);
+
+            // Ensure job status is updated to failed even if error occurs outside main try-catch
+            try {
+                await this.syncJobRepository.update(job.id, {
+                    status: "failed",
+                    errorMessage: error instanceof Error ? error.message : "Unexpected error",
+                    completedAt: new Date(),
+                });
+            } catch (updateError) {
+                this.logger.error(
+                    `Failed to update job ${job.id} status after unexpected error`,
+                    updateError,
+                );
+            }
         });
 
         return { jobId: job.id };
@@ -128,55 +142,86 @@ export class ExpensesService {
             let totalTransactions = 0;
             let totalStatements = 0;
 
-            // Process each email
-            for (const ref of emailRefs) {
+            // Process emails in batches to avoid N+1 query problem
+            const BATCH_SIZE = 100;
+            for (let i = 0; i < emailRefs.length; i += BATCH_SIZE) {
+                const batch = emailRefs.slice(i, i + BATCH_SIZE);
+                const batchIds = batch.map((ref) => ref.id);
+
+                this.logger.debug(
+                    `Processing batch ${Math.floor(i / BATCH_SIZE) + 1}: ${batchIds.length} emails`,
+                );
+
                 try {
-                    const rawEmail = await this.gmailProvider.fetchEmailContent({
+                    // Fetch entire batch in one go
+                    const rawEmails = await this.gmailProvider.fetchEmailContentBatch({
                         userId: params.userId,
-                        emailId: ref.id,
+                        emailIds: batchIds,
                     });
 
-                    this.logger.debug(`Upserting email ${ref.id} for job ${jobId}`);
-                    const { isNew, id: emailId } = await this.rawEmailRepository.upsert(rawEmail);
-                    this.logger.debug(`Email ${ref.id} upserted: isNew=${isNew}, id=${emailId}`);
+                    // Process each email in the batch
+                    for (const rawEmail of rawEmails) {
+                        try {
+                            this.logger.debug(
+                                `Upserting email ${rawEmail.providerMessageId} for job ${jobId}`,
+                            );
+                            const { isNew, id: emailId } =
+                                await this.rawEmailRepository.upsert(rawEmail);
+                            this.logger.debug(
+                                `Email ${rawEmail.providerMessageId} upserted: isNew=${isNew}, id=${emailId}`,
+                            );
 
-                    // Update progress
-                    await this.syncJobRepository.incrementProgress(jobId, "processedEmails");
+                            // Update progress
+                            await this.syncJobRepository.incrementProgress(
+                                jobId,
+                                "processedEmails",
+                            );
 
-                    if (isNew) {
-                        await this.syncJobRepository.incrementProgress(jobId, "newEmails");
+                            if (isNew) {
+                                await this.syncJobRepository.incrementProgress(jobId, "newEmails");
 
-                        // Only parse new emails
-                        const emailWithId = { ...rawEmail, id: emailId };
-                        const parser = this.findParser(emailWithId);
+                                // Only parse new emails
+                                const emailWithId = { ...rawEmail, id: emailId };
+                                const parser = this.findParser(emailWithId);
 
-                        if (parser) {
-                            const transactions = parser.parseTransactions(emailWithId);
-                            const statement = parser.parseStatement(emailWithId);
+                                if (parser) {
+                                    const transactions = parser.parseTransactions(emailWithId);
+                                    const statement = parser.parseStatement(emailWithId);
 
-                            if (transactions.length > 0) {
-                                await this.transactionRepository.upsertMany(transactions);
-                                totalTransactions += transactions.length;
-                                await this.syncJobRepository.incrementProgress(
-                                    jobId,
-                                    "transactions",
-                                    transactions.length,
-                                );
+                                    if (transactions.length > 0) {
+                                        await this.transactionRepository.upsertMany(transactions);
+                                        totalTransactions += transactions.length;
+                                        await this.syncJobRepository.incrementProgress(
+                                            jobId,
+                                            "transactions",
+                                            transactions.length,
+                                        );
+                                    }
+
+                                    if (statement) {
+                                        await this.statementRepository.upsert(statement);
+                                        totalStatements++;
+                                        await this.syncJobRepository.incrementProgress(
+                                            jobId,
+                                            "statements",
+                                        );
+                                    }
+                                }
                             }
-
-                            if (statement) {
-                                await this.statementRepository.upsert(statement);
-                                totalStatements++;
-                                await this.syncJobRepository.incrementProgress(jobId, "statements");
-                            }
+                        } catch (emailError) {
+                            this.logger.warn(
+                                `Failed to process email ${rawEmail.providerMessageId} in job ${jobId}`,
+                                emailError,
+                            );
+                            // Continue processing other emails
                         }
                     }
-                } catch (emailError) {
-                    this.logger.warn(
-                        `Failed to process email ${ref.id} in job ${jobId}`,
-                        emailError,
+                } catch (batchError) {
+                    this.logger.error(
+                        `Failed to fetch batch starting at index ${i} in job ${jobId}`,
+                        batchError,
                     );
-                    // Continue processing other emails
+                    // Continue with next batch
                 }
             }
 
@@ -192,11 +237,22 @@ export class ExpensesService {
         } catch (error) {
             this.logger.error(`Sync job ${jobId} failed`, error);
 
-            await this.syncJobRepository.update(jobId, {
-                status: "failed",
-                errorMessage: error instanceof Error ? error.message : "Unknown error",
-                completedAt: new Date(),
-            });
+            // Use try-catch to ensure job status update doesn't throw
+            try {
+                await this.syncJobRepository.update(jobId, {
+                    status: "failed",
+                    errorMessage: error instanceof Error ? error.message : "Unknown error",
+                    completedAt: new Date(),
+                });
+            } catch (updateError) {
+                // Last resort: log if even the status update fails
+                this.logger.error(
+                    `Critical: Failed to update job ${jobId} status to failed`,
+                    updateError,
+                );
+                // Re-throw to be caught by outer catch handler in startSyncJob
+                throw error;
+            }
         }
     }
 

@@ -13,7 +13,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 8000,
+    port: 5173,
     proxy: {
       "/api": {
         target: "http://127.0.0.1:3000",
@@ -22,7 +22,7 @@ export default defineConfig({
     },
   },
   preview: {
-    port: 8000,
+    port: 5173,
   },
   build: {
     outDir: "dist",

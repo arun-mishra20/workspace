@@ -1,7 +1,8 @@
 import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { $api } from "@/lib/fetch-client";
 import { getAccessToken } from "@/lib/auth";
+import { apiRequest } from "@/lib/api-client";
+import type { SessionResponse } from "@/lib/api-types";
 
 /**
  * Hook to check authentication status
@@ -16,9 +17,16 @@ import { getAccessToken } from "@/lib/auth";
 export function useIsAuthenticated(): boolean {
   const accessToken = getAccessToken();
   const sessionQuery = useQuery({
-    ...$api.queryOptions("get", "/api/auth/session"),
+    queryKey: ["auth", "session"],
+    queryFn: ({ signal }) =>
+      apiRequest<SessionResponse>({
+        method: "GET",
+        url: "/api/auth/session",
+        signal,
+      }),
     enabled: !!accessToken, // Only fetch session if user has a token
     retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   return !!sessionQuery.data?.user;
@@ -37,5 +45,7 @@ export function useIsAuthenticated(): boolean {
 export function useCanAccess() {
   const isAuthenticated = useIsAuthenticated();
 
-  return useCallback(() => isAuthenticated, [isAuthenticated]);
+  return useCallback(() => {
+    return !!getAccessToken() && isAuthenticated;
+  }, [isAuthenticated]);
 }

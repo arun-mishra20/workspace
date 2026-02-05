@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { apiRequest } from "@/lib/api-request";
+import { apiRequest } from "@/lib/api-client";
 import { RawEmailSchema } from "@workspace/domain";
 
 const listExpenseEmailsSchema = z.object({
@@ -29,18 +29,12 @@ export async function listExpenseEmails(params?: {
   }
 
   const url = `/api/expenses/emails${searchParams.toString() ? `?${searchParams}` : ""}`;
-  const response = await apiRequest(url, {
+  const json = await apiRequest({
     method: "GET",
-    credentials: "include",
+    url,
     headers: {
       Accept: "application/json",
     },
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to load expense emails");
-  }
-
-  const json = await response.json();
   return listExpenseEmailsSchema.parse(json);
 }

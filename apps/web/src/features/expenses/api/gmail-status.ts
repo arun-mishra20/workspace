@@ -1,20 +1,15 @@
 import { GmailStatusSchema } from "@workspace/domain";
 
-import { apiRequest } from "@/lib/api-request";
+import { apiRequest } from "@/lib/api-client";
 
 export async function fetchGmailStatus(): Promise<{ connected: boolean; email?: string | null }> {
-  const response = await apiRequest("/api/expenses/gmail/status", {
+  const json = await apiRequest({
     method: "GET",
-    credentials: "include",
+    url: "/api/expenses/gmail/status",
     headers: {
       Accept: "application/json",
     },
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to load Gmail status");
-  }
-
-  const json = await response.json();
   return GmailStatusSchema.parse(json);
 }
