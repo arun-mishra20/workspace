@@ -5,6 +5,7 @@ import {
     HttpCode,
     HttpStatus,
     Param,
+    Patch,
     Post,
     Query,
     Request,
@@ -21,6 +22,7 @@ import { GmailOAuthService } from "@/modules/expenses/application/services/gmail
 import { SyncExpensesDto } from "@/modules/expenses/presentation/dtos/sync-expenses.dto";
 import { ListExpenseEmailsDto } from "@/modules/expenses/presentation/dtos/list-expense-emails.dto";
 import { ListExpensesDto } from "@/modules/expenses/presentation/dtos/list-expenses.dto";
+import { UpdateTransactionDto } from "@/modules/expenses/presentation/dtos/update-transaction.dto";
 import { OffsetListResponseDto } from "@/shared/infrastructure/dtos/list-response.dto";
 import type { RawEmail, Transaction } from "@workspace/domain";
 import type { FastifyReply, FastifyRequest } from "fastify";
@@ -149,6 +151,48 @@ export class ExpensesController {
             total,
             has_more: offset + data.length < total,
         };
+    }
+
+    @Get("transactions/:id")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Get a single transaction" })
+    @ApiParam({ name: "id", description: "Transaction ID" })
+    @ApiResponse({
+        status: 200,
+        description: "Returns the transaction",
+    })
+    async getTransaction(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Param("id") id: string,
+    ): Promise<Transaction> {
+        const transaction = await this.expensesService.getTransactionById({
+            userId: req.user.id,
+            id,
+        });
+        if (!transaction) {
+            throw new NotFoundException("Transaction not found");
+        }
+        return transaction;
+    }
+
+    @Patch("transactions/:id")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Update / correct a transaction" })
+    @ApiParam({ name: "id", description: "Transaction ID" })
+    @ApiResponse({
+        status: 200,
+        description: "Returns the updated transaction",
+    })
+    async updateTransaction(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Param("id") id: string,
+        @Body() dto: UpdateTransactionDto,
+    ): Promise<Transaction> {
+        return this.expensesService.updateTransaction({
+            userId: req.user.id,
+            id,
+            data: dto,
+        });
     }
 
     @Get("emails/:id")

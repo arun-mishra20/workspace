@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useReactTable,
@@ -15,6 +15,10 @@ import { disconnectGmail } from "@/features/expenses/api/disconnect-gmail";
 import { fetchGmailStatus } from "@/features/expenses/api/gmail-status";
 import { listExpenseEmails } from "@/features/expenses/api/list-expense-emails";
 import { listExpenses } from "@/features/expenses/api/list-expenses";
+import {
+  updateTransaction,
+  type UpdateTransactionInput,
+} from "@/features/expenses/api/update-transaction";
 import { useSyncJob } from "@/features/expenses/hooks/use-sync-job";
 import { Badge } from "@workspace/ui/components/ui/badge";
 import { Button } from "@workspace/ui/components/ui/button";
@@ -24,6 +28,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/ui/card";
+import { Input } from "@workspace/ui/components/ui/input";
+import { Label } from "@workspace/ui/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@workspace/ui/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -38,10 +59,29 @@ import {
   TabsList,
   TabsTrigger,
 } from "@workspace/ui/components/ui/tabs";
-import { Dot, MailSearch, RefreshCcw, Unplug } from "lucide-react";
+import { Dot, MailSearch, Pencil, RefreshCcw, Unplug } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { appPaths } from "@/config/app-paths";
 import type { Transaction } from "@workspace/domain";
+
+const TRANSACTION_TYPES = ["debited", "credited"] as const;
+const TRANSACTION_MODES = [
+  "upi",
+  "credit_card",
+  "neft",
+  "imps",
+  "rtgs",
+] as const;
+const CATEGORIES = [
+  "uncategorized",
+  "food_dining",
+  "groceries",
+  "shopping",
+  "transport",
+  "utilities",
+  "income_salary",
+  "personal_transfer",
+] as const;
 
 type ExpenseView = "expense" | "emails";
 
@@ -119,7 +159,9 @@ const emailColumns: ColumnDef<RawEmail>[] = [
   },
 ];
 
-const expenseColumns: ColumnDef<Transaction>[] = [
+const buildExpenseColumns = (
+  onEdit: (transaction: Transaction) => void,
+): ColumnDef<Transaction>[] => [
   {
     accessorKey: "transactionDate",
     header: "Date",
@@ -175,6 +217,24 @@ const expenseColumns: ColumnDef<Transaction>[] = [
         <Badge variant="secondary">Done</Badge>
       ),
   },
+  {
+    id: "actions",
+    header: "",
+    cell: ({ row }) => (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-8"
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit(row.original);
+        }}
+      >
+        <Pencil className="size-3.5" />
+        <span className="sr-only">Edit transaction</span>
+      </Button>
+    ),
+  },
 ];
 
 function AnimatedNumber({ value }: { value: number }) {
@@ -197,8 +257,66 @@ const ExpenseEmailsPage = () => {
   const [activeView, setActiveView] = useState<ExpenseView>("expense");
   const [emailPageIndex, setEmailPageIndex] = useState(0);
   const [expensePageIndex, setExpensePageIndex] = useState(0);
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
   const pageSize = 20;
   const navigate = useNavigate();
+
+  // ── Edit form state ──
+  const [editForm, setEditForm] = useState<UpdateTransactionInput>({});
+
+  const openEditSheet = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setEditForm({
+      merchant: transaction.merchant,
+      category: transaction.category,
+      subcategory: transaction.subcategory ?? "",
+      transactionType: transaction.transactionType as
+        | "debited"
+        | "credited"
+        | undefined,
+      transactionMode: transaction.transactionMode as
+        | "upi"
+        | "credit_card"
+        | "neft"
+        | "imps"
+        | "rtgs"
+        | undefined,
+      amount: transaction.amount,
+      currency: transaction.currency,
+      requiresReview: transaction.requiresReview,
+    });
+  };
+
+  const closeEditSheet = () => {
+    setEditingTransaction(null);
+    setEditForm({});
+  };
+
+  const updateMutation = useMutation({
+    mutationFn: (params: { id: string; data: UpdateTransactionInput }) =>
+      updateTransaction(params.id, params.data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["expenses", "transactions"],
+      });
+      closeEditSheet();
+    },
+  });
+
+  const handleSaveEdit = () => {
+    if (!editingTransaction) return;
+    updateMutation.mutate({
+      id: editingTransaction.id,
+      data: editForm,
+    });
+  };
+
+  const expenseColumns = useMemo(
+    () => buildExpenseColumns(openEditSheet),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   const {
     data: emailData,
@@ -395,8 +513,8 @@ const ExpenseEmailsPage = () => {
                 </TabsList>
                 <Badge variant="outline">
                   {activeView === "expense"
-                    ? expensesData?.total ?? 0
-                    : emailData?.total ?? 0}{" "}
+                    ? (expensesData?.total ?? 0)
+                    : (emailData?.total ?? 0)}{" "}
                   total
                 </Badge>
                 <Badge variant="secondary">
@@ -618,6 +736,190 @@ const ExpenseEmailsPage = () => {
           </Card>
         </Tabs>
       </div>
+
+      {/* ── Edit Transaction Sheet ── */}
+      <Sheet
+        open={!!editingTransaction}
+        onOpenChange={(open) => !open && closeEditSheet()}
+      >
+        <SheetContent className="overflow-y-auto sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>Edit Transaction</SheetTitle>
+            <SheetDescription>
+              Correct transaction details. Changes are saved as manual
+              categorisation.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="grid gap-5 px-4 py-6">
+            {/* Merchant */}
+            <div className="grid gap-2">
+              <Label htmlFor="edit-merchant">Merchant</Label>
+              <Input
+                id="edit-merchant"
+                value={editForm.merchant ?? ""}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, merchant: e.target.value }))
+                }
+              />
+            </div>
+
+            {/* Amount + Currency */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-amount">Amount</Label>
+                <Input
+                  id="edit-amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={editForm.amount ?? ""}
+                  onChange={(e) =>
+                    setEditForm((f) => ({
+                      ...f,
+                      amount: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    }))
+                  }
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-currency">Currency</Label>
+                <Input
+                  id="edit-currency"
+                  value={editForm.currency ?? ""}
+                  onChange={(e) =>
+                    setEditForm((f) => ({
+                      ...f,
+                      currency: e.target.value.toUpperCase(),
+                    }))
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Transaction Type */}
+            <div className="grid gap-2">
+              <Label>Type</Label>
+              <Select
+                value={editForm.transactionType ?? ""}
+                onValueChange={(value) =>
+                  setEditForm((f) => ({
+                    ...f,
+                    transactionType: value as "debited" | "credited",
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRANSACTION_TYPES.map((t) => (
+                    <SelectItem key={t} value={t} className="capitalize">
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Transaction Mode */}
+            <div className="grid gap-2">
+              <Label>Mode</Label>
+              <Select
+                value={editForm.transactionMode ?? ""}
+                onValueChange={(value) =>
+                  setEditForm((f) => ({
+                    ...f,
+                    transactionMode: value as
+                      | "upi"
+                      | "credit_card"
+                      | "neft"
+                      | "imps"
+                      | "rtgs",
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select mode" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRANSACTION_MODES.map((m) => (
+                    <SelectItem key={m} value={m} className="capitalize">
+                      {m.replace(/_/g, " ")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Category */}
+            <div className="grid gap-2">
+              <Label>Category</Label>
+              <Select
+                value={editForm.category ?? ""}
+                onValueChange={(value) =>
+                  setEditForm((f) => ({ ...f, category: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c} className="capitalize">
+                      {c.replace(/_/g, " ")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Subcategory */}
+            <div className="grid gap-2">
+              <Label htmlFor="edit-subcategory">Subcategory</Label>
+              <Input
+                id="edit-subcategory"
+                value={editForm.subcategory ?? ""}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, subcategory: e.target.value }))
+                }
+                placeholder="Optional"
+              />
+            </div>
+
+            {/* Requires Review */}
+            <div className="flex items-center gap-3">
+              <input
+                id="edit-requires-review"
+                type="checkbox"
+                className="size-4 rounded border-border"
+                checked={editForm.requiresReview ?? false}
+                onChange={(e) =>
+                  setEditForm((f) => ({
+                    ...f,
+                    requiresReview: e.target.checked,
+                  }))
+                }
+              />
+              <Label htmlFor="edit-requires-review">Requires review</Label>
+            </div>
+          </div>
+
+          <SheetFooter className="px-4">
+            <Button variant="outline" onClick={closeEditSheet}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending ? "Saving…" : "Save changes"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </MainLayout>
   );
 };

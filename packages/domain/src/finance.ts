@@ -83,6 +83,22 @@ export interface Statement {
   sourceEmailId: string;
 }
 
+/**
+ * Fields that the user can manually correct on a transaction.
+ */
+export const UpdateTransactionSchema = z.object({
+  merchant: z.string().min(1).optional(),
+  category: z.string().min(1).optional(),
+  subcategory: z.string().min(1).optional(),
+  transactionType: TransactionTypeSchema.optional(),
+  transactionMode: TransactionModeSchema.optional(),
+  amount: z.number().positive().optional(),
+  currency: z.string().min(1).optional(),
+  requiresReview: z.boolean().optional(),
+});
+
+export type UpdateTransactionInput = z.infer<typeof UpdateTransactionSchema>;
+
 export const SyncExpensesResultSchema: ZodType<SyncExpensesResult> = z.object({
   syncedEmails: z.number(),
   transactions: z.number(),

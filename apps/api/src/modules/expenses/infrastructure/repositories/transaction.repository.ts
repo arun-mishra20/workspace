@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 
 import {
@@ -9,7 +9,7 @@ import {
 
 import { DB_TOKEN, type DrizzleDb } from "@/shared/infrastructure/db/db.port";
 import type { TransactionRepository } from "@/modules/expenses/application/ports/transaction.repository.port";
-import type { Transaction } from "@workspace/domain";
+import type { Transaction, UpdateTransactionInput } from "@workspace/domain";
 
 @Injectable()
 export class TransactionRepositoryImpl implements TransactionRepository {
@@ -70,6 +70,74 @@ export class TransactionRepositoryImpl implements TransactionRepository {
             );
 
         return records.map((record) => this.toDomain(record));
+    }
+
+    async findById(params: { userId: string; id: string }): Promise<Transaction | null> {
+        const [record] = await this.db
+            .select()
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.id, params.id),
+                    eq(transactionsTable.userId, params.userId),
+                ),
+            );
+
+        return record ? this.toDomain(record) : null;
+    }
+
+    async updateById(params: {
+        userId: string;
+        id: string;
+        data: UpdateTransactionInput;
+    }): Promise<Transaction> {
+        const setClause: Record<string, unknown> = { updatedAt: new Date() };
+
+        if (params.data.merchant !== undefined) {
+            setClause.merchant = params.data.merchant;
+        }
+        if (params.data.category !== undefined) {
+            setClause.category = params.data.category;
+        }
+        if (params.data.subcategory !== undefined) {
+            setClause.subcategory = params.data.subcategory;
+        }
+        if (params.data.transactionType !== undefined) {
+            setClause.transactionType = params.data.transactionType;
+        }
+        if (params.data.transactionMode !== undefined) {
+            setClause.transactionMode = params.data.transactionMode;
+        }
+        if (params.data.amount !== undefined) {
+            setClause.amount = params.data.amount.toString();
+        }
+        if (params.data.currency !== undefined) {
+            setClause.currency = params.data.currency;
+        }
+        if (params.data.requiresReview !== undefined) {
+            setClause.requiresReview = params.data.requiresReview;
+        }
+
+        // Mark as manually categorized
+        setClause.categorizationMethod = "manual";
+        setClause.confidence = "1";
+
+        const [updated] = await this.db
+            .update(transactionsTable)
+            .set(setClause)
+            .where(
+                and(
+                    eq(transactionsTable.id, params.id),
+                    eq(transactionsTable.userId, params.userId),
+                ),
+            )
+            .returning();
+
+        if (!updated) {
+            throw new NotFoundException("Transaction not found");
+        }
+
+        return this.toDomain(updated);
     }
 
     async listByUser(params: {

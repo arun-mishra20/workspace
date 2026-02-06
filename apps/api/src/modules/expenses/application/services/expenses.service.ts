@@ -27,7 +27,7 @@ import {
 } from "@/modules/expenses/application/ports/sync-job.repository.port";
 import { TransactionCategorizer } from "@/modules/expenses/infrastructure/categorization/transaction-categorizer";
 
-import type { RawEmail, Transaction } from "@workspace/domain";
+import type { RawEmail, Transaction, UpdateTransactionInput } from "@workspace/domain";
 
 @Injectable()
 export class ExpensesService {
@@ -188,7 +188,8 @@ export class ExpensesService {
 
                             if (parser) {
                                 const parsedTransactions = parser.parseTransactions(emailWithId);
-                                const transactions = this.categorizeTransactions(parsedTransactions);
+                                const transactions =
+                                    this.categorizeTransactions(parsedTransactions);
 
                                 if (transactions.length > 0) {
                                     await this.transactionRepository.upsertMany(transactions);
@@ -282,6 +283,18 @@ export class ExpensesService {
             this.transactionRepository.countByUser(params.userId),
         ]);
         return { data, total };
+    }
+
+    async getTransactionById(params: { userId: string; id: string }): Promise<Transaction | null> {
+        return this.transactionRepository.findById(params);
+    }
+
+    async updateTransaction(params: {
+        userId: string;
+        id: string;
+        data: UpdateTransactionInput;
+    }): Promise<Transaction> {
+        return this.transactionRepository.updateById(params);
     }
 
     async getExpenseEmailById(params: { userId: string; id: string }): Promise<RawEmail | null> {
