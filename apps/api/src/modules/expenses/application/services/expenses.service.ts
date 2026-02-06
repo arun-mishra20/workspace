@@ -25,12 +25,14 @@ import {
     type SyncJobRepository,
     type SyncJob,
 } from "@/modules/expenses/application/ports/sync-job.repository.port";
+import { TransactionCategorizer } from "@/modules/expenses/infrastructure/categorization/transaction-categorizer";
 
-import type { RawEmail } from "@workspace/domain";
+import type { RawEmail, Transaction } from "@workspace/domain";
 
 @Injectable()
 export class ExpensesService {
     private readonly logger = new Logger(ExpensesService.name);
+    private readonly transactionCategorizer = TransactionCategorizer.getInstance();
 
     constructor(
         @Inject(GMAIL_PROVIDER)
@@ -179,25 +181,27 @@ export class ExpensesService {
 
                             if (isNew) {
                                 await this.syncJobRepository.incrementProgress(jobId, "newEmails");
+                            }
 
-                                // Only parse new emails
-                                const emailWithId = { ...rawEmail, id: emailId };
-                                const parser = this.findParser(emailWithId);
+                            const emailWithId = { ...rawEmail, id: emailId };
+                            const parser = this.findParser(emailWithId);
 
-                                if (parser) {
-                                    const transactions = parser.parseTransactions(emailWithId);
+                            if (parser) {
+                                const parsedTransactions = parser.parseTransactions(emailWithId);
+                                const transactions = this.categorizeTransactions(parsedTransactions);
+
+                                if (transactions.length > 0) {
+                                    await this.transactionRepository.upsertMany(transactions);
+                                    totalTransactions += transactions.length;
+                                    await this.syncJobRepository.incrementProgress(
+                                        jobId,
+                                        "transactions",
+                                        transactions.length,
+                                    );
+                                }
+
+                                if (isNew) {
                                     const statement = parser.parseStatement(emailWithId);
-
-                                    if (transactions.length > 0) {
-                                        await this.transactionRepository.upsertMany(transactions);
-                                        totalTransactions += transactions.length;
-                                        await this.syncJobRepository.incrementProgress(
-                                            jobId,
-                                            "transactions",
-                                            transactions.length,
-                                        );
-                                    }
-
                                     if (statement) {
                                         await this.statementRepository.upsert(statement);
                                         totalStatements++;
@@ -268,12 +272,51 @@ export class ExpensesService {
         return { data, total };
     }
 
+    async listExpenses(params: {
+        userId: string;
+        limit: number;
+        offset: number;
+    }): Promise<{ data: Transaction[]; total: number }> {
+        const [data, total] = await Promise.all([
+            this.transactionRepository.listByUser(params),
+            this.transactionRepository.countByUser(params.userId),
+        ]);
+        return { data, total };
+    }
+
     async getExpenseEmailById(params: { userId: string; id: string }): Promise<RawEmail | null> {
         return this.rawEmailRepository.findById(params);
     }
 
     private findParser(email: RawEmail): EmailParser | null {
         return this.parsers.find((parser) => parser.canParse(email)) ?? null;
+    }
+
+    private categorizeTransactions(transactions: Transaction[]): Transaction[] {
+        if (transactions.length === 0) {
+            return transactions;
+        }
+
+        return transactions.map((transaction) => {
+            const category = this.transactionCategorizer.categorizeTransaction({
+                id: transaction.id,
+                paid_to: transaction.merchantRaw,
+                vpa: transaction.vpa,
+                transaction_mode: transaction.transactionMode,
+                amount: transaction.amount,
+                transaction_type: transaction.transactionType,
+            });
+
+            return {
+                ...transaction,
+                category: category.category,
+                subcategory: category.subcategory,
+                confidence: category.confidence,
+                categorizationMethod: category.method,
+                requiresReview: category.requiresReview,
+                categoryMetadata: category.categoryMetadata,
+            };
+        });
     }
 
     /**

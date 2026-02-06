@@ -5,6 +5,12 @@ import type { Transaction } from "@workspace/domain";
  */
 export interface TransactionRepository {
   upsertMany(transactions: Transaction[]): Promise<void>;
+  listByUser(params: {
+    userId: string;
+    limit: number;
+    offset: number;
+  }): Promise<Transaction[]>;
+  countByUser(userId: string): Promise<number>;
   listByUserMonth(params: {
     userId: string;
     year: number;

@@ -14,6 +14,7 @@ import { connectGmail } from "@/features/expenses/api/connect-gmail";
 import { disconnectGmail } from "@/features/expenses/api/disconnect-gmail";
 import { fetchGmailStatus } from "@/features/expenses/api/gmail-status";
 import { listExpenseEmails } from "@/features/expenses/api/list-expense-emails";
+import { listExpenses } from "@/features/expenses/api/list-expenses";
 import { useSyncJob } from "@/features/expenses/hooks/use-sync-job";
 import { Badge } from "@workspace/ui/components/ui/badge";
 import { Button } from "@workspace/ui/components/ui/button";
@@ -31,9 +32,18 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/ui/table";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@workspace/ui/components/ui/tabs";
 import { Dot, MailSearch, RefreshCcw, Unplug } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { appPaths } from "@/config/app-paths";
+import type { Transaction } from "@workspace/domain";
+
+type ExpenseView = "expense" | "emails";
 
 type RawEmail = {
   id: string;
@@ -57,7 +67,24 @@ const formatDate = (value: string) => {
   return format(date, "MMM d, yyyy 'at' h:mm a");
 };
 
-const columns: ColumnDef<RawEmail>[] = [
+const formatAmount = (transaction: Transaction) => {
+  const signedAmount =
+    transaction.transactionType === "debited"
+      ? -Math.abs(transaction.amount)
+      : Math.abs(transaction.amount);
+
+  try {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: transaction.currency,
+    }).format(signedAmount);
+  } catch {
+    const sign = signedAmount < 0 ? "-" : "";
+    return `${sign}${transaction.currency} ${Math.abs(signedAmount).toFixed(2)}`;
+  }
+};
+
+const emailColumns: ColumnDef<RawEmail>[] = [
   {
     accessorKey: "from",
     header: "From",
@@ -92,6 +119,64 @@ const columns: ColumnDef<RawEmail>[] = [
   },
 ];
 
+const expenseColumns: ColumnDef<Transaction>[] = [
+  {
+    accessorKey: "transactionDate",
+    header: "Date",
+    cell: ({ row }) => formatDate(row.original.transactionDate),
+  },
+  {
+    accessorKey: "merchant",
+    header: "Merchant",
+    cell: ({ row }) => (
+      <div className="font-medium text-foreground">{row.original.merchant}</div>
+    ),
+  },
+  {
+    accessorKey: "amount",
+    header: "Amount",
+    cell: ({ row }) => (
+      <div
+        className={
+          row.original.transactionType === "debited"
+            ? "font-medium text-red-600"
+            : "font-medium text-emerald-600"
+        }
+      >
+        {formatAmount(row.original)}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "category",
+    header: "Category",
+    cell: ({ row }) => (
+      <Badge variant="secondary" className="capitalize">
+        {row.original.category.replace(/_/g, " ")}
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: "transactionMode",
+    header: "Mode",
+    cell: ({ row }) => (
+      <span className="capitalize">
+        {row.original.transactionMode.replace(/_/g, " ")}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "requiresReview",
+    header: "Review",
+    cell: ({ row }) =>
+      row.original.requiresReview ? (
+        <Badge variant="outline">Required</Badge>
+      ) : (
+        <Badge variant="secondary">Done</Badge>
+      ),
+  },
+];
+
 function AnimatedNumber({ value }: { value: number }) {
   const mv = useMotionValue(0);
   const rounded = useTransform(mv, (latest) => Math.round(latest));
@@ -102,61 +187,103 @@ function AnimatedNumber({ value }: { value: number }) {
       ease: "easeOut",
     });
     return controls.stop;
-  }, [value]);
+  }, [value, mv]);
 
   return <motion.span>{rounded}</motion.span>;
 }
 
 const ExpenseEmailsPage = () => {
   const queryClient = useQueryClient();
-  const [pageIndex, setPageIndex] = useState(0);
+  const [activeView, setActiveView] = useState<ExpenseView>("expense");
+  const [emailPageIndex, setEmailPageIndex] = useState(0);
+  const [expensePageIndex, setExpensePageIndex] = useState(0);
   const pageSize = 20;
   const navigate = useNavigate();
 
   const {
-    data: apiData,
-    isLoading,
-    isError,
+    data: emailData,
+    isLoading: isEmailsLoading,
+    isError: isEmailsError,
   } = useQuery({
-    queryKey: ["expenses", "emails", pageIndex + 1],
+    queryKey: ["expenses", "emails", emailPageIndex + 1],
     queryFn: () =>
-      listExpenseEmails({ page: pageIndex + 1, page_size: pageSize }),
+      listExpenseEmails({ page: emailPageIndex + 1, page_size: pageSize }),
+    enabled: activeView === "emails",
   });
 
-  const table = useReactTable({
-    data: apiData?.data ?? [],
-    columns,
-    pageCount: apiData ? Math.ceil(apiData.total / apiData.page_size) : 0,
+  const {
+    data: expensesData,
+    isLoading: isExpensesLoading,
+    isError: isExpensesError,
+  } = useQuery({
+    queryKey: ["expenses", "transactions", expensePageIndex + 1],
+    queryFn: () =>
+      listExpenses({ page: expensePageIndex + 1, page_size: pageSize }),
+    enabled: activeView === "expense",
+  });
+
+  const emailTable = useReactTable({
+    data: emailData?.data ?? [],
+    columns: emailColumns,
+    pageCount: emailData ? Math.ceil(emailData.total / emailData.page_size) : 0,
     state: {
       pagination: {
-        pageIndex,
+        pageIndex: emailPageIndex,
         pageSize,
       },
     },
     onPaginationChange: (updater) => {
       if (typeof updater === "function") {
-        const newState = updater({ pageIndex, pageSize });
-        setPageIndex(newState.pageIndex);
+        const newState = updater({ pageIndex: emailPageIndex, pageSize });
+        setEmailPageIndex(newState.pageIndex);
       } else {
-        setPageIndex(updater.pageIndex);
+        setEmailPageIndex(updater.pageIndex);
       }
     },
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
   });
+
+  const expenseTable = useReactTable({
+    data: expensesData?.data ?? [],
+    columns: expenseColumns,
+    pageCount: expensesData
+      ? Math.ceil(expensesData.total / expensesData.page_size)
+      : 0,
+    state: {
+      pagination: {
+        pageIndex: expensePageIndex,
+        pageSize,
+      },
+    },
+    onPaginationChange: (updater) => {
+      if (typeof updater === "function") {
+        const newState = updater({ pageIndex: expensePageIndex, pageSize });
+        setExpensePageIndex(newState.pageIndex);
+      } else {
+        setExpensePageIndex(updater.pageIndex);
+      }
+    },
+    getCoreRowModel: getCoreRowModel(),
+    manualPagination: true,
+  });
+
   const statusQuery = useQuery({
     queryKey: ["expenses", "gmail-status"],
     queryFn: fetchGmailStatus,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
+
   const connectMutation = useMutation({
     mutationFn: connectGmail,
     onSuccess: (data) => {
       window.location.assign(data.url);
     },
   });
+
   const { startSync, job, isSyncing } = useSyncJob();
+
   const disconnectMutation = useMutation({
     mutationFn: disconnectGmail,
     onSuccess: () => {
@@ -180,11 +307,9 @@ const ExpenseEmailsPage = () => {
             <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
               Expenses
             </p>
-            <h1 className="text-2xl font-semibold text-foreground">
-              Expense Emails
-            </h1>
+            <h1 className="text-2xl font-semibold text-foreground">Expenses</h1>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              Latest expense-related emails captured from connected inboxes.
+              View derived expense transactions and source emails.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -216,7 +341,6 @@ const ExpenseEmailsPage = () => {
                 className="relative overflow-hidden"
               >
                 <RefreshCcw />
-                {/* progress fill */}
                 {isSyncing && (
                   <div
                     className="absolute inset-y-0 left-0 bg-primary/20 transition-all duration-300"
@@ -255,120 +379,244 @@ const ExpenseEmailsPage = () => {
           </div>
         </header>
 
-        <Card className="border-border/60">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base font-semibold">
-              Recent Emails
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">{apiData?.total ?? 0} total</Badge>
-              <Badge variant="secondary">
-                Page {pageIndex + 1} of {table.getPageCount() || 1}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <p className="text-sm text-muted-foreground">
-                Loading expense emails…
-              </p>
-            ) : null}
-            {isError ? (
-              <p className="text-sm text-destructive">
-                We couldn’t load emails. Please try again in a moment.
-              </p>
-            ) : null}
-            {!isLoading && !isError && table.getRowModel().rows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No expense emails found yet.
-              </p>
-            ) : null}
-            {!isLoading && !isError && table.getRowModel().rows.length > 0 ? (
-              <div className="space-y-4">
-                <Table>
-                  <TableHeader>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <TableRow key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <TableHead key={header.id}>
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext(),
-                                )}
-                          </TableHead>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableHeader>
-                  <TableBody>
-                    {table.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        className="cursor-pointer hover:bg-muted/40"
-                        role="link"
-                        tabIndex={0}
-                        onClick={() => {
-                          const email = row.original;
-                          navigate(appPaths.auth.expensesEmailDetails.getHref(email.id));
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key !== "Enter" && event.key !== " ") {
-                            return;
-                          }
-                          event.preventDefault();
-                          const email = row.original;
-                          navigate(appPaths.auth.expensesEmailDetails.getHref(email.id));
-                        }}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-
-                {table.getPageCount() > 1 && (
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-muted-foreground">
-                      Showing {pageIndex * pageSize + 1} to{" "}
-                      {Math.min(
-                        (pageIndex + 1) * pageSize,
-                        apiData?.total ?? 0,
-                      )}{" "}
-                      of {apiData?.total ?? 0} emails
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
+        <Tabs
+          value={activeView}
+          onValueChange={(value) => setActiveView(value as ExpenseView)}
+        >
+          <Card className="border-border/60">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base font-semibold">
+                {activeView === "expense" ? "All Expenses" : "Recent Emails"}
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <TabsList className="mr-2">
+                  <TabsTrigger value="expense">Expense</TabsTrigger>
+                  <TabsTrigger value="emails">Emails</TabsTrigger>
+                </TabsList>
+                <Badge variant="outline">
+                  {activeView === "expense"
+                    ? expensesData?.total ?? 0
+                    : emailData?.total ?? 0}{" "}
+                  total
+                </Badge>
+                <Badge variant="secondary">
+                  Page{" "}
+                  {activeView === "expense"
+                    ? expensePageIndex + 1
+                    : emailPageIndex + 1}{" "}
+                  of{" "}
+                  {activeView === "expense"
+                    ? expenseTable.getPageCount() || 1
+                    : emailTable.getPageCount() || 1}
+                </Badge>
               </div>
-            ) : null}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              <TabsContent value="expense" className="mt-0">
+                {isExpensesLoading ? (
+                  <p className="text-sm text-muted-foreground">
+                    Loading expenses…
+                  </p>
+                ) : null}
+                {isExpensesError ? (
+                  <p className="text-sm text-destructive">
+                    We couldn’t load expenses. Please try again in a moment.
+                  </p>
+                ) : null}
+                {!isExpensesLoading &&
+                !isExpensesError &&
+                expenseTable.getRowModel().rows.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No expenses found yet.
+                  </p>
+                ) : null}
+                {!isExpensesLoading &&
+                !isExpensesError &&
+                expenseTable.getRowModel().rows.length > 0 ? (
+                  <div className="space-y-4">
+                    <Table>
+                      <TableHeader>
+                        {expenseTable.getHeaderGroups().map((headerGroup) => (
+                          <TableRow key={headerGroup.id}>
+                            {headerGroup.headers.map((header) => (
+                              <TableHead key={header.id}>
+                                {header.isPlaceholder
+                                  ? null
+                                  : flexRender(
+                                      header.column.columnDef.header,
+                                      header.getContext(),
+                                    )}
+                              </TableHead>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableHeader>
+                      <TableBody>
+                        {expenseTable.getRowModel().rows.map((row) => (
+                          <TableRow key={row.id}>
+                            {row.getVisibleCells().map((cell) => (
+                              <TableCell key={cell.id}>
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext(),
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+
+                    {expenseTable.getPageCount() > 1 && (
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-muted-foreground">
+                          Showing {expensePageIndex * pageSize + 1} to{" "}
+                          {Math.min(
+                            (expensePageIndex + 1) * pageSize,
+                            expensesData?.total ?? 0,
+                          )}{" "}
+                          of {expensesData?.total ?? 0} expenses
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => expenseTable.previousPage()}
+                            disabled={!expenseTable.getCanPreviousPage()}
+                          >
+                            Previous
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => expenseTable.nextPage()}
+                            disabled={!expenseTable.getCanNextPage()}
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </TabsContent>
+
+              <TabsContent value="emails" className="mt-0">
+                {isEmailsLoading ? (
+                  <p className="text-sm text-muted-foreground">
+                    Loading expense emails…
+                  </p>
+                ) : null}
+                {isEmailsError ? (
+                  <p className="text-sm text-destructive">
+                    We couldn’t load emails. Please try again in a moment.
+                  </p>
+                ) : null}
+                {!isEmailsLoading &&
+                !isEmailsError &&
+                emailTable.getRowModel().rows.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No expense emails found yet.
+                  </p>
+                ) : null}
+                {!isEmailsLoading &&
+                !isEmailsError &&
+                emailTable.getRowModel().rows.length > 0 ? (
+                  <div className="space-y-4">
+                    <Table>
+                      <TableHeader>
+                        {emailTable.getHeaderGroups().map((headerGroup) => (
+                          <TableRow key={headerGroup.id}>
+                            {headerGroup.headers.map((header) => (
+                              <TableHead key={header.id}>
+                                {header.isPlaceholder
+                                  ? null
+                                  : flexRender(
+                                      header.column.columnDef.header,
+                                      header.getContext(),
+                                    )}
+                              </TableHead>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableHeader>
+                      <TableBody>
+                        {emailTable.getRowModel().rows.map((row) => (
+                          <TableRow
+                            key={row.id}
+                            className="cursor-pointer hover:bg-muted/40"
+                            role="link"
+                            tabIndex={0}
+                            onClick={() => {
+                              const email = row.original;
+                              navigate(
+                                appPaths.auth.expensesEmailDetails.getHref(
+                                  email.id,
+                                ),
+                              );
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key !== "Enter" && event.key !== " ") {
+                                return;
+                              }
+                              event.preventDefault();
+                              const email = row.original;
+                              navigate(
+                                appPaths.auth.expensesEmailDetails.getHref(
+                                  email.id,
+                                ),
+                              );
+                            }}
+                          >
+                            {row.getVisibleCells().map((cell) => (
+                              <TableCell key={cell.id}>
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext(),
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+
+                    {emailTable.getPageCount() > 1 && (
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-muted-foreground">
+                          Showing {emailPageIndex * pageSize + 1} to{" "}
+                          {Math.min(
+                            (emailPageIndex + 1) * pageSize,
+                            emailData?.total ?? 0,
+                          )}{" "}
+                          of {emailData?.total ?? 0} emails
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => emailTable.previousPage()}
+                            disabled={!emailTable.getCanPreviousPage()}
+                          >
+                            Previous
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => emailTable.nextPage()}
+                            disabled={!emailTable.getCanNextPage()}
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </TabsContent>
+            </CardContent>
+          </Card>
+        </Tabs>
       </div>
     </MainLayout>
   );

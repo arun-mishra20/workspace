@@ -1,15 +1,44 @@
 import { z, type ZodType } from "zod";
 
+export const TransactionTypeSchema = z.enum(["debited", "credited"]);
+export type TransactionType = z.infer<typeof TransactionTypeSchema>;
+
+export const TransactionModeSchema = z.enum([
+  "upi",
+  "credit_card",
+  "neft",
+  "imps",
+  "rtgs",
+]);
+export type TransactionMode = z.infer<typeof TransactionModeSchema>;
+
+export const CategoryMetadataSchema = z.object({
+  icon: z.string(),
+  color: z.string(),
+  parent: z.string().nullable(),
+});
+export type CategoryMetadata = z.infer<typeof CategoryMetadataSchema>;
+
 export const TransactionSchema: ZodType<Transaction> = z.object({
   id: z.string(),
   userId: z.string(),
+  dedupeHash: z.string(),
+  sourceEmailId: z.string(),
   merchant: z.string(),
+  merchantRaw: z.string(),
+  vpa: z.string().optional(),
   amount: z.number(),
   currency: z.string(),
   transactionDate: z.string(),
-  category: z.string().optional(),
+  transactionType: TransactionTypeSchema,
+  transactionMode: TransactionModeSchema,
+  category: z.string(),
+  subcategory: z.string(),
+  confidence: z.number(),
+  categorizationMethod: z.string(),
+  requiresReview: z.boolean(),
+  categoryMetadata: CategoryMetadataSchema,
   statementId: z.string().optional(),
-  sourceEmailId: z.string(),
 });
 
 export const StatementSchema: ZodType<Statement> = z.object({
@@ -25,13 +54,23 @@ export const StatementSchema: ZodType<Statement> = z.object({
 export interface Transaction {
   id: string;
   userId: string;
+  dedupeHash: string;
+  sourceEmailId: string;
   merchant: string;
+  merchantRaw: string;
+  vpa?: string;
   amount: number;
   currency: string;
   transactionDate: string;
-  category?: string;
+  transactionType: TransactionType;
+  transactionMode: TransactionMode;
+  category: string;
+  subcategory: string;
+  confidence: number;
+  categorizationMethod: string;
+  requiresReview: boolean;
+  categoryMetadata: CategoryMetadata;
   statementId?: string;
-  sourceEmailId: string;
 }
 
 export interface Statement {

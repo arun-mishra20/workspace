@@ -5,6 +5,13 @@
   "compilerOptions": {
     "tsConfigPath": "tsconfig.app.json",
     "deleteOutDir": true,
+    "assets": [
+      {
+        "include": "modules/expenses/infrastructure/categorization/config/*.json",
+        "outDir": "dist/modules/expenses/infrastructure/categorization/config",
+        "watchAssets": true
+      }
+    ],
     "builder": {
       "type": "swc",
       "options": {

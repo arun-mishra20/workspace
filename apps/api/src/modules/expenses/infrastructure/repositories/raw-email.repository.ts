@@ -1,11 +1,24 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { and, desc, eq, sql } from "drizzle-orm";
 
-import { rawEmailsTable, type InsertRawEmail, type RawEmailRecord } from "@workspace/database";
+import { rawEmailsTable, type InsertRawEmail } from "@workspace/database";
 
 import { DB_TOKEN, type DrizzleDb } from "@/shared/infrastructure/db/db.port";
 import type { RawEmailRepository } from "@/modules/expenses/application/ports/raw-email.repository.port";
 import type { RawEmail } from "@workspace/domain";
+
+interface RawEmailReadRecord {
+    id: string;
+    userId: string;
+    provider: string;
+    providerMessageId: string;
+    from: string;
+    subject: string;
+    receivedAt: Date;
+    bodyText: string;
+    bodyHtml: string | null;
+    rawHeaders: Record<string, string>;
+}
 
 @Injectable()
 export class RawEmailRepositoryImpl implements RawEmailRepository {
@@ -76,7 +89,7 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
 
     async findById(params: { userId: string; id: string }): Promise<RawEmail | null> {
         const [record] = await this.db
-            .select()
+            .select(this.selectFields())
             .from(rawEmailsTable)
             .where(and(eq(rawEmailsTable.userId, params.userId), eq(rawEmailsTable.id, params.id)));
 
@@ -89,7 +102,7 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
         providerMessageId: string;
     }): Promise<RawEmail | null> {
         const [record] = await this.db
-            .select()
+            .select(this.selectFields())
             .from(rawEmailsTable)
             .where(
                 and(
@@ -112,7 +125,7 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
         );
 
         const records = await this.db
-            .select()
+            .select(this.selectFields())
             .from(rawEmailsTable)
             .where(eq(rawEmailsTable.userId, params.userId))
             .orderBy(desc(rawEmailsTable.receivedAt))
@@ -147,7 +160,22 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
         };
     }
 
-    private toDomain(record: RawEmailRecord): RawEmail {
+    private selectFields() {
+        return {
+            id: rawEmailsTable.id,
+            userId: rawEmailsTable.userId,
+            provider: rawEmailsTable.provider,
+            providerMessageId: rawEmailsTable.providerMessageId,
+            from: rawEmailsTable.from,
+            subject: rawEmailsTable.subject,
+            receivedAt: rawEmailsTable.receivedAt,
+            bodyText: rawEmailsTable.bodyText,
+            bodyHtml: rawEmailsTable.bodyHtml,
+            rawHeaders: rawEmailsTable.rawHeaders,
+        };
+    }
+
+    private toDomain(record: RawEmailReadRecord): RawEmail {
         return {
             id: record.id,
             userId: record.userId,
@@ -155,10 +183,16 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
             providerMessageId: record.providerMessageId,
             from: record.from,
             subject: record.subject,
+            snippet: this.deriveSnippet(record.bodyText),
             receivedAt: record.receivedAt.toISOString(),
             bodyText: record.bodyText,
             bodyHtml: record.bodyHtml ?? undefined,
             rawHeaders: record.rawHeaders,
         };
+    }
+
+    private deriveSnippet(bodyText: string): string {
+        const snippet = bodyText.replace(/\s+/g, " ").trim();
+        return snippet.slice(0, 180);
     }
 }

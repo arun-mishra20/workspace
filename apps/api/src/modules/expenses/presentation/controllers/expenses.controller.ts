@@ -20,8 +20,9 @@ import { ExpensesService } from "@/modules/expenses/application/services/expense
 import { GmailOAuthService } from "@/modules/expenses/application/services/gmail-oauth.service";
 import { SyncExpensesDto } from "@/modules/expenses/presentation/dtos/sync-expenses.dto";
 import { ListExpenseEmailsDto } from "@/modules/expenses/presentation/dtos/list-expense-emails.dto";
+import { ListExpensesDto } from "@/modules/expenses/presentation/dtos/list-expenses.dto";
 import { OffsetListResponseDto } from "@/shared/infrastructure/dtos/list-response.dto";
-import type { RawEmail } from "@workspace/domain";
+import type { RawEmail, Transaction } from "@workspace/domain";
 import type { FastifyReply, FastifyRequest } from "fastify";
 
 @ApiTags("expenses")
@@ -104,6 +105,37 @@ export class ExpensesController {
         const offset = (page - 1) * page_size;
 
         const { data, total } = await this.expensesService.listExpenseEmails({
+            userId: req.user.id,
+            limit: page_size,
+            offset,
+        });
+
+        return {
+            object: "list",
+            data,
+            page,
+            page_size,
+            total,
+            has_more: offset + data.length < total,
+        };
+    }
+
+    @Get("transactions")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "List derived expense transactions" })
+    @ApiResponse({
+        status: 200,
+        description: "Returns paginated expense transactions",
+    })
+    async listExpenses(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query() query: ListExpensesDto,
+    ): Promise<OffsetListResponseDto<Transaction>> {
+        const page = query.page ?? 1;
+        const page_size = query.page_size ?? 20;
+        const offset = (page - 1) * page_size;
+
+        const { data, total } = await this.expensesService.listExpenses({
             userId: req.user.id,
             limit: page_size,
             offset,

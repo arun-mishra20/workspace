@@ -2,6 +2,10 @@ import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 
 import type { EmailParser } from "@/modules/expenses/application/ports/email-parser.port";
+import {
+  buildTransactionHash,
+  deterministicUuidFromHash,
+} from "@/modules/expenses/infrastructure/parsers/parser-utils";
 import type { RawEmail, Statement, Transaction } from "@workspace/domain";
 
 @Injectable()
@@ -20,17 +24,42 @@ export class ChaseEmailParser implements EmailParser {
       return [];
     }
 
+    const dedupeHash = buildTransactionHash({
+      userId: email.userId,
+      sourceEmailId: email.id,
+      merchantRaw: merchant,
+      amount,
+      currency: "USD",
+      transactionDate,
+      transactionType: "debited",
+      transactionMode: "credit_card",
+    });
+    const id = deterministicUuidFromHash(dedupeHash);
+
     return [
       {
-        id: randomUUID(),
+        id,
         userId: email.userId,
+        dedupeHash,
+        sourceEmailId: email.id,
         merchant,
+        merchantRaw: merchant,
         amount,
         currency: "USD",
         transactionDate,
-        category: undefined,
+        transactionType: "debited",
+        transactionMode: "credit_card",
+        category: "uncategorized",
+        subcategory: "uncategorized",
+        confidence: 0,
+        categorizationMethod: "default",
+        requiresReview: true,
+        categoryMetadata: {
+          icon: "question-circle",
+          color: "#BDC3C7",
+          parent: null,
+        },
         statementId: undefined,
-        sourceEmailId: email.id,
       },
     ];
   }

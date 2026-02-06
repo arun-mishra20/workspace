@@ -1,0 +1,52 @@
+{
+  "categories": {
+    "uncategorized": {
+      "name": "Uncategorized",
+      "icon": "question-circle",
+      "color": "#BDC3C7",
+      "parent": null
+    },
+    "food_dining": {
+      "name": "Food and Dining",
+      "icon": "utensils",
+      "color": "#E67E22",
+      "parent": "expenses"
+    },
+    "groceries": {
+      "name": "Groceries",
+      "icon": "shopping-basket",
+      "color": "#27AE60",
+      "parent": "expenses"
+    },
+    "shopping": {
+      "name": "Shopping",
+      "icon": "shopping-bag",
+      "color": "#8E44AD",
+      "parent": "expenses"
+    },
+    "transport": {
+      "name": "Transport",
+      "icon": "car",
+      "color": "#2980B9",
+      "parent": "expenses"
+    },
+    "utilities": {
+      "name": "Utilities",
+      "icon": "bolt",
+      "color": "#16A085",
+      "parent": "expenses"
+    },
+    "income_salary": {
+      "name": "Salary",
+      "icon": "briefcase",
+      "color": "#2ECC71",
+      "parent": "income"
+    },
+    "personal_transfer": {
+      "name": "Personal Transfer",
+      "icon": "exchange",
+      "color": "#7F8C8D",
+      "parent": "transfer"
+    }
+  }
+}

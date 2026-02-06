@@ -79,6 +79,7 @@ CREATE TABLE "raw_emails" (
 	"provider_message_id" text NOT NULL,
 	"from" text NOT NULL,
 	"subject" text NOT NULL,
+	"snippet" text DEFAULT '' NOT NULL,
 	"received_at" timestamp with time zone NOT NULL,
 	"body_text" text NOT NULL,
 	"body_html" text,
@@ -119,11 +120,21 @@ CREATE TABLE "sync_jobs" (
 CREATE TABLE "transactions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" text NOT NULL,
+	"dedupe_hash" text NOT NULL,
 	"merchant" text NOT NULL,
+	"merchant_raw" text NOT NULL,
+	"vpa" text,
 	"amount" numeric(12, 2) NOT NULL,
 	"currency" text NOT NULL,
 	"transaction_date" timestamp with time zone NOT NULL,
-	"category" text,
+	"transaction_type" text NOT NULL,
+	"transaction_mode" text NOT NULL,
+	"category" text NOT NULL,
+	"subcategory" text NOT NULL,
+	"confidence" numeric(5, 4) DEFAULT '0' NOT NULL,
+	"categorization_method" text DEFAULT 'default' NOT NULL,
+	"requires_review" boolean DEFAULT false NOT NULL,
+	"category_metadata" jsonb DEFAULT '{"icon":"question-circle","color":"#BDC3C7","parent":null}'::jsonb NOT NULL,
 	"statement_id" uuid,
 	"source_email_id" uuid NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -159,3 +170,5 @@ CREATE INDEX "sessions_expires_at_idx" ON "sessions" USING btree ("expires_at");
 CREATE UNIQUE INDEX "users_email_idx" ON "users" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "verifications_identifier_idx" ON "verifications" USING btree ("identifier");--> statement-breakpoint
 CREATE UNIQUE INDEX "raw_emails_user_provider_message_idx" ON "raw_emails" USING btree ("user_id","provider","provider_message_id");
+--> statement-breakpoint
+CREATE UNIQUE INDEX "transactions_user_dedupe_hash_idx" ON "transactions" USING btree ("user_id","dedupe_hash");

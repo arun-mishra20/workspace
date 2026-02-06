@@ -7,6 +7,7 @@ export const RawEmailSchema = z.object({
   providerMessageId: z.string(),
   from: z.string(),
   subject: z.string(),
+  snippet: z.string(),
   receivedAt: z.string(),
   bodyText: z.string(),
   bodyHtml: z.string().optional(),

@@ -1,4 +1,5 @@
 import {
+  boolean,
   date,
   jsonb,
   numeric,
@@ -27,6 +28,7 @@ export const rawEmailsTable = pgTable(
     providerMessageId: text("provider_message_id").notNull(),
     from: text("from").notNull(),
     subject: text("subject").notNull(),
+    snippet: text("snippet").notNull().default(""),
     receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
     bodyText: text("body_text").notNull(),
     bodyHtml: text("body_html"),
@@ -44,7 +46,6 @@ export const rawEmailsTable = pgTable(
       table.userId,
       table.provider,
       table.providerMessageId,
-      table.receivedAt,
     ),
   ],
 );
@@ -81,13 +82,30 @@ export const transactionsTable = pgTable("transactions", {
   userId: uuid("user_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
+  dedupeHash: text("dedupe_hash").notNull(),
   merchant: text("merchant").notNull(),
+  merchantRaw: text("merchant_raw").notNull(),
+  vpa: text("vpa"),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   currency: text("currency").notNull(),
   transactionDate: timestamp("transaction_date", {
     withTimezone: true,
   }).notNull(),
-  category: text("category"),
+  transactionType: text("transaction_type").notNull(),
+  transactionMode: text("transaction_mode").notNull(),
+  category: text("category").notNull(),
+  subcategory: text("subcategory").notNull(),
+  confidence: numeric("confidence", { precision: 5, scale: 4 })
+    .notNull()
+    .default("0"),
+  categorizationMethod: text("categorization_method")
+    .notNull()
+    .default("default"),
+  requiresReview: boolean("requires_review").notNull().default(false),
+  categoryMetadata: jsonb("category_metadata")
+    .notNull()
+    .$type<{ icon: string; color: string; parent: string | null }>()
+    .default({ icon: "question-circle", color: "#BDC3C7", parent: null }),
   statementId: uuid("statement_id").references(() => statementsTable.id, {
     onDelete: "set null",
   }),
@@ -101,7 +119,9 @@ export const transactionsTable = pgTable("transactions", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
-});
+}, (table) => [
+  uniqueIndex("transactions_user_dedupe_hash_idx").on(table.userId, table.dedupeHash),
+]);
 
 export type RawEmailRecord = typeof rawEmailsTable.$inferSelect;
 export type InsertRawEmail = typeof rawEmailsTable.$inferInsert;

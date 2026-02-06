@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing'
 import request from 'supertest'
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify'
+import { FastifyAdapter } from '@nestjs/platform-fastify'
+import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 
 import { AppModule } from '@/app.module'
 

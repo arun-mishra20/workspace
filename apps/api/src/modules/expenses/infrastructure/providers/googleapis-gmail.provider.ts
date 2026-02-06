@@ -91,6 +91,7 @@ export class GoogleApisGmailProvider implements GmailProvider {
             providerMessageId: params.emailId,
             from: headers.from ?? "",
             subject: headers.subject ?? "",
+            snippet: res.data.snippet ?? "",
             receivedAt: headers.date ?? new Date().toISOString(),
             bodyText,
             bodyHtml,
