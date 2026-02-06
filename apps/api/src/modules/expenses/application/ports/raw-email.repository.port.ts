@@ -7,6 +7,7 @@ import type { RawEmail } from "@workspace/domain";
  */
 export interface RawEmailRepository {
     upsert(email: RawEmail): Promise<{ isNew: boolean; id: string }>;
+    findById(params: { userId: string; id: string }): Promise<RawEmail | null>;
     findByProviderMessageId(params: {
         userId: string;
         provider: "gmail" | "outlook";

@@ -31,5 +31,8 @@ export const appPaths = {
     expensesEmails: {
       getHref: () => "/expenses/emails",
     },
+    expensesEmailDetails: {
+      getHref: (id: string) => `/expenses/emails/${encodeURIComponent(id)}`,
+    },
   },
 } as const;

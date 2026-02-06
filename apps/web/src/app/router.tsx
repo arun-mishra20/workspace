@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/protected-routes/protected-route";
 import Dashboard from "@/pages/dashboard";
 import ThemeSettingsPage from "@/pages/theme";
 import ExpenseEmailsPage from "@/pages/expenses/emails";
+import ExpenseEmailDetailsPage from "@/pages/expenses/email-details";
 
 const router = createBrowserRouter([
   {
@@ -85,6 +86,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <ExpenseEmailsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "expenses/emails/:id",
+        element: (
+          <ProtectedRoute>
+            <ExpenseEmailDetailsPage />
           </ProtectedRoute>
         ),
       },

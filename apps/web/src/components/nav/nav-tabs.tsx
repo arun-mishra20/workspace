@@ -24,7 +24,7 @@ const navItems = [
   },
   { label: "Metrics", href: appPaths.auth.metrics.getHref(), icon: ChartArea },
   {
-    label: "Expenses",
+    label: "Emails",
     href: appPaths.auth.expensesEmails.getHref(),
     icon: Mail,
   },
@@ -35,7 +35,9 @@ const NavTabs = () => {
   const navigate = useNavigate();
 
   const current = useMemo(() => {
-    const match = navItems.find((item) => location.pathname === item.href);
+    const match = navItems.find((item) =>
+      location.pathname.includes(item.href),
+    );
     return match?.href ?? navItems[0]?.href ?? "/";
   }, [location.pathname]);
 

@@ -119,6 +119,25 @@ export class ExpensesController {
         };
     }
 
+    @Get("emails/:id")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Get a single expense email (raw)" })
+    @ApiParam({ name: "id", description: "Raw email ID" })
+    @ApiResponse({
+        status: 200,
+        description: "Returns the raw email payload (html/text/headers)",
+    })
+    async getExpenseEmail(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Param("id") id: string,
+    ): Promise<RawEmail> {
+        const email = await this.expensesService.getExpenseEmailById({ userId: req.user.id, id });
+        if (!email) {
+            throw new NotFoundException("Email not found");
+        }
+        return email;
+    }
+
     @Get("gmail/connect")
     @UseGuards(JwtAuthGuard)
     @ApiOperation({ summary: "Start Gmail OAuth flow" })

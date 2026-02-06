@@ -268,6 +268,10 @@ export class ExpensesService {
         return { data, total };
     }
 
+    async getExpenseEmailById(params: { userId: string; id: string }): Promise<RawEmail | null> {
+        return this.rawEmailRepository.findById(params);
+    }
+
     private findParser(email: RawEmail): EmailParser | null {
         return this.parsers.find((parser) => parser.canParse(email)) ?? null;
     }

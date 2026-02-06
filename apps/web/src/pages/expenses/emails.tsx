@@ -32,6 +32,8 @@ import {
   TableRow,
 } from "@workspace/ui/components/ui/table";
 import { Dot, MailSearch, RefreshCcw, Unplug } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { appPaths } from "@/config/app-paths";
 
 type RawEmail = {
   id: string;
@@ -109,6 +111,7 @@ const ExpenseEmailsPage = () => {
   const queryClient = useQueryClient();
   const [pageIndex, setPageIndex] = useState(0);
   const pageSize = 20;
+  const navigate = useNavigate();
 
   const {
     data: apiData,
@@ -301,7 +304,24 @@ const ExpenseEmailsPage = () => {
                   </TableHeader>
                   <TableBody>
                     {table.getRowModel().rows.map((row) => (
-                      <TableRow key={row.id}>
+                      <TableRow
+                        key={row.id}
+                        className="cursor-pointer hover:bg-muted/40"
+                        role="link"
+                        tabIndex={0}
+                        onClick={() => {
+                          const email = row.original;
+                          navigate(appPaths.auth.expensesEmailDetails.getHref(email.id));
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key !== "Enter" && event.key !== " ") {
+                            return;
+                          }
+                          event.preventDefault();
+                          const email = row.original;
+                          navigate(appPaths.auth.expensesEmailDetails.getHref(email.id));
+                        }}
+                      >
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id}>
                             {flexRender(

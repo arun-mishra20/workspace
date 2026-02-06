@@ -74,6 +74,15 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
         }
     }
 
+    async findById(params: { userId: string; id: string }): Promise<RawEmail | null> {
+        const [record] = await this.db
+            .select()
+            .from(rawEmailsTable)
+            .where(and(eq(rawEmailsTable.userId, params.userId), eq(rawEmailsTable.id, params.id)));
+
+        return record ? this.toDomain(record) : null;
+    }
+
     async findByProviderMessageId(params: {
         userId: string;
         provider: "gmail" | "outlook";
