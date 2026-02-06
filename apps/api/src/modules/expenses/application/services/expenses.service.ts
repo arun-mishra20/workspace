@@ -19,6 +19,7 @@ import {
 import {
     TRANSACTION_REPOSITORY,
     type TransactionRepository,
+    type DateRange,
 } from "@/modules/expenses/application/ports/transaction.repository.port";
 import {
     SYNC_JOB_REPOSITORY,
@@ -26,13 +27,27 @@ import {
     type SyncJob,
 } from "@/modules/expenses/application/ports/sync-job.repository.port";
 import { TransactionCategorizer } from "@/modules/expenses/infrastructure/categorization/transaction-categorizer";
+import { CardResolver } from "@/modules/expenses/infrastructure/categorization/card-resolver";
 
-import type { RawEmail, Transaction, UpdateTransactionInput } from "@workspace/domain";
+import type {
+    RawEmail,
+    Transaction,
+    UpdateTransactionInput,
+    AnalyticsPeriod,
+    SpendingSummary,
+    SpendingByCategoryItem,
+    SpendingByModeItem,
+    SpendingByMerchantItem,
+    DailySpendingItem,
+    MonthlyTrendItem,
+    SpendingByCardItem,
+} from "@workspace/domain";
 
 @Injectable()
 export class ExpensesService {
     private readonly logger = new Logger(ExpensesService.name);
     private readonly transactionCategorizer = TransactionCategorizer.getInstance();
+    private readonly cardResolver = CardResolver.getInstance();
 
     constructor(
         @Inject(GMAIL_PROVIDER)
@@ -93,6 +108,121 @@ export class ExpensesService {
      */
     async getUserSyncJobs(userId: string, limit = 10): Promise<SyncJob[]> {
         return this.syncJobRepository.findByUserId(userId, limit);
+    }
+
+    /**
+     * Start a reprocess job — re-parse & re-categorize all stored emails
+     * without fetching from Gmail. Returns a job ID for polling.
+     */
+    async startReprocessJob(params: { userId: string }): Promise<{ jobId: string }> {
+        const job = await this.syncJobRepository.create({
+            userId: params.userId,
+            query: "__reprocess__",
+        });
+
+        this.runReprocessJob(job.id, params.userId).catch(async (error) => {
+            this.logger.error(
+                `Reprocess job ${job.id} failed unexpectedly outside try-catch`,
+                error,
+            );
+            try {
+                await this.syncJobRepository.update(job.id, {
+                    status: "failed",
+                    errorMessage: error instanceof Error ? error.message : "Unexpected error",
+                    completedAt: new Date(),
+                });
+            } catch (updateError) {
+                this.logger.error(`Failed to update reprocess job ${job.id} status`, updateError);
+            }
+        });
+
+        return { jobId: job.id };
+    }
+
+    /**
+     * Internal: re-parse all stored raw_emails for a user and upsert transactions.
+     * Skips Gmail entirely — works purely from stored email data.
+     */
+    private async runReprocessJob(jobId: string, userId: string): Promise<void> {
+        try {
+            await this.syncJobRepository.update(jobId, {
+                status: "processing",
+                startedAt: new Date(),
+            });
+
+            const allEmails = await this.rawEmailRepository.listAllByUser(userId);
+
+            await this.syncJobRepository.update(jobId, {
+                totalEmails: allEmails.length,
+            });
+
+            this.logger.log(`Reprocess job ${jobId}: re-parsing ${allEmails.length} stored emails`);
+
+            let totalTransactions = 0;
+            let totalStatements = 0;
+
+            for (const email of allEmails) {
+                try {
+                    const parser = this.findParser(email);
+                    if (!parser) {
+                        await this.syncJobRepository.incrementProgress(jobId, "processedEmails");
+                        continue;
+                    }
+
+                    const parsedTransactions = parser.parseTransactions(email);
+                    const transactions = this.categorizeTransactions(parsedTransactions);
+
+                    if (transactions.length > 0) {
+                        await this.transactionRepository.upsertMany(transactions);
+                        totalTransactions += transactions.length;
+                        await this.syncJobRepository.incrementProgress(
+                            jobId,
+                            "transactions",
+                            transactions.length,
+                        );
+                    }
+
+                    const statement = parser.parseStatement(email);
+                    if (statement) {
+                        await this.statementRepository.upsert(statement);
+                        totalStatements++;
+                        await this.syncJobRepository.incrementProgress(jobId, "statements");
+                    }
+
+                    await this.syncJobRepository.incrementProgress(jobId, "processedEmails");
+                } catch (emailError) {
+                    this.logger.warn(
+                        `Reprocess job ${jobId}: failed to process email ${email.id}`,
+                        emailError,
+                    );
+                    await this.syncJobRepository.incrementProgress(jobId, "processedEmails");
+                }
+            }
+
+            await this.syncJobRepository.update(jobId, {
+                status: "completed",
+                completedAt: new Date(),
+            });
+
+            this.logger.log(
+                `Reprocess job ${jobId} completed: ${totalTransactions} transactions, ${totalStatements} statements from ${allEmails.length} emails`,
+            );
+        } catch (error) {
+            this.logger.error(`Reprocess job ${jobId} failed`, error);
+            try {
+                await this.syncJobRepository.update(jobId, {
+                    status: "failed",
+                    errorMessage: error instanceof Error ? error.message : "Unknown error",
+                    completedAt: new Date(),
+                });
+            } catch (updateError) {
+                this.logger.error(
+                    `Critical: Failed to update reprocess job ${jobId} status`,
+                    updateError,
+                );
+                throw error;
+            }
+        }
     }
 
     /**
@@ -301,6 +431,87 @@ export class ExpensesService {
         return this.rawEmailRepository.findById(params);
     }
 
+    // ── Analytics ──
+
+    private computeDateRange(period: AnalyticsPeriod): DateRange {
+        const end = new Date();
+        const start = new Date();
+        switch (period) {
+            case "week":
+                start.setDate(start.getDate() - 7);
+                break;
+            case "month":
+                start.setMonth(start.getMonth() - 1);
+                break;
+            case "quarter":
+                start.setMonth(start.getMonth() - 3);
+                break;
+            case "year":
+                start.setFullYear(start.getFullYear() - 1);
+                break;
+        }
+        start.setHours(0, 0, 0, 0);
+        return { start, end };
+    }
+
+    async getSpendingSummary(userId: string, period: AnalyticsPeriod): Promise<SpendingSummary> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getSpendingSummary({ userId, range });
+    }
+
+    async getSpendingByCategory(
+        userId: string,
+        period: AnalyticsPeriod,
+    ): Promise<SpendingByCategoryItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getSpendingByCategory({ userId, range });
+    }
+
+    async getSpendingByMode(
+        userId: string,
+        period: AnalyticsPeriod,
+    ): Promise<SpendingByModeItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getSpendingByMode({ userId, range });
+    }
+
+    async getTopMerchants(
+        userId: string,
+        period: AnalyticsPeriod,
+        limit = 10,
+    ): Promise<SpendingByMerchantItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getTopMerchants({ userId, range, limit });
+    }
+
+    async getDailySpending(userId: string, period: AnalyticsPeriod): Promise<DailySpendingItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getDailySpending({ userId, range });
+    }
+
+    async getMonthlyTrend(userId: string, months = 12): Promise<MonthlyTrendItem[]> {
+        return this.transactionRepository.getMonthlyTrend({ userId, months });
+    }
+
+    async getSpendingByCard(
+        userId: string,
+        period: AnalyticsPeriod,
+    ): Promise<SpendingByCardItem[]> {
+        const range = this.computeDateRange(period);
+        const rows = await this.transactionRepository.getSpendingByCard({ userId, range });
+
+        // Enrich with card config metadata
+        return rows.map((row) => {
+            const resolved = this.cardResolver.resolve(row.cardLast4);
+            return {
+                ...row,
+                cardName: resolved?.cardName ?? row.cardName,
+                bank: resolved?.bank ?? row.bank,
+                icon: resolved?.icon ?? row.icon,
+            };
+        });
+    }
+
     private findParser(email: RawEmail): EmailParser | null {
         return this.parsers.find((parser) => parser.canParse(email)) ?? null;
     }
@@ -320,6 +531,11 @@ export class ExpensesService {
                 transaction_type: transaction.transactionType,
             });
 
+            // Resolve card name from last-4 digits
+            const cardName = transaction.cardLast4
+                ? this.cardResolver.resolveCardName(transaction.cardLast4)
+                : undefined;
+
             return {
                 ...transaction,
                 category: category.category,
@@ -328,6 +544,7 @@ export class ExpensesService {
                 categorizationMethod: category.method,
                 requiresReview: category.requiresReview,
                 categoryMetadata: category.categoryMetadata,
+                cardName,
             };
         });
     }

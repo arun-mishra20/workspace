@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard";
 import ThemeSettingsPage from "@/pages/theme";
 import ExpenseEmailsPage from "@/pages/expenses/emails";
 import ExpenseEmailDetailsPage from "@/pages/expenses/email-details";
+import AnalyticsPage from "@/pages/expenses/analytics";
 
 const router = createBrowserRouter([
   {
@@ -61,7 +62,7 @@ const router = createBrowserRouter([
         path: "analytics",
         element: (
           <ProtectedRoute>
-            <Dashboard />
+            <AnalyticsPage />
           </ProtectedRoute>
         ),
       },
@@ -69,7 +70,7 @@ const router = createBrowserRouter([
         path: "patterns",
         element: (
           <ProtectedRoute>
-            <Dashboard />
+            <AnalyticsPage />
           </ProtectedRoute>
         ),
       },
@@ -77,7 +78,7 @@ const router = createBrowserRouter([
         path: "metrics",
         element: (
           <ProtectedRoute>
-            <Dashboard />
+            <AnalyticsPage />
           </ProtectedRoute>
         ),
       },

@@ -14,6 +14,7 @@ export interface RawEmailRepository {
         providerMessageId: string;
     }): Promise<RawEmail | null>;
     listByUser(params: { userId: string; limit: number; offset: number }): Promise<RawEmail[]>;
+    listAllByUser(userId: string): Promise<RawEmail[]>;
     countByUser(userId: string): Promise<number>;
 }
 

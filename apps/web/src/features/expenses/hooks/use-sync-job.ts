@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
   startSyncJob,
+  startReprocessJob,
   getSyncJobStatus,
 } from "@/features/expenses/api/sync-expenses";
 import type { SyncJob } from "@workspace/domain";
@@ -15,6 +16,7 @@ interface UseSyncJobOptions {
 
 interface UseSyncJobReturn {
   startSync: () => void;
+  startReprocess: () => void;
   job: SyncJob | null;
   isStarting: boolean;
   isPolling: boolean;
@@ -32,9 +34,8 @@ export function useSyncJob(options: UseSyncJobOptions = {}): UseSyncJobReturn {
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const startMutation = useMutation({
-    mutationFn: startSyncJob,
-    onSuccess: (data) => {
+  const onMutationSuccess = useCallback(
+    (data: { jobId: string }) => {
       setJob({
         id: data.jobId,
         userId: "",
@@ -54,10 +55,28 @@ export function useSyncJob(options: UseSyncJobOptions = {}): UseSyncJobReturn {
       setIsPolling(true);
       setError(null);
     },
-    onError: (err) => {
-      setError(err instanceof Error ? err : new Error("Failed to start sync"));
-      onError?.(err instanceof Error ? err : new Error("Failed to start sync"));
+    [],
+  );
+
+  const onMutationError = useCallback(
+    (err: Error) => {
+      const error = err instanceof Error ? err : new Error("Failed to start job");
+      setError(error);
+      onError?.(error);
     },
+    [onError],
+  );
+
+  const startMutation = useMutation({
+    mutationFn: startSyncJob,
+    onSuccess: onMutationSuccess,
+    onError: onMutationError,
+  });
+
+  const reprocessMutation = useMutation({
+    mutationFn: startReprocessJob,
+    onSuccess: onMutationSuccess,
+    onError: onMutationError,
   });
 
   // Polling effect
@@ -77,6 +96,7 @@ export function useSyncJob(options: UseSyncJobOptions = {}): UseSyncJobReturn {
         if (updatedJob.status === "completed") {
           setIsPolling(false);
           queryClient.invalidateQueries({ queryKey: ["expenses", "emails"] });
+          queryClient.invalidateQueries({ queryKey: ["expenses", "analytics"] });
           onComplete?.(updatedJob);
         } else if (updatedJob.status === "failed") {
           setIsPolling(false);
@@ -133,6 +153,12 @@ export function useSyncJob(options: UseSyncJobOptions = {}): UseSyncJobReturn {
     startMutation.mutate();
   }, [startMutation]);
 
+  const startReprocess = useCallback(() => {
+    setError(null);
+    setJob(null);
+    reprocessMutation.mutate();
+  }, [reprocessMutation]);
+
   const reset = useCallback(() => {
     setJob(null);
     setIsPolling(false);
@@ -141,10 +167,11 @@ export function useSyncJob(options: UseSyncJobOptions = {}): UseSyncJobReturn {
 
   return {
     startSync,
+    startReprocess,
     job,
-    isStarting: startMutation.isPending,
+    isStarting: startMutation.isPending || reprocessMutation.isPending,
     isPolling,
-    isSyncing: startMutation.isPending || isPolling,
+    isSyncing: startMutation.isPending || reprocessMutation.isPending || isPolling,
     progress,
     error,
     reset,

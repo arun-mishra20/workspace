@@ -77,51 +77,60 @@ export const statementsTable = pgTable("statements", {
 /**
  * Transactions table definition
  */
-export const transactionsTable = pgTable("transactions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
-  dedupeHash: text("dedupe_hash").notNull(),
-  merchant: text("merchant").notNull(),
-  merchantRaw: text("merchant_raw").notNull(),
-  vpa: text("vpa"),
-  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-  currency: text("currency").notNull(),
-  transactionDate: timestamp("transaction_date", {
-    withTimezone: true,
-  }).notNull(),
-  transactionType: text("transaction_type").notNull(),
-  transactionMode: text("transaction_mode").notNull(),
-  category: text("category").notNull(),
-  subcategory: text("subcategory").notNull(),
-  confidence: numeric("confidence", { precision: 5, scale: 4 })
-    .notNull()
-    .default("0"),
-  categorizationMethod: text("categorization_method")
-    .notNull()
-    .default("default"),
-  requiresReview: boolean("requires_review").notNull().default(false),
-  categoryMetadata: jsonb("category_metadata")
-    .notNull()
-    .$type<{ icon: string; color: string; parent: string | null }>()
-    .default({ icon: "question-circle", color: "#BDC3C7", parent: null }),
-  statementId: uuid("statement_id").references(() => statementsTable.id, {
-    onDelete: "set null",
-  }),
-  sourceEmailId: uuid("source_email_id")
-    .notNull()
-    .references(() => rawEmailsTable.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-}, (table) => [
-  uniqueIndex("transactions_user_dedupe_hash_idx").on(table.userId, table.dedupeHash),
-]);
+export const transactionsTable = pgTable(
+  "transactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    dedupeHash: text("dedupe_hash").notNull(),
+    merchant: text("merchant").notNull(),
+    merchantRaw: text("merchant_raw").notNull(),
+    vpa: text("vpa"),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    currency: text("currency").notNull(),
+    transactionDate: timestamp("transaction_date", {
+      withTimezone: true,
+    }).notNull(),
+    transactionType: text("transaction_type").notNull(),
+    transactionMode: text("transaction_mode").notNull(),
+    cardLast4: text("card_last4"),
+    cardName: text("card_name"),
+    category: text("category").notNull(),
+    subcategory: text("subcategory").notNull(),
+    confidence: numeric("confidence", { precision: 5, scale: 4 })
+      .notNull()
+      .default("0"),
+    categorizationMethod: text("categorization_method")
+      .notNull()
+      .default("default"),
+    requiresReview: boolean("requires_review").notNull().default(false),
+    categoryMetadata: jsonb("category_metadata")
+      .notNull()
+      .$type<{ icon: string; color: string; parent: string | null }>()
+      .default({ icon: "question-circle", color: "#BDC3C7", parent: null }),
+    statementId: uuid("statement_id").references(() => statementsTable.id, {
+      onDelete: "set null",
+    }),
+    sourceEmailId: uuid("source_email_id")
+      .notNull()
+      .references(() => rawEmailsTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("transactions_user_dedupe_hash_idx").on(
+      table.userId,
+      table.dedupeHash,
+    ),
+  ],
+);
 
 export type RawEmailRecord = typeof rawEmailsTable.$inferSelect;
 export type InsertRawEmail = typeof rawEmailsTable.$inferInsert;

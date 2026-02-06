@@ -24,7 +24,7 @@ import { ListExpenseEmailsDto } from "@/modules/expenses/presentation/dtos/list-
 import { ListExpensesDto } from "@/modules/expenses/presentation/dtos/list-expenses.dto";
 import { UpdateTransactionDto } from "@/modules/expenses/presentation/dtos/update-transaction.dto";
 import { OffsetListResponseDto } from "@/shared/infrastructure/dtos/list-response.dto";
-import type { RawEmail, Transaction } from "@workspace/domain";
+import type { RawEmail, Transaction, AnalyticsPeriod } from "@workspace/domain";
 import type { FastifyReply, FastifyRequest } from "fastify";
 
 @ApiTags("expenses")
@@ -54,6 +54,28 @@ export class ExpensesController {
         return {
             jobId,
             message: "Sync job started. Poll /expenses/sync/:jobId for status.",
+        };
+    }
+
+    @Post("reprocess")
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.ACCEPTED)
+    @ApiOperation({
+        summary: "Re-parse all stored emails without fetching from Gmail",
+    })
+    @ApiResponse({
+        status: 202,
+        description: "Reprocess job started, returns job ID for status polling",
+    })
+    async reprocessEmails(
+        @Request() req: FastifyRequest & { user: { id: string } },
+    ): Promise<{ jobId: string; message: string }> {
+        const { jobId } = await this.expensesService.startReprocessJob({
+            userId: req.user.id,
+        });
+        return {
+            jobId,
+            message: "Reprocess job started. Poll /expenses/sync/:jobId for status.",
         };
     }
 
@@ -212,6 +234,86 @@ export class ExpensesController {
             throw new NotFoundException("Email not found");
         }
         return email;
+    }
+
+    // ── Analytics ──
+
+    @Get("analytics/summary")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Spending summary for a period" })
+    async getAnalyticsSummary(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+    ) {
+        return this.expensesService.getSpendingSummary(req.user.id, period);
+    }
+
+    @Get("analytics/by-category")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Spending grouped by category" })
+    async getByCategory(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+    ) {
+        return this.expensesService.getSpendingByCategory(req.user.id, period);
+    }
+
+    @Get("analytics/by-mode")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Spending grouped by payment mode" })
+    async getByMode(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+    ) {
+        return this.expensesService.getSpendingByMode(req.user.id, period);
+    }
+
+    @Get("analytics/top-merchants")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Top merchants by spend" })
+    async getTopMerchants(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+        @Query("limit") limit?: string,
+    ) {
+        return this.expensesService.getTopMerchants(
+            req.user.id,
+            period,
+            limit ? parseInt(limit, 10) : 10,
+        );
+    }
+
+    @Get("analytics/daily")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Daily spending breakdown" })
+    async getDailySpending(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+    ) {
+        return this.expensesService.getDailySpending(req.user.id, period);
+    }
+
+    @Get("analytics/monthly-trend")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Monthly trend (last N months)" })
+    async getMonthlyTrend(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("months") months?: string,
+    ) {
+        return this.expensesService.getMonthlyTrend(
+            req.user.id,
+            months ? parseInt(months, 10) : 12,
+        );
+    }
+
+    @Get("analytics/by-card")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Spending grouped by credit card" })
+    async getByCard(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+    ) {
+        return this.expensesService.getSpendingByCard(req.user.id, period);
     }
 
     @Get("gmail/connect")

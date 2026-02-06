@@ -39,6 +39,8 @@ export const TransactionSchema: ZodType<Transaction> = z.object({
   requiresReview: z.boolean(),
   categoryMetadata: CategoryMetadataSchema,
   statementId: z.string().optional(),
+  cardLast4: z.string().optional(),
+  cardName: z.string().optional(),
 });
 
 export const StatementSchema: ZodType<Statement> = z.object({
@@ -71,6 +73,8 @@ export interface Transaction {
   requiresReview: boolean;
   categoryMetadata: CategoryMetadata;
   statementId?: string;
+  cardLast4?: string;
+  cardName?: string;
 }
 
 export interface Statement {
@@ -165,3 +169,79 @@ export interface StartSyncJobResponse {
   jobId: string;
   message: string;
 }
+
+// ── Analytics Types ──
+
+export const AnalyticsPeriodSchema = z.enum([
+  "week",
+  "month",
+  "quarter",
+  "year",
+]);
+export type AnalyticsPeriod = z.infer<typeof AnalyticsPeriodSchema>;
+
+export const SpendingSummarySchema = z.object({
+  totalSpent: z.number(),
+  totalReceived: z.number(),
+  netFlow: z.number(),
+  transactionCount: z.number(),
+  avgTransaction: z.number(),
+  reviewPending: z.number(),
+  topCategory: z.string(),
+  topMerchant: z.string(),
+});
+export type SpendingSummary = z.infer<typeof SpendingSummarySchema>;
+
+export const SpendingByCategoryItemSchema = z.object({
+  category: z.string(),
+  displayName: z.string(),
+  amount: z.number(),
+  count: z.number(),
+  color: z.string(),
+  icon: z.string(),
+  parent: z.string().nullable(),
+});
+export type SpendingByCategoryItem = z.infer<
+  typeof SpendingByCategoryItemSchema
+>;
+
+export const SpendingByModeItemSchema = z.object({
+  mode: z.string(),
+  amount: z.number(),
+  count: z.number(),
+});
+export type SpendingByModeItem = z.infer<typeof SpendingByModeItemSchema>;
+
+export const SpendingByMerchantItemSchema = z.object({
+  merchant: z.string(),
+  amount: z.number(),
+  count: z.number(),
+});
+export type SpendingByMerchantItem = z.infer<
+  typeof SpendingByMerchantItemSchema
+>;
+
+export const DailySpendingItemSchema = z.object({
+  date: z.string(),
+  debited: z.number(),
+  credited: z.number(),
+});
+export type DailySpendingItem = z.infer<typeof DailySpendingItemSchema>;
+
+export const MonthlyTrendItemSchema = z.object({
+  month: z.string(),
+  debited: z.number(),
+  credited: z.number(),
+  net: z.number(),
+});
+export type MonthlyTrendItem = z.infer<typeof MonthlyTrendItemSchema>;
+
+export const SpendingByCardItemSchema = z.object({
+  cardLast4: z.string(),
+  cardName: z.string(),
+  bank: z.string(),
+  icon: z.string(),
+  amount: z.number(),
+  count: z.number(),
+});
+export type SpendingByCardItem = z.infer<typeof SpendingByCardItemSchema>;

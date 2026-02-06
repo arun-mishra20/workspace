@@ -1,5 +1,9 @@
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lt, lte, sql } from "drizzle-orm";
 
 import {
     transactionsTable,
@@ -8,8 +12,73 @@ import {
 } from "@workspace/database";
 
 import { DB_TOKEN, type DrizzleDb } from "@/shared/infrastructure/db/db.port";
-import type { TransactionRepository } from "@/modules/expenses/application/ports/transaction.repository.port";
-import type { Transaction, UpdateTransactionInput } from "@workspace/domain";
+import type {
+    TransactionRepository,
+    DateRange,
+} from "@/modules/expenses/application/ports/transaction.repository.port";
+import type {
+    Transaction,
+    UpdateTransactionInput,
+    SpendingSummary,
+    SpendingByCategoryItem,
+    SpendingByModeItem,
+    SpendingByMerchantItem,
+    DailySpendingItem,
+    MonthlyTrendItem,
+    SpendingByCardItem,
+} from "@workspace/domain";
+
+function loadCategoryMeta(): Record<
+    string,
+    { name: string; icon: string; color: string; parent: string | null }
+> {
+    const moduleDir = dirname(fileURLToPath(import.meta.url));
+    /*
+    The asset copy rule is there. The loadCategoryMeta function handles both scenarios:
+    Dev mode (pnpm dev): SWC runs from source, so import.meta.url resolves to the src/ directory. The first candidate path (default_categories.json relative to repositories/) will find it.
+    Built mode (pnpm build → dist/): nest-cli copies the JSON to dist/modules/expenses/infrastructure/categorization/config/. The first candidate path still works since the relative directory structure is preserved.
+    Fallback: process.cwd() + src/... covers running from the project root directly.
+
+     */
+    const candidatePaths = [
+        join(moduleDir, "..", "categorization", "config", "default_categories.json"),
+        join(moduleDir, "config", "default_categories.json"),
+        join(
+            process.cwd(),
+            "src/modules/expenses/infrastructure/categorization/config/default_categories.json",
+        ),
+    ];
+
+    for (const p of candidatePaths) {
+        if (existsSync(p)) {
+            const raw = JSON.parse(readFileSync(p, "utf-8")) as {
+                categories?: Record<
+                    string,
+                    { name?: string; icon?: string; color?: string; parent?: string | null }
+                >;
+            };
+            const result: Record<
+                string,
+                { name: string; icon: string; color: string; parent: string | null }
+            > = {};
+            for (const [key, val] of Object.entries(raw.categories ?? {})) {
+                result[key] = {
+                    name:
+                        val.name ??
+                        key.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+                    icon: val.icon ?? "question-circle",
+                    color: val.color ?? "#BDC3C7",
+                    parent: val.parent ?? null,
+                };
+            }
+            return result;
+        }
+    }
+
+    throw new Error(`default_categories.json not found. Checked: ${candidatePaths.join(", ")}`);
+}
+
+const CATEGORY_META = loadCategoryMeta();
 
 @Injectable()
 export class TransactionRepositoryImpl implements TransactionRepository {
@@ -37,6 +106,8 @@ export class TransactionRepositoryImpl implements TransactionRepository {
                         transactionDate: value.transactionDate,
                         transactionType: value.transactionType,
                         transactionMode: value.transactionMode,
+                        cardLast4: value.cardLast4 ?? null,
+                        cardName: value.cardName ?? null,
                         category: value.category,
                         subcategory: value.subcategory,
                         confidence: value.confidence,
@@ -165,6 +236,255 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         return result[0]?.count ?? 0;
     }
 
+    // ── Analytics ──
+
+    async getSpendingSummary(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<SpendingSummary> {
+        const where = and(
+            eq(transactionsTable.userId, params.userId),
+            gte(transactionsTable.transactionDate, params.range.start),
+            lt(transactionsTable.transactionDate, params.range.end),
+        );
+
+        const [row] = await this.db
+            .select({
+                totalSpent: sql<string>`coalesce(sum(case when ${transactionsTable.transactionType} = 'debited' then ${transactionsTable.amount}::numeric else 0 end), 0)`,
+                totalReceived: sql<string>`coalesce(sum(case when ${transactionsTable.transactionType} = 'credited' then ${transactionsTable.amount}::numeric else 0 end), 0)`,
+                transactionCount: sql<number>`count(*)::int`,
+                reviewPending: sql<number>`count(*) filter (where ${transactionsTable.requiresReview} = true)::int`,
+                topCategory: sql<string>`(
+                    select ${transactionsTable.category}
+                    from ${transactionsTable}
+                    where ${where} and ${transactionsTable.transactionType} = 'debited'
+                    group by ${transactionsTable.category}
+                    order by sum(${transactionsTable.amount}::numeric) desc
+                    limit 1
+                )`,
+                topMerchant: sql<string>`(
+                    select ${transactionsTable.merchant}
+                    from ${transactionsTable}
+                    where ${where} and ${transactionsTable.transactionType} = 'debited'
+                    group by ${transactionsTable.merchant}
+                    order by sum(${transactionsTable.amount}::numeric) desc
+                    limit 1
+                )`,
+            })
+            .from(transactionsTable)
+            .where(where);
+
+        const totalSpent = Number(row?.totalSpent ?? 0);
+        const totalReceived = Number(row?.totalReceived ?? 0);
+        const transactionCount = row?.transactionCount ?? 0;
+
+        return {
+            totalSpent,
+            totalReceived,
+            netFlow: totalReceived - totalSpent,
+            transactionCount,
+            avgTransaction: transactionCount > 0 ? totalSpent / transactionCount : 0,
+            reviewPending: row?.reviewPending ?? 0,
+            topCategory: row?.topCategory ?? "uncategorized",
+            topMerchant: row?.topMerchant ?? "-",
+        };
+    }
+
+    async getSpendingByCategory(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<SpendingByCategoryItem[]> {
+        const rows = await this.db
+            .select({
+                category: transactionsTable.category,
+                amount: sql<string>`sum(${transactionsTable.amount}::numeric)`,
+                count: sql<number>`count(*)::int`,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    gte(transactionsTable.transactionDate, params.range.start),
+                    lt(transactionsTable.transactionDate, params.range.end),
+                    eq(transactionsTable.transactionType, "debited"),
+                ),
+            )
+            .groupBy(transactionsTable.category)
+            .orderBy(sql`sum(${transactionsTable.amount}::numeric) desc`);
+
+        return rows.map((r) => {
+            const meta = CATEGORY_META[r.category];
+            return {
+                category: r.category,
+                displayName: meta?.name ?? r.category,
+                amount: Number(r.amount),
+                count: r.count,
+                color: meta?.color ?? "#94A3B8",
+                icon: meta?.icon ?? "question-circle",
+                parent: meta?.parent ?? null,
+            };
+        });
+    }
+
+    async getSpendingByMode(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<SpendingByModeItem[]> {
+        const rows = await this.db
+            .select({
+                mode: transactionsTable.transactionMode,
+                amount: sql<string>`sum(${transactionsTable.amount}::numeric)`,
+                count: sql<number>`count(*)::int`,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    gte(transactionsTable.transactionDate, params.range.start),
+                    lt(transactionsTable.transactionDate, params.range.end),
+                    eq(transactionsTable.transactionType, "debited"),
+                ),
+            )
+            .groupBy(transactionsTable.transactionMode)
+            .orderBy(sql`sum(${transactionsTable.amount}::numeric) desc`);
+
+        return rows.map((r) => ({
+            mode: r.mode,
+            amount: Number(r.amount),
+            count: r.count,
+        }));
+    }
+
+    async getTopMerchants(params: {
+        userId: string;
+        range: DateRange;
+        limit: number;
+    }): Promise<SpendingByMerchantItem[]> {
+        const rows = await this.db
+            .select({
+                merchant: transactionsTable.merchant,
+                amount: sql<string>`sum(${transactionsTable.amount}::numeric)`,
+                count: sql<number>`count(*)::int`,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    gte(transactionsTable.transactionDate, params.range.start),
+                    lt(transactionsTable.transactionDate, params.range.end),
+                    eq(transactionsTable.transactionType, "debited"),
+                ),
+            )
+            .groupBy(transactionsTable.merchant)
+            .orderBy(sql`sum(${transactionsTable.amount}::numeric) desc`)
+            .limit(params.limit);
+
+        return rows.map((r) => ({
+            merchant: r.merchant,
+            amount: Number(r.amount),
+            count: r.count,
+        }));
+    }
+
+    async getDailySpending(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<DailySpendingItem[]> {
+        const rows = await this.db
+            .select({
+                date: sql<string>`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD')`,
+                debited: sql<string>`coalesce(sum(case when ${transactionsTable.transactionType} = 'debited' then ${transactionsTable.amount}::numeric else 0 end), 0)`,
+                credited: sql<string>`coalesce(sum(case when ${transactionsTable.transactionType} = 'credited' then ${transactionsTable.amount}::numeric else 0 end), 0)`,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    gte(transactionsTable.transactionDate, params.range.start),
+                    lt(transactionsTable.transactionDate, params.range.end),
+                ),
+            )
+            .groupBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD')`)
+            .orderBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD') asc`);
+
+        return rows.map((r) => ({
+            date: r.date,
+            debited: Number(r.debited),
+            credited: Number(r.credited),
+        }));
+    }
+
+    async getMonthlyTrend(params: { userId: string; months: number }): Promise<MonthlyTrendItem[]> {
+        const end = new Date();
+        const start = new Date();
+        start.setMonth(start.getMonth() - params.months);
+        start.setDate(1);
+        start.setHours(0, 0, 0, 0);
+
+        const rows = await this.db
+            .select({
+                month: sql<string>`to_char(${transactionsTable.transactionDate}, 'YYYY-MM')`,
+                debited: sql<string>`coalesce(sum(case when ${transactionsTable.transactionType} = 'debited' then ${transactionsTable.amount}::numeric else 0 end), 0)`,
+                credited: sql<string>`coalesce(sum(case when ${transactionsTable.transactionType} = 'credited' then ${transactionsTable.amount}::numeric else 0 end), 0)`,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    gte(transactionsTable.transactionDate, start),
+                    lte(transactionsTable.transactionDate, end),
+                ),
+            )
+            .groupBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM')`)
+            .orderBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM') asc`);
+
+        return rows.map((r) => {
+            const debited = Number(r.debited);
+            const credited = Number(r.credited);
+            return {
+                month: r.month,
+                debited,
+                credited,
+                net: credited - debited,
+            };
+        });
+    }
+
+    async getSpendingByCard(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<SpendingByCardItem[]> {
+        const rows = await this.db
+            .select({
+                cardLast4: transactionsTable.cardLast4,
+                cardName: transactionsTable.cardName,
+                amount: sql<string>`sum(${transactionsTable.amount}::numeric)`,
+                count: sql<number>`count(*)::int`,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    gte(transactionsTable.transactionDate, params.range.start),
+                    lt(transactionsTable.transactionDate, params.range.end),
+                    eq(transactionsTable.transactionType, "debited"),
+                    eq(transactionsTable.transactionMode, "credit_card"),
+                    sql`${transactionsTable.cardLast4} is not null`,
+                ),
+            )
+            .groupBy(transactionsTable.cardLast4, transactionsTable.cardName)
+            .orderBy(sql`sum(${transactionsTable.amount}::numeric) desc`);
+
+        return rows.map((r) => ({
+            cardLast4: r.cardLast4 ?? "",
+            cardName: r.cardName ?? `Card ••${r.cardLast4}`,
+            bank: "",
+            icon: "credit-card",
+            amount: Number(r.amount),
+            count: r.count,
+        }));
+    }
+
     private toInsert(transaction: Transaction): InsertTransaction {
         return {
             id: transaction.id,
@@ -178,6 +498,8 @@ export class TransactionRepositoryImpl implements TransactionRepository {
             transactionDate: new Date(transaction.transactionDate),
             transactionType: transaction.transactionType,
             transactionMode: transaction.transactionMode,
+            cardLast4: transaction.cardLast4 ?? null,
+            cardName: transaction.cardName ?? null,
             category: transaction.category,
             subcategory: transaction.subcategory,
             confidence: transaction.confidence.toString(),
@@ -214,6 +536,8 @@ export class TransactionRepositoryImpl implements TransactionRepository {
             },
             statementId: record.statementId ?? undefined,
             sourceEmailId: record.sourceEmailId,
+            cardLast4: record.cardLast4 ?? undefined,
+            cardName: record.cardName ?? undefined,
         };
     }
 }

@@ -136,6 +136,19 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
         return records.map((record) => this.toDomain(record));
     }
 
+    async listAllByUser(userId: string): Promise<RawEmail[]> {
+        this.logger.debug(`Listing ALL emails for user ${userId} (reprocess)`);
+
+        const records = await this.db
+            .select(this.selectFields())
+            .from(rawEmailsTable)
+            .where(eq(rawEmailsTable.userId, userId))
+            .orderBy(desc(rawEmailsTable.receivedAt));
+
+        this.logger.debug(`Found ${records.length} total emails for user ${userId}`);
+        return records.map((record) => this.toDomain(record));
+    }
+
     async countByUser(userId: string): Promise<number> {
         const result = await this.db
             .select({ count: sql<number>`count(*)::int` })

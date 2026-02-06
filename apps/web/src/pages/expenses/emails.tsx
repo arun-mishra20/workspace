@@ -59,7 +59,14 @@ import {
   TabsList,
   TabsTrigger,
 } from "@workspace/ui/components/ui/tabs";
-import { Dot, MailSearch, Pencil, RefreshCcw, Unplug } from "lucide-react";
+import {
+  Dot,
+  MailSearch,
+  Pencil,
+  RotateCw,
+  RefreshCcw,
+  Unplug,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { appPaths } from "@/config/app-paths";
 import type { Transaction } from "@workspace/domain";
@@ -400,7 +407,7 @@ const ExpenseEmailsPage = () => {
     },
   });
 
-  const { startSync, job, isSyncing } = useSyncJob();
+  const { startSync, startReprocess, job, isSyncing } = useSyncJob();
 
   const disconnectMutation = useMutation({
     mutationFn: disconnectGmail,
@@ -484,6 +491,39 @@ const ExpenseEmailsPage = () => {
                 </span>
               </Button>
             </div>
+            <Button
+              variant="outline"
+              onClick={startReprocess}
+              disabled={isSyncing}
+              className="relative overflow-hidden"
+            >
+              <RotateCw />
+              {isSyncing && job?.query === "__reprocess__" && (
+                <div
+                  className="absolute inset-y-0 left-0 bg-primary/20 transition-all duration-300"
+                  style={{
+                    width: job?.totalEmails
+                      ? `${(job.processedEmails / job.totalEmails) * 100}%`
+                      : "5%",
+                  }}
+                />
+              )}
+              <span className="relative z-10">
+                {job?.query === "__reprocess__" &&
+                job?.status === "processing" &&
+                job.totalEmails ? (
+                  <>
+                    Reprocessing (<AnimatedNumber value={job.processedEmails} />{" "}
+                    / {job.totalEmails})
+                  </>
+                ) : job?.query === "__reprocess__" &&
+                  job?.status === "completed" ? (
+                  "Reprocessed"
+                ) : (
+                  "Reprocess"
+                )}
+              </span>
+            </Button>
 
             {statusQuery.data?.connected ? (
               <Badge variant="outline" className="flex gap-0 items-center">

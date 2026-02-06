@@ -1,7 +1,9 @@
 {
   "extends": "@workspace/typescript-config/tsconfig.library.json",
   "compilerOptions": {
-    "baseUrl": "."
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "isolatedDeclarations": false
   },
   "include": ["src/**/*"]
 }
