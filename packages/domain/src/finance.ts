@@ -236,6 +236,20 @@ export const MonthlyTrendItemSchema = z.object({
 });
 export type MonthlyTrendItem = z.infer<typeof MonthlyTrendItemSchema>;
 
+export const MilestoneProgressSchema = z.object({
+  id: z.string(),
+  type: z.enum(["spend", "fee waiver"]),
+  description: z.string(),
+  targetAmount: z.number(),
+  currentSpend: z.number(),
+  percentage: z.number(),
+  remaining: z.number(),
+  periodLabel: z.string(),
+  periodStart: z.string(),
+  periodEnd: z.string(),
+});
+export type MilestoneProgress = z.infer<typeof MilestoneProgressSchema>;
+
 export const SpendingByCardItemSchema = z.object({
   cardLast4: z.string(),
   cardName: z.string(),
@@ -243,5 +257,6 @@ export const SpendingByCardItemSchema = z.object({
   icon: z.string(),
   amount: z.number(),
   count: z.number(),
+  milestones: z.array(MilestoneProgressSchema).optional(),
 });
 export type SpendingByCardItem = z.infer<typeof SpendingByCardItemSchema>;

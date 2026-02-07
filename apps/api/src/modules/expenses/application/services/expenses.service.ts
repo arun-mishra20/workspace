@@ -41,6 +41,7 @@ import type {
     DailySpendingItem,
     MonthlyTrendItem,
     SpendingByCardItem,
+    MilestoneProgress,
 } from "@workspace/domain";
 
 @Injectable()
@@ -500,16 +501,126 @@ export class ExpensesService {
         const range = this.computeDateRange(period);
         const rows = await this.transactionRepository.getSpendingByCard({ userId, range });
 
-        // Enrich with card config metadata
-        return rows.map((row) => {
-            const resolved = this.cardResolver.resolve(row.cardLast4);
+        // Enrich with card config metadata + milestone progress
+        const enrichedCards = await Promise.all(
+            rows.map(async (row) => {
+                const resolved = this.cardResolver.resolve(row.cardLast4);
+                const milestones = resolved?.milestones
+                    ? await this.computeMilestoneProgress(
+                          userId,
+                          row.cardLast4,
+                          resolved.milestones,
+                      )
+                    : [];
+
+                return {
+                    ...row,
+                    cardName: resolved?.cardName ?? row.cardName,
+                    bank: resolved?.bank ?? row.bank,
+                    icon: resolved?.icon ?? row.icon,
+                    milestones: milestones.length > 0 ? milestones : undefined,
+                };
+            }),
+        );
+
+        return enrichedCards;
+    }
+
+    /**
+     * Compute milestone progress for a specific card.
+     * For each milestone, determines the date range based on duration type
+     * (quarterly = current calendar quarter, yearly = custom dates or calendar year),
+     * queries actual spend in that range, and calculates progress.
+     */
+    private async computeMilestoneProgress(
+        userId: string,
+        cardLast4: string,
+        milestones: NonNullable<ReturnType<CardResolver["resolve"]>>["milestones"],
+    ): Promise<MilestoneProgress[]> {
+        const entries = Object.entries(milestones);
+        if (entries.length === 0) return [];
+
+        const results: MilestoneProgress[] = [];
+
+        for (const [id, milestone] of entries) {
+            const duration = milestone.durations[0] ?? "yearly";
+            const { start, end, label } = this.computeMilestoneDateRange(
+                duration,
+                milestone.milestone_start_date,
+                milestone.milestone_end_date,
+            );
+
+            const currentSpend = await this.transactionRepository.getCardSpendForRange({
+                userId,
+                cardLast4,
+                range: { start, end },
+            });
+
+            const percentage = Math.min(100, (currentSpend / milestone.amount) * 100);
+            const remaining = Math.max(0, milestone.amount - currentSpend);
+
+            results.push({
+                id,
+                type: milestone.type as "spend" | "fee waiver",
+                description: milestone.description,
+                targetAmount: milestone.amount,
+                currentSpend,
+                percentage: Math.round(percentage * 100) / 100,
+                remaining,
+                periodLabel: label,
+                periodStart: start.toISOString().split("T")[0]!,
+                periodEnd: end.toISOString().split("T")[0]!,
+            });
+        }
+
+        return results;
+    }
+
+    /**
+     * Compute the date range for a milestone based on its duration type.
+     * - "quarterly": Current calendar quarter (Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec)
+     * - "yearly" with custom dates: Uses milestone_start_date/milestone_end_date
+     * - "yearly" without custom dates: Current calendar year
+     */
+    private computeMilestoneDateRange(
+        duration: string,
+        startDate?: string,
+        endDate?: string,
+    ): { start: Date; end: Date; label: string } {
+        const now = new Date();
+
+        if (duration === "quarterly") {
+            const quarter = Math.floor(now.getMonth() / 3);
+            const quarterNames = ["Jan–Mar", "Apr–Jun", "Jul–Sep", "Oct–Dec"];
+            const start = new Date(now.getFullYear(), quarter * 3, 1);
+            const end = new Date(now.getFullYear(), quarter * 3 + 3, 1);
             return {
-                ...row,
-                cardName: resolved?.cardName ?? row.cardName,
-                bank: resolved?.bank ?? row.bank,
-                icon: resolved?.icon ?? row.icon,
+                start,
+                end,
+                label: `Q${quarter + 1} ${now.getFullYear()} (${quarterNames[quarter]})`,
             };
-        });
+        }
+
+        // Yearly with custom dates
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            start.setHours(0, 0, 0, 0);
+            end.setHours(23, 59, 59, 999);
+
+            const fmtDate = (d: Date) =>
+                d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+            return {
+                start,
+                end,
+                label: `${fmtDate(start)} – ${fmtDate(end)}`,
+            };
+        }
+
+        // Yearly default: calendar year
+        const start = new Date(now.getFullYear(), 0, 1);
+        const end = new Date(now.getFullYear() + 1, 0, 1);
+        return { start, end, label: `FY ${now.getFullYear()}` };
     }
 
     private findParser(email: RawEmail): EmailParser | null {

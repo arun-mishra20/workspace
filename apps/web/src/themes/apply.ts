@@ -6,6 +6,8 @@
 
 import type { ThemePreset } from "./types";
 
+let neumorphismStylesLoader: Promise<unknown> | null = null;
+
 /**
  * Apply theme to the DOM by setting CSS custom properties
  *
@@ -22,6 +24,33 @@ export function applyTheme(theme: ThemePreset): void {
   // For dark mode, we need to find or create a style element
   // that targets .dark class specifically
   applyDarkModeVariables(theme.dark);
+}
+
+/**
+ * Apply theme and mark which preset is currently active.
+ *
+ * @param theme - The complete theme with light and dark mode values
+ * @param presetName - Name of the active preset for preset-scoped styling
+ */
+export function applyThemeWithPreset(
+  theme: ThemePreset,
+  presetName: string,
+): void {
+  if (presetName === "neumorphism") {
+    ensureNeumorphismStyles();
+  }
+
+  const root = document.documentElement;
+  root.dataset.themePreset = presetName;
+  applyTheme(theme);
+}
+
+function ensureNeumorphismStyles(): void {
+  if (neumorphismStylesLoader) {
+    return;
+  }
+
+  neumorphismStylesLoader = import("@workspace/ui/styles/neumorphism.css");
 }
 
 /**

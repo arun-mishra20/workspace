@@ -27,13 +27,13 @@ const Nav = () => {
   const isSuccess = sessionQuery.isSuccess && !!accessToken;
 
   return (
-    <Header className="absolute top-0 w-full">
+    <Header className="absolute top-0 w-full h-12">
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4">
         <div className="flex items-center">
           <Logo />
         </div>
         <NavTabs />
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-4">
           <ThemeToggle />
           {isSuccess ? (
             <NavUser username={email} />

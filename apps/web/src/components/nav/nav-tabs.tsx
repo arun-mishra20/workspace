@@ -49,7 +49,7 @@ const NavTabs = () => {
             key={item.href}
             value={item.href}
             asChild
-            className="rounded-sm font-normal font-xs font-sans transition-all duration-200 data-[state=active]:text-foreground"
+            className="rounded-sm font-normal text-sm font-sans transition-all duration-200 data-[state=active]:text-foreground"
           >
             <Link to={item.href} className="flex items-center gap-1">
               {current === item.href ? (

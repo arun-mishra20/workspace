@@ -26,7 +26,7 @@ import {
 } from "@/features/expenses/api/analytics";
 import { useSyncJob } from "@/features/expenses/hooks/use-sync-job";
 
-import type { AnalyticsPeriod } from "@workspace/domain";
+import type { AnalyticsPeriod, MilestoneProgress } from "@workspace/domain";
 
 import { Badge } from "@workspace/ui/components/ui/badge";
 import { Button } from "@workspace/ui/components/ui/button";
@@ -52,6 +52,7 @@ import {
   CreditCard,
   Receipt,
   RotateCw,
+  Target,
   TrendingDown,
 } from "lucide-react";
 
@@ -64,24 +65,16 @@ const PERIODS: { label: string; value: AnalyticsPeriod }[] = [
   { label: "1 year", value: "year" },
 ];
 
-const MODE_COLORS: Record<string, string> = {
-  upi: "#6366F1",
-  credit_card: "#EC4899",
-  neft: "#F59E0B",
-  imps: "#10B981",
-  rtgs: "#8B5CF6",
-};
-
-const CARD_COLORS = [
-  "#6366F1",
-  "#EC4899",
-  "#F59E0B",
-  "#10B981",
-  "#8B5CF6",
-  "#EF4444",
-  "#06B6D4",
-  "#F97316",
+const CHART_TOKEN_COLORS = [
+  "var(--color-chart-1)",
+  "var(--color-chart-2)",
+  "var(--color-chart-3)",
+  "var(--color-chart-4)",
+  "var(--color-chart-5)",
 ];
+
+const getChartTokenColor = (index: number) =>
+  CHART_TOKEN_COLORS[index % CHART_TOKEN_COLORS.length]!;
 
 const fmtCurrency = (n: number) =>
   new Intl.NumberFormat("en-IN", {
@@ -146,40 +139,55 @@ const AnalyticsPage = () => {
 
   const summary = summaryQ.data;
 
+  const categoryChartData = (categoryQ.data ?? []).map((category, index) => ({
+    ...category,
+    chartColor: getChartTokenColor(index),
+  }));
+
+  const modeChartData = (modeQ.data ?? []).map((mode, index) => ({
+    ...mode,
+    chartColor: getChartTokenColor(index),
+  }));
+
+  const cardChartData = (cardQ.data ?? []).map((card, index) => ({
+    ...card,
+    chartColor: getChartTokenColor(index),
+  }));
+
   // ── Chart configs ──
 
   const dailyChartConfig: ChartConfig = {
-    debited: { label: "Spent", color: "var(--color-red-500)" },
-    credited: { label: "Received", color: "var(--color-emerald-500)" },
+    debited: { label: "Spent", color: "var(--color-chart-1)" },
+    credited: { label: "Received", color: "var(--color-chart-2)" },
   };
 
   const trendChartConfig: ChartConfig = {
-    debited: { label: "Spent", color: "var(--color-red-500)" },
-    credited: { label: "Received", color: "var(--color-emerald-500)" },
-    net: { label: "Net", color: "var(--color-blue-500)" },
+    debited: { label: "Spent", color: "var(--color-chart-1)" },
+    credited: { label: "Received", color: "var(--color-chart-2)" },
+    net: { label: "Net", color: "var(--color-chart-3)" },
   };
 
   // Build category pie chart config
   const categoryChartConfig: ChartConfig = Object.fromEntries(
-    (categoryQ.data ?? []).map((c) => [
+    categoryChartData.map((c) => [
       c.category,
-      { label: c.displayName, color: c.color },
+      { label: c.displayName, color: c.chartColor },
     ]),
   );
 
   const modeChartConfig: ChartConfig = Object.fromEntries(
-    (modeQ.data ?? []).map((m) => [
+    modeChartData.map((m) => [
       m.mode,
       {
         label: m.mode.replace(/_/g, " "),
-        color: MODE_COLORS[m.mode] ?? "#94A3B8",
+        color: m.chartColor,
       },
     ]),
   );
 
   return (
     <MainLayout>
-      <div className="flex flex-1 flex-col gap-6 px-6 py-10">
+      <div className="flex flex-1 flex-col gap-6 px-6 py-10 mx-8">
         {/* Header */}
         <header className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
@@ -310,9 +318,7 @@ const AnalyticsPage = () => {
                         />
                       }
                     />
-                    <ChartLegend
-                      content={<ChartLegendContent payload={[]} />}
-                    />
+                    <ChartLegend content={<ChartLegendContent />} />
                     <Bar
                       dataKey="debited"
                       fill="var(--color-debited)"
@@ -342,7 +348,7 @@ const AnalyticsPage = () => {
             <CardContent>
               {categoryQ.isLoading ? (
                 <Skeleton className="mx-auto size-55 rounded-full" />
-              ) : categoryQ.data && categoryQ.data.length > 0 ? (
+              ) : categoryChartData.length > 0 ? (
                 <ChartContainer
                   config={categoryChartConfig}
                   className="mx-auto aspect-square h-65"
@@ -356,25 +362,18 @@ const AnalyticsPage = () => {
                       }
                     />
                     <Pie
-                      data={categoryQ.data}
+                      data={categoryChartData}
                       dataKey="amount"
                       nameKey="displayName"
                       innerRadius={55}
                       outerRadius={100}
                       paddingAngle={2}
                     >
-                      {categoryQ.data.map((entry) => (
-                        <Cell key={entry.category} fill={entry.color} />
+                      {categoryChartData.map((entry) => (
+                        <Cell key={entry.category} fill={entry.chartColor} />
                       ))}
                     </Pie>
-                    <ChartLegend
-                      content={
-                        <ChartLegendContent
-                          nameKey="displayName"
-                          payload={[]}
-                        />
-                      }
-                    />
+                    <ChartLegend content={<ChartLegendContent />} />
                   </PieChart>
                 </ChartContainer>
               ) : (
@@ -431,9 +430,7 @@ const AnalyticsPage = () => {
                         />
                       }
                     />
-                    <ChartLegend
-                      content={<ChartLegendContent payload={[]} />}
-                    />
+                    <ChartLegend content={<ChartLegendContent />} />
                     <Line
                       type="monotone"
                       dataKey="debited"
@@ -475,7 +472,7 @@ const AnalyticsPage = () => {
             <CardContent>
               {modeQ.isLoading ? (
                 <Skeleton className="mx-auto size-55 rounded-full" />
-              ) : modeQ.data && modeQ.data.length > 0 ? (
+              ) : modeChartData.length > 0 ? (
                 <ChartContainer
                   config={modeChartConfig}
                   className="mx-auto aspect-square h-65"
@@ -489,24 +486,19 @@ const AnalyticsPage = () => {
                       }
                     />
                     <Pie
-                      data={modeQ.data}
+                      data={modeChartData}
                       dataKey="amount"
                       nameKey="mode"
                       innerRadius={55}
                       outerRadius={100}
                       paddingAngle={2}
                     >
-                      {modeQ.data.map((entry) => (
-                        <Cell
-                          key={entry.mode}
-                          fill={MODE_COLORS[entry.mode] ?? "#94A3B8"}
-                        />
+                      {modeChartData.map((entry) => (
+                        <Cell key={entry.mode} fill={entry.chartColor} />
                       ))}
                     </Pie>
                     <ChartLegend
-                      content={
-                        <ChartLegendContent nameKey="mode" payload={[]} />
-                      }
+                      content={<ChartLegendContent nameKey="mode" />}
                     />
                   </PieChart>
                 </ChartContainer>
@@ -539,20 +531,19 @@ const AnalyticsPage = () => {
                   <Skeleton key={i} className="h-12 w-full" />
                 ))}
               </div>
-            ) : cardQ.data && cardQ.data.length > 0 ? (
+            ) : cardChartData.length > 0 ? (
               <div className="space-y-4">
-                {cardQ.data.map((card, i) => {
-                  const maxAmount = cardQ.data![0]!.amount;
+                {cardChartData.map((card) => {
+                  const maxAmount = cardChartData[0]!.amount;
                   const pct =
                     maxAmount > 0 ? (card.amount / maxAmount) * 100 : 0;
-                  const color = CARD_COLORS[i % CARD_COLORS.length]!;
                   return (
                     <div key={card.cardLast4} className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div
                             className="size-3 rounded-full"
-                            style={{ backgroundColor: color }}
+                            style={{ backgroundColor: card.chartColor }}
                           />
                           <span className="text-sm font-medium">
                             {card.cardName}
@@ -580,10 +571,17 @@ const AnalyticsPage = () => {
                           className="h-full rounded-full transition-all"
                           style={{
                             width: `${pct}%`,
-                            backgroundColor: color,
+                            backgroundColor: card.chartColor,
                           }}
                         />
                       </div>
+
+                      {/* Milestone progress */}
+                      {card.milestones && card.milestones.length > 0 && (
+                        <MilestoneProgressSection
+                          milestones={card.milestones}
+                        />
+                      )}
                     </div>
                   );
                 })}
@@ -650,7 +648,7 @@ const AnalyticsPage = () => {
         </Card>
 
         {/* ── Category table breakdown ── */}
-        {categoryQ.data && categoryQ.data.length > 0 && (
+        {categoryChartData.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Category Breakdown</CardTitle>
@@ -658,7 +656,7 @@ const AnalyticsPage = () => {
             </CardHeader>
             <CardContent>
               <div className="divide-y">
-                {categoryQ.data.map((c) => (
+                {categoryChartData.map((c) => (
                   <div
                     key={c.category}
                     className="flex items-center justify-between py-3"
@@ -666,7 +664,7 @@ const AnalyticsPage = () => {
                     <div className="flex items-center gap-3">
                       <div
                         className="size-3 rounded-full"
-                        style={{ backgroundColor: c.color }}
+                        style={{ backgroundColor: c.chartColor }}
                       />
                       <span className="text-sm font-medium capitalize">
                         {c.displayName}
@@ -737,6 +735,80 @@ function SummaryCard({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function MilestoneProgressSection({
+  milestones,
+}: {
+  milestones: MilestoneProgress[];
+}) {
+  const getMilestoneColor = (pct: number) => {
+    if (pct >= 100) return "var(--color-chart-2)"; // green / success
+    if (pct >= 50) return "var(--color-chart-4)"; // amber / in-progress
+    return "var(--color-chart-5)"; // muted / low
+  };
+
+  return (
+    <div className="mt-2 ml-5 space-y-2.5 border-l-2 border-muted pl-4">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <Target className="size-3" />
+        <span>Milestones</span>
+      </div>
+
+      {milestones.map((m) => {
+        const color = getMilestoneColor(m.percentage);
+        return (
+          <div key={m.id} className="space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-foreground/80">
+                  {m.description}
+                </span>
+                <Badge variant="outline" className="text-[9px] capitalize">
+                  {m.type}
+                </Badge>
+              </div>
+              <span
+                className="text-xs font-semibold tabular-nums"
+                style={{ color }}
+              >
+                {m.percentage.toFixed(1)}%
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 flex-1 rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${Math.min(100, m.percentage)}%`,
+                    backgroundColor: color,
+                  }}
+                />
+              </div>
+              <span className="min-w-20 text-right text-[10px] tabular-nums text-muted-foreground">
+                {fmtCurrency(m.currentSpend)} / {fmtCurrency(m.targetAmount)}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>{m.periodLabel}</span>
+              {m.remaining > 0 ? (
+                <span>{fmtCurrency(m.remaining)} remaining</span>
+              ) : (
+                <span
+                  className="font-medium"
+                  style={{ color: "var(--color-chart-2)" }}
+                >
+                  ✓ Milestone reached!
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

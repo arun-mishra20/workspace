@@ -13,7 +13,7 @@ import {
     useState,
 } from 'react';
 
-import { applyTheme, mergeThemeWithOverrides } from './apply';
+import { applyThemeWithPreset, mergeThemeWithOverrides } from './apply';
 import { DEFAULT_PRESET_NAME,presets } from './presets';
 import {
     clearThemeConfig,
@@ -55,8 +55,8 @@ export function ThemeCustomizationProvider({
     // Apply theme whenever it changes
     useEffect(() => {
         const theme = getComputedTheme();
-        applyTheme(theme);
-    }, [getComputedTheme]);
+        applyThemeWithPreset(theme, currentPreset);
+    }, [currentPreset, getComputedTheme]);
 
     // Persist to localStorage whenever state changes
     useEffect(() => {

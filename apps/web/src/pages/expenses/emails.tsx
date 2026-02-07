@@ -86,8 +86,30 @@ const CATEGORIES = [
   "shopping",
   "transport",
   "utilities",
+  "utility_bills",
   "income_salary",
   "personal_transfer",
+  "apps_and_software",
+  "banking_and_finance",
+  "cards_and_finance_charges",
+  "education",
+  "emi",
+  "entertainment",
+  "medical",
+  "health_and_wellness",
+  "wallet_and_digital_payment",
+  "cash_withdrawal",
+  "reversal_and_refunds",
+  "rent",
+  "cars_and_rentals",
+  "government_payments",
+  "insurance",
+  "wallet_loads",
+  "professional_services",
+  "credit_card_bills",
+  "cashback",
+  "friends",
+  "others",
 ] as const;
 
 type ExpenseView = "expense" | "emails";
@@ -426,7 +448,7 @@ const ExpenseEmailsPage = () => {
 
   return (
     <MainLayout>
-      <div className="flex flex-1 flex-col gap-6 px-6 py-10">
+      <div className="flex flex-1 flex-col gap-6 px-6 py-10 mx-8">
         <header className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">

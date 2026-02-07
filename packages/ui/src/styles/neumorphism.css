@@ -1,0 +1,348 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
+
+@layer components {
+  :root[data-theme-preset="neumorphism"] {
+    scroll-behavior: smooth;
+  }
+
+  :root[data-theme-preset="neumorphism"] body {
+    font-family: var(
+      --font-sans,
+      "DM Sans",
+      ui-sans-serif,
+      system-ui,
+      sans-serif
+    );
+    letter-spacing: var(--tracking-normal, 0em);
+  }
+
+  :root[data-theme-preset="neumorphism"] .font-display {
+    font-family: var(
+      --font-display,
+      "Plus Jakarta Sans",
+      var(--font-sans, ui-sans-serif, system-ui, sans-serif)
+    );
+    letter-spacing: -0.02em;
+  }
+
+  :root[data-theme-preset="neumorphism"] [data-slot="button"] {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    border: 0 !important;
+    border-radius: var(--radius) !important;
+    background: var(--neu-surface-raised, var(--background)) !important;
+    color: var(--foreground);
+    box-shadow: var(
+      --neu-shadow-button,
+      12px 12px 24px rgb(151 165 186 / 0.7),
+      -12px -12px 24px rgb(255 255 255 / 0.82)
+    ) !important;
+    transition:
+      transform 300ms ease-out,
+      box-shadow 300ms ease-out,
+      background-color 300ms ease-out,
+      color 300ms ease-out;
+  }
+
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="button"][data-size="icon"] {
+    height: 3rem;
+    width: 3rem;
+  }
+
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="button"][data-variant="default"] {
+    background: var(--primary) !important;
+    color: var(--primary-foreground);
+    box-shadow: var(
+      --neu-shadow-button,
+      12px 12px 24px rgb(151 165 186 / 0.7),
+      -12px -12px 24px rgb(255 255 255 / 0.82)
+    ) !important;
+  }
+
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="button"][data-variant="secondary"],
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="button"][data-variant="outline"],
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="button"][data-variant="ghost"] {
+    background: var(--neu-surface-raised, var(--background)) !important;
+    color: var(--foreground);
+    border: 0 !important;
+  }
+
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="button"][data-variant="destructive"] {
+    background: var(--destructive) !important;
+    color: var(--destructive-foreground);
+    box-shadow: var(
+      --neu-shadow-button,
+      12px 12px 24px rgb(151 165 186 / 0.7),
+      -12px -12px 24px rgb(255 255 255 / 0.82)
+    ) !important;
+  }
+
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="button"][data-variant="link"] {
+    min-height: auto;
+    min-width: auto;
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="button"]:not([data-variant="link"]):hover {
+    transform: translateY(-1px);
+    box-shadow: var(
+      --neu-shadow-button-hover,
+      16px 16px 30px rgb(151 165 186 / 0.78),
+      -16px -16px 30px rgb(255 255 255 / 0.9)
+    ) !important;
+  }
+
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="button"][data-variant="default"]:hover {
+    background: var(--neu-primary-hover, #8b84ff);
+  }
+
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="button"]:not([data-variant="link"]):active {
+    transform: translateY(0.5px);
+    box-shadow: var(
+      --neu-shadow-inset-sm,
+      inset 3px 3px 6px rgb(163 177 198 / 0.6),
+      inset -3px -3px 6px rgb(255 255 255 / 0.5)
+    ) !important;
+  }
+
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="button"][data-variant="default"]:active {
+    box-shadow: var(
+      --neu-shadow-primary-inset,
+      inset 2px 2px 6px rgb(69 62 183 / 0.45),
+      inset -2px -2px 6px rgb(170 164 255 / 0.45)
+    ) !important;
+  }
+
+  :root[data-theme-preset="neumorphism"] [data-slot="button"]:focus-visible {
+    outline: none !important;
+    box-shadow:
+      var(
+        --neu-shadow-button,
+        12px 12px 24px rgb(151 165 186 / 0.7),
+        -12px -12px 24px rgb(255 255 255 / 0.82)
+      ),
+      0 0 0 2px var(--ring),
+      0 0 0 4px var(--background) !important;
+  }
+
+  :root[data-theme-preset="neumorphism"] [data-slot="card"] {
+    border: 0 !important;
+    border-color: transparent !important;
+    border-radius: calc(var(--radius) * 2) !important;
+    background: var(--neu-surface-raised, var(--background)) !important;
+    box-shadow: var(
+      --neu-shadow-card,
+      18px 18px 36px rgb(151 165 186 / 0.74),
+      -18px -18px 36px rgb(255 255 255 / 0.9)
+    ) !important;
+    color: var(--foreground);
+    transition:
+      transform 300ms ease-out,
+      box-shadow 300ms ease-out;
+  }
+
+  /* :root[data-theme-preset="neumorphism"] [data-slot="card"]:hover {
+    transform: translateY(-2px);
+    box-shadow: var(
+      --neu-shadow-card-hover,
+      24px 24px 44px rgb(151 165 186 / 0.82),
+      -24px -24px 44px rgb(255 255 255 / 0.95)
+    ) !important;
+  } */
+
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="blank-layout"][data-bordered] {
+    background: var(--background);
+  }
+
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="blank-layout"][data-bordered]
+    [data-slot="blank-layout-content"] {
+    border-radius: calc(var(--radius) * 2);
+    background: var(--background);
+    box-shadow: var(
+      --neu-shadow-inset-deep,
+      inset 10px 10px 20px rgb(163 177 198 / 0.7),
+      inset -10px -10px 20px rgb(255 255 255 / 0.6)
+    );
+  }
+
+  /* Hide decorative border lines — neumorphism uses depth via box-shadow instead */
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="blank-layout"][data-bordered]
+    [data-slot="blank-layout-border"] {
+    display: none !important;
+  }
+
+  :root[data-theme-preset="neumorphism"] [data-slot="input"],
+  :root[data-theme-preset="neumorphism"] [data-slot="textarea"],
+  :root[data-theme-preset="neumorphism"] [data-slot="select-trigger"] {
+    border: 0 !important;
+    border-radius: var(--radius) !important;
+    background: var(--background) !important;
+    box-shadow: var(
+      --neu-shadow-inset,
+      inset 6px 6px 10px rgb(163 177 198 / 0.6),
+      inset -6px -6px 10px rgb(255 255 255 / 0.5)
+    ) !important;
+    transition:
+      box-shadow 300ms ease-out,
+      transform 300ms ease-out;
+  }
+
+  :root[data-theme-preset="neumorphism"] [data-slot="input"],
+  :root[data-theme-preset="neumorphism"] [data-slot="select-trigger"] {
+    min-height: 2.75rem;
+  }
+
+  :root[data-theme-preset="neumorphism"] [data-slot="textarea"] {
+    min-height: 7rem;
+    resize: vertical;
+  }
+
+  :root[data-theme-preset="neumorphism"] [data-slot="input"]::placeholder,
+  :root[data-theme-preset="neumorphism"] [data-slot="textarea"]::placeholder {
+    color: #a0aec0;
+  }
+
+  :root[data-theme-preset="neumorphism"] [data-slot="input"]:focus-visible,
+  :root[data-theme-preset="neumorphism"] [data-slot="textarea"]:focus-visible,
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="select-trigger"]:focus-visible,
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="tabs-trigger"]:focus-visible {
+    outline: none !important;
+    box-shadow:
+      var(
+        --neu-shadow-inset-deep,
+        inset 10px 10px 20px rgb(163 177 198 / 0.7),
+        inset -10px -10px 20px rgb(255 255 255 / 0.6)
+      ),
+      0 0 0 2px var(--ring),
+      0 0 0 4px var(--background) !important;
+  }
+
+  :root[data-theme-preset="neumorphism"] [data-slot="tabs-list"] {
+    height: auto;
+    min-height: 2.75rem;
+    border-radius: var(--radius) !important;
+    background: var(--background) !important;
+    box-shadow: var(
+      --neu-shadow-inset-sm,
+      inset 3px 3px 6px rgb(163 177 198 / 0.6),
+      inset -3px -3px 6px rgb(255 255 255 / 0.5)
+    ) !important;
+    padding: 0.35rem;
+  }
+
+  :root[data-theme-preset="neumorphism"] [data-slot="tabs-trigger"] {
+    min-height: 2.2rem;
+    border-radius: calc(var(--radius) - 0.25rem);
+    transition:
+      transform 300ms ease-out,
+      box-shadow 300ms ease-out,
+      color 300ms ease-out;
+  }
+
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="tabs-trigger"][data-state="active"] {
+    background: var(--background) !important;
+    box-shadow: var(
+      --neu-shadow-extruded-sm,
+      5px 5px 10px rgb(163 177 198 / 0.6),
+      -5px -5px 10px rgb(255 255 255 / 0.5)
+    ) !important;
+  }
+
+  :root[data-theme-preset="neumorphism"] [data-slot="select-content"] {
+    border: 0 !important;
+    border-radius: var(--radius) !important;
+    background: var(--background) !important;
+    box-shadow: var(
+      --neu-shadow-extruded,
+      9px 9px 16px rgb(163 177 198 / 0.6),
+      -9px -9px 16px rgb(255 255 255 / 0.5)
+    ) !important;
+  }
+
+  :root[data-theme-preset="neumorphism"] [data-slot="select-item"] {
+    border-radius: calc(var(--radius) - 0.25rem);
+  }
+
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="select-item"][data-highlighted] {
+    background: var(--background) !important;
+    box-shadow: var(
+      --neu-shadow-inset-sm,
+      inset 3px 3px 6px rgb(163 177 198 / 0.6),
+      inset -3px -3px 6px rgb(255 255 255 / 0.5)
+    ) !important;
+    color: var(--foreground);
+  }
+
+  @keyframes neu-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  :root[data-theme-preset="neumorphism"] .neu-float {
+    animation: neu-float 3s ease-in-out infinite;
+  }
+
+  :root[data-theme-preset="neumorphism"] .neu-orb {
+    border-radius: 9999px;
+    background: var(--background);
+    box-shadow: var(
+      --neu-shadow-extruded,
+      9px 9px 16px rgb(163 177 198 / 0.6),
+      -9px -9px 16px rgb(255 255 255 / 0.5)
+    );
+    padding: 1.25rem;
+    transition: transform 500ms ease-out;
+  }
+
+  :root[data-theme-preset="neumorphism"] .neu-orb:hover {
+    transform: scale(1.05);
+  }
+
+  :root[data-theme-preset="neumorphism"] .neu-orb-inner {
+    border-radius: 9999px;
+    background: var(--background);
+    box-shadow: var(
+      --neu-shadow-inset-deep,
+      inset 10px 10px 20px rgb(163 177 198 / 0.7),
+      inset -10px -10px 20px rgb(255 255 255 / 0.6)
+    );
+    padding: 1.2rem;
+    transition: transform 500ms ease-out;
+  }
+
+  :root[data-theme-preset="neumorphism"] .neu-orb:hover .neu-orb-inner {
+    transform: rotate(180deg);
+  }
+
+  :root[data-theme-preset="neumorphism"] .neu-orb-core {
+    border-radius: 9999px;
+    background: var(--primary);
+    height: 2.25rem;
+    width: 2.25rem;
+  }
+}

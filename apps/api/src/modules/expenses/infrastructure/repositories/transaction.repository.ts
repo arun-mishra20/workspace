@@ -485,6 +485,30 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         }));
     }
 
+    async getCardSpendForRange(params: {
+        userId: string;
+        cardLast4: string;
+        range: DateRange;
+    }): Promise<number> {
+        const [row] = await this.db
+            .select({
+                total: sql<string>`coalesce(sum(${transactionsTable.amount}::numeric), 0)`,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    eq(transactionsTable.cardLast4, params.cardLast4),
+                    gte(transactionsTable.transactionDate, params.range.start),
+                    lt(transactionsTable.transactionDate, params.range.end),
+                    eq(transactionsTable.transactionType, "debited"),
+                    eq(transactionsTable.transactionMode, "credit_card"),
+                ),
+            );
+
+        return Number(row?.total ?? 0);
+    }
+
     private toInsert(transaction: Transaction): InsertTransaction {
         return {
             id: transaction.id,

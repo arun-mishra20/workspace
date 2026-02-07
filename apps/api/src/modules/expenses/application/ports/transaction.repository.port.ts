@@ -49,6 +49,11 @@ export interface TransactionRepository {
     getDailySpending(params: { userId: string; range: DateRange }): Promise<DailySpendingItem[]>;
     getMonthlyTrend(params: { userId: string; months: number }): Promise<MonthlyTrendItem[]>;
     getSpendingByCard(params: { userId: string; range: DateRange }): Promise<SpendingByCardItem[]>;
+    getCardSpendForRange(params: {
+        userId: string;
+        cardLast4: string;
+        range: DateRange;
+    }): Promise<number>;
 }
 
 export const TRANSACTION_REPOSITORY = Symbol("TRANSACTION_REPOSITORY");
