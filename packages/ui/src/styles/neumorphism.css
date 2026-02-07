@@ -187,6 +187,12 @@
     display: none !important;
   }
 
+  :root[data-theme-preset="neumorphism"]
+    [data-slot="blank-layout"][data-bordered]
+    [data-slot="blank-layout-footer"] {
+    display: none !important;
+  }
+
   :root[data-theme-preset="neumorphism"] [data-slot="input"],
   :root[data-theme-preset="neumorphism"] [data-slot="textarea"],
   :root[data-theme-preset="neumorphism"] [data-slot="select-trigger"] {

@@ -364,7 +364,7 @@ const AnalyticsPage = () => {
                     <Pie
                       data={categoryChartData}
                       dataKey="amount"
-                      nameKey="displayName"
+                      nameKey="category"
                       innerRadius={55}
                       outerRadius={100}
                       paddingAngle={2}
