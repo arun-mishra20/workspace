@@ -8,6 +8,14 @@ import type {
     DailySpendingItem,
     MonthlyTrendItem,
     SpendingByCardItem,
+    DayOfWeekSpendingItem,
+    CategoryTrendItem,
+    CumulativeSpendItem,
+    SavingsRateItem,
+    CardCategoryItem,
+    TopVpaItem,
+    SpendingVelocityItem,
+    LargestTransactionItem,
 } from "@workspace/domain";
 
 export interface DateRange {
@@ -55,14 +63,42 @@ export interface TransactionRepository {
         range: DateRange;
     }): Promise<number>;
 
+    // ── Extended Analytics ──
+    getDayOfWeekSpending(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<DayOfWeekSpendingItem[]>;
+    getCategoryTrend(params: { userId: string; months: number }): Promise<CategoryTrendItem[]>;
+    getPeriodTotals(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<{ totalSpent: number; totalReceived: number; transactionCount: number }>;
+    getCumulativeSpend(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<CumulativeSpendItem[]>;
+    getSavingsRate(params: { userId: string; months: number }): Promise<SavingsRateItem[]>;
+    getCardCategoryBreakdown(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<CardCategoryItem[]>;
+    getTopVpas(params: { userId: string; range: DateRange; limit: number }): Promise<TopVpaItem[]>;
+    getSpendingVelocity(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<SpendingVelocityItem[]>;
+    getLargestTransactions(params: {
+        userId: string;
+        range: DateRange;
+        limit: number;
+    }): Promise<LargestTransactionItem[]>;
+
     // ── Merchant bulk categorization ──
 
     /**
      * Get distinct merchants for a user with their current category info
      */
-    getDistinctMerchants(
-        userId: string,
-    ): Promise<
+    getDistinctMerchants(userId: string): Promise<
         {
             merchant: string;
             category: string;

@@ -42,6 +42,16 @@ import type {
     MonthlyTrendItem,
     SpendingByCardItem,
     MilestoneProgress,
+    DayOfWeekSpendingItem,
+    CategoryTrendItem,
+    PeriodComparison,
+    CumulativeSpendItem,
+    SavingsRateItem,
+    CardCategoryItem,
+    TopVpaItem,
+    SpendingVelocityItem,
+    MilestoneEta,
+    LargestTransactionItem,
 } from "@workspace/domain";
 
 @Injectable()
@@ -551,6 +561,173 @@ export class ExpensesService {
         );
 
         return enrichedCards;
+    }
+
+    // ── Extended Analytics ──
+
+    async getDayOfWeekSpending(
+        userId: string,
+        period: AnalyticsPeriod,
+    ): Promise<DayOfWeekSpendingItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getDayOfWeekSpending({ userId, range });
+    }
+
+    async getCategoryTrend(userId: string, months = 6): Promise<CategoryTrendItem[]> {
+        return this.transactionRepository.getCategoryTrend({ userId, months });
+    }
+
+    async getPeriodComparison(userId: string, period: AnalyticsPeriod): Promise<PeriodComparison> {
+        const currentRange = this.computeDateRange(period);
+
+        // Compute previous period range (same duration, shifted back)
+        const durationMs = currentRange.end.getTime() - currentRange.start.getTime();
+        const previousRange = {
+            start: new Date(currentRange.start.getTime() - durationMs),
+            end: new Date(currentRange.start.getTime()),
+        };
+
+        const [current, previous] = await Promise.all([
+            this.transactionRepository.getPeriodTotals({ userId, range: currentRange }),
+            this.transactionRepository.getPeriodTotals({ userId, range: previousRange }),
+        ]);
+
+        const pctChange = (curr: number, prev: number) =>
+            prev > 0 ? Math.round(((curr - prev) / prev) * 10000) / 100 : curr > 0 ? 100 : 0;
+
+        const currentAvg =
+            current.transactionCount > 0 ? current.totalSpent / current.transactionCount : 0;
+        const previousAvg =
+            previous.transactionCount > 0 ? previous.totalSpent / previous.transactionCount : 0;
+
+        return {
+            currentPeriod: {
+                totalSpent: current.totalSpent,
+                totalReceived: current.totalReceived,
+                transactionCount: current.transactionCount,
+                avgTransaction: currentAvg,
+            },
+            previousPeriod: {
+                totalSpent: previous.totalSpent,
+                totalReceived: previous.totalReceived,
+                transactionCount: previous.transactionCount,
+                avgTransaction: previousAvg,
+            },
+            changes: {
+                spentChange: pctChange(current.totalSpent, previous.totalSpent),
+                receivedChange: pctChange(current.totalReceived, previous.totalReceived),
+                countChange: pctChange(current.transactionCount, previous.transactionCount),
+                avgChange: pctChange(currentAvg, previousAvg),
+            },
+        };
+    }
+
+    async getCumulativeSpend(
+        userId: string,
+        period: AnalyticsPeriod,
+    ): Promise<CumulativeSpendItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getCumulativeSpend({ userId, range });
+    }
+
+    async getSavingsRate(userId: string, months = 12): Promise<SavingsRateItem[]> {
+        return this.transactionRepository.getSavingsRate({ userId, months });
+    }
+
+    async getCardCategoryBreakdown(
+        userId: string,
+        period: AnalyticsPeriod,
+    ): Promise<CardCategoryItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getCardCategoryBreakdown({ userId, range });
+    }
+
+    async getTopVpas(userId: string, period: AnalyticsPeriod, limit = 10): Promise<TopVpaItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getTopVpas({ userId, range, limit });
+    }
+
+    async getSpendingVelocity(
+        userId: string,
+        period: AnalyticsPeriod,
+    ): Promise<SpendingVelocityItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getSpendingVelocity({ userId, range });
+    }
+
+    async getMilestoneEtas(userId: string): Promise<MilestoneEta[]> {
+        const allCards = this.cardResolver.getAllCards();
+        const results: MilestoneEta[] = [];
+
+        for (const [cardLast4, card] of allCards.entries()) {
+            if (!card.milestones || Object.keys(card.milestones).length === 0) continue;
+
+            for (const [id, milestone] of Object.entries(card.milestones)) {
+                const duration = milestone.durations[0] ?? "yearly";
+                const { start, end, label } = this.computeMilestoneDateRange(
+                    duration,
+                    milestone.milestone_start_date,
+                    milestone.milestone_end_date,
+                );
+
+                const currentSpend = await this.transactionRepository.getCardSpendForRange({
+                    userId,
+                    cardLast4,
+                    range: { start, end },
+                });
+
+                const percentage = Math.min(100, (currentSpend / milestone.amount) * 100);
+                const remaining = Math.max(0, milestone.amount - currentSpend);
+
+                // Calculate daily rate and ETA
+                const elapsedMs = Date.now() - start.getTime();
+                const elapsedDays = Math.max(1, elapsedMs / (1000 * 60 * 60 * 24));
+                const dailyRate = currentSpend / elapsedDays;
+
+                let daysRemaining: number | null = null;
+                let estimatedCompletionDate: string | null = null;
+                const periodEndStr = end.toISOString().split("T")[0]!;
+
+                if (dailyRate > 0 && remaining > 0) {
+                    daysRemaining = Math.ceil(remaining / dailyRate);
+                    const eta = new Date();
+                    eta.setDate(eta.getDate() + daysRemaining);
+                    estimatedCompletionDate = eta.toISOString().split("T")[0]!;
+                } else if (remaining <= 0) {
+                    daysRemaining = 0;
+                }
+
+                const onTrack =
+                    remaining <= 0 ||
+                    (estimatedCompletionDate != null && estimatedCompletionDate <= periodEndStr);
+
+                results.push({
+                    id,
+                    cardLast4,
+                    cardName: card.cardName,
+                    description: milestone.description,
+                    targetAmount: milestone.amount,
+                    currentSpend,
+                    percentage: Math.round(percentage * 100) / 100,
+                    dailyRate: Math.round(dailyRate * 100) / 100,
+                    daysRemaining,
+                    estimatedCompletionDate,
+                    periodEnd: periodEndStr,
+                    onTrack,
+                });
+            }
+        }
+
+        return results;
+    }
+
+    async getLargestTransactions(
+        userId: string,
+        period: AnalyticsPeriod,
+        limit = 10,
+    ): Promise<LargestTransactionItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getLargestTransactions({ userId, range, limit });
     }
 
     /**

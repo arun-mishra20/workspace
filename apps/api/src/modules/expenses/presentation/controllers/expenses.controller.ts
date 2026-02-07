@@ -254,9 +254,7 @@ export class ExpensesController {
         status: 200,
         description: "Returns list of merchants with category info",
     })
-    async getDistinctMerchants(
-        @Request() req: FastifyRequest & { user: { id: string } },
-    ) {
+    async getDistinctMerchants(@Request() req: FastifyRequest & { user: { id: string } }) {
         const merchants = await this.expensesService.getDistinctMerchants(req.user.id);
         return { data: merchants };
     }
@@ -358,6 +356,118 @@ export class ExpensesController {
         @Query("period") period: AnalyticsPeriod = "month",
     ) {
         return this.expensesService.getSpendingByCard(req.user.id, period);
+    }
+
+    // ── Extended Analytics ──
+
+    @Get("analytics/day-of-week")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Spending by day of week" })
+    async getDayOfWeekSpending(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+    ) {
+        return this.expensesService.getDayOfWeekSpending(req.user.id, period);
+    }
+
+    @Get("analytics/category-trend")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Category spending trend over months" })
+    async getCategoryTrend(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("months") months?: string,
+    ) {
+        return this.expensesService.getCategoryTrend(
+            req.user.id,
+            months ? parseInt(months, 10) : 6,
+        );
+    }
+
+    @Get("analytics/period-comparison")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Compare current vs previous period" })
+    async getPeriodComparison(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+    ) {
+        return this.expensesService.getPeriodComparison(req.user.id, period);
+    }
+
+    @Get("analytics/cumulative")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Cumulative spending over time" })
+    async getCumulativeSpend(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+    ) {
+        return this.expensesService.getCumulativeSpend(req.user.id, period);
+    }
+
+    @Get("analytics/savings-rate")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Monthly savings rate (income vs expenses)" })
+    async getSavingsRate(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("months") months?: string,
+    ) {
+        return this.expensesService.getSavingsRate(req.user.id, months ? parseInt(months, 10) : 12);
+    }
+
+    @Get("analytics/card-categories")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Per-card category breakdown" })
+    async getCardCategories(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+    ) {
+        return this.expensesService.getCardCategoryBreakdown(req.user.id, period);
+    }
+
+    @Get("analytics/top-vpas")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Top UPI VPA payees" })
+    async getTopVpas(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+        @Query("limit") limit?: string,
+    ) {
+        return this.expensesService.getTopVpas(
+            req.user.id,
+            period,
+            limit ? parseInt(limit, 10) : 10,
+        );
+    }
+
+    @Get("analytics/velocity")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Spending velocity (rolling average ₹/day)" })
+    async getSpendingVelocity(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+    ) {
+        return this.expensesService.getSpendingVelocity(req.user.id, period);
+    }
+
+    @Get("analytics/milestone-etas")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Milestone completion ETAs for all cards" })
+    async getMilestoneEtas(@Request() req: FastifyRequest & { user: { id: string } }) {
+        return this.expensesService.getMilestoneEtas(req.user.id);
+    }
+
+    @Get("analytics/largest-transactions")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Largest transactions in period" })
+    async getLargestTransactions(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+        @Query("limit") limit?: string,
+    ) {
+        return this.expensesService.getLargestTransactions(
+            req.user.id,
+            period,
+            limit ? parseInt(limit, 10) : 10,
+        );
     }
 
     @Get("gmail/connect")

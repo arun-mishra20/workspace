@@ -260,3 +260,113 @@ export const SpendingByCardItemSchema = z.object({
   milestones: z.array(MilestoneProgressSchema).optional(),
 });
 export type SpendingByCardItem = z.infer<typeof SpendingByCardItemSchema>;
+
+// ── Extended Analytics Types ──
+
+export const DayOfWeekSpendingItemSchema = z.object({
+  day: z.number(), // 0=Sun, 1=Mon, ..., 6=Sat
+  dayName: z.string(),
+  amount: z.number(),
+  count: z.number(),
+});
+export type DayOfWeekSpendingItem = z.infer<typeof DayOfWeekSpendingItemSchema>;
+
+export const CategoryTrendItemSchema = z.object({
+  month: z.string(),
+  category: z.string(),
+  displayName: z.string(),
+  amount: z.number(),
+  count: z.number(),
+});
+export type CategoryTrendItem = z.infer<typeof CategoryTrendItemSchema>;
+
+export const PeriodComparisonSchema = z.object({
+  currentPeriod: z.object({
+    totalSpent: z.number(),
+    totalReceived: z.number(),
+    transactionCount: z.number(),
+    avgTransaction: z.number(),
+  }),
+  previousPeriod: z.object({
+    totalSpent: z.number(),
+    totalReceived: z.number(),
+    transactionCount: z.number(),
+    avgTransaction: z.number(),
+  }),
+  changes: z.object({
+    spentChange: z.number(),
+    receivedChange: z.number(),
+    countChange: z.number(),
+    avgChange: z.number(),
+  }),
+});
+export type PeriodComparison = z.infer<typeof PeriodComparisonSchema>;
+
+export const CumulativeSpendItemSchema = z.object({
+  date: z.string(),
+  cumulative: z.number(),
+  daily: z.number(),
+});
+export type CumulativeSpendItem = z.infer<typeof CumulativeSpendItemSchema>;
+
+export const SavingsRateItemSchema = z.object({
+  month: z.string(),
+  income: z.number(),
+  expenses: z.number(),
+  savings: z.number(),
+  savingsRate: z.number(), // percentage
+});
+export type SavingsRateItem = z.infer<typeof SavingsRateItemSchema>;
+
+export const CardCategoryItemSchema = z.object({
+  cardLast4: z.string(),
+  cardName: z.string(),
+  category: z.string(),
+  displayName: z.string(),
+  amount: z.number(),
+  count: z.number(),
+});
+export type CardCategoryItem = z.infer<typeof CardCategoryItemSchema>;
+
+export const TopVpaItemSchema = z.object({
+  vpa: z.string(),
+  merchant: z.string(),
+  amount: z.number(),
+  count: z.number(),
+});
+export type TopVpaItem = z.infer<typeof TopVpaItemSchema>;
+
+export const SpendingVelocityItemSchema = z.object({
+  date: z.string(),
+  velocity: z.number(), // ₹/day rolling average
+});
+export type SpendingVelocityItem = z.infer<typeof SpendingVelocityItemSchema>;
+
+export const MilestoneEtaSchema = z.object({
+  id: z.string(),
+  cardLast4: z.string(),
+  cardName: z.string(),
+  description: z.string(),
+  targetAmount: z.number(),
+  currentSpend: z.number(),
+  percentage: z.number(),
+  dailyRate: z.number(),
+  daysRemaining: z.number().nullable(),
+  estimatedCompletionDate: z.string().nullable(),
+  periodEnd: z.string(),
+  onTrack: z.boolean(),
+});
+export type MilestoneEta = z.infer<typeof MilestoneEtaSchema>;
+
+export const LargestTransactionItemSchema = z.object({
+  id: z.string(),
+  merchant: z.string(),
+  amount: z.number(),
+  transactionDate: z.string(),
+  category: z.string(),
+  displayName: z.string(),
+  transactionMode: z.string(),
+});
+export type LargestTransactionItem = z.infer<
+  typeof LargestTransactionItemSchema
+>;

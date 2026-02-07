@@ -26,6 +26,14 @@ import type {
     DailySpendingItem,
     MonthlyTrendItem,
     SpendingByCardItem,
+    DayOfWeekSpendingItem,
+    CategoryTrendItem,
+    CumulativeSpendItem,
+    SavingsRateItem,
+    CardCategoryItem,
+    TopVpaItem,
+    SpendingVelocityItem,
+    LargestTransactionItem,
 } from "@workspace/domain";
 
 function loadCategoryMeta(): Record<
@@ -507,6 +515,342 @@ export class TransactionRepositoryImpl implements TransactionRepository {
             );
 
         return Number(row?.total ?? 0);
+    }
+
+    // ── Extended Analytics ──
+
+    async getDayOfWeekSpending(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<DayOfWeekSpendingItem[]> {
+        const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+        const rows = await this.db
+            .select({
+                day: sql<number>`extract(dow from ${transactionsTable.transactionDate})::int`,
+                amount: sql<string>`coalesce(sum(${transactionsTable.amount}::numeric), 0)`,
+                count: sql<number>`count(*)::int`,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    gte(transactionsTable.transactionDate, params.range.start),
+                    lt(transactionsTable.transactionDate, params.range.end),
+                    eq(transactionsTable.transactionType, "debited"),
+                ),
+            )
+            .groupBy(sql`extract(dow from ${transactionsTable.transactionDate})`)
+            .orderBy(sql`extract(dow from ${transactionsTable.transactionDate}) asc`);
+
+        // Fill in missing days with 0
+        const dayMap = new Map(rows.map((r) => [r.day, r]));
+        return Array.from({ length: 7 }, (_, i) => {
+            const row = dayMap.get(i);
+            return {
+                day: i,
+                dayName: DAY_NAMES[i]!,
+                amount: row ? Number(row.amount) : 0,
+                count: row?.count ?? 0,
+            };
+        });
+    }
+
+    async getCategoryTrend(params: {
+        userId: string;
+        months: number;
+    }): Promise<CategoryTrendItem[]> {
+        const end = new Date();
+        const start = new Date();
+        start.setMonth(start.getMonth() - params.months);
+        start.setDate(1);
+        start.setHours(0, 0, 0, 0);
+
+        const rows = await this.db
+            .select({
+                month: sql<string>`to_char(${transactionsTable.transactionDate}, 'YYYY-MM')`,
+                category: transactionsTable.category,
+                amount: sql<string>`sum(${transactionsTable.amount}::numeric)`,
+                count: sql<number>`count(*)::int`,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    gte(transactionsTable.transactionDate, start),
+                    lte(transactionsTable.transactionDate, end),
+                    eq(transactionsTable.transactionType, "debited"),
+                ),
+            )
+            .groupBy(
+                sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM')`,
+                transactionsTable.category,
+            )
+            .orderBy(
+                sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM') asc`,
+                sql`sum(${transactionsTable.amount}::numeric) desc`,
+            );
+
+        return rows.map((r) => {
+            const meta = CATEGORY_META[r.category];
+            return {
+                month: r.month,
+                category: r.category,
+                displayName: meta?.name ?? r.category,
+                amount: Number(r.amount),
+                count: r.count,
+            };
+        });
+    }
+
+    async getPeriodTotals(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<{ totalSpent: number; totalReceived: number; transactionCount: number }> {
+        const [row] = await this.db
+            .select({
+                totalSpent: sql<string>`coalesce(sum(case when ${transactionsTable.transactionType} = 'debited' then ${transactionsTable.amount}::numeric else 0 end), 0)`,
+                totalReceived: sql<string>`coalesce(sum(case when ${transactionsTable.transactionType} = 'credited' then ${transactionsTable.amount}::numeric else 0 end), 0)`,
+                transactionCount: sql<number>`count(*)::int`,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    gte(transactionsTable.transactionDate, params.range.start),
+                    lt(transactionsTable.transactionDate, params.range.end),
+                ),
+            );
+
+        return {
+            totalSpent: Number(row?.totalSpent ?? 0),
+            totalReceived: Number(row?.totalReceived ?? 0),
+            transactionCount: row?.transactionCount ?? 0,
+        };
+    }
+
+    async getCumulativeSpend(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<CumulativeSpendItem[]> {
+        const rows = await this.db
+            .select({
+                date: sql<string>`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD')`,
+                daily: sql<string>`coalesce(sum(${transactionsTable.amount}::numeric), 0)`,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    gte(transactionsTable.transactionDate, params.range.start),
+                    lt(transactionsTable.transactionDate, params.range.end),
+                    eq(transactionsTable.transactionType, "debited"),
+                ),
+            )
+            .groupBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD')`)
+            .orderBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD') asc`);
+
+        let cumulative = 0;
+        return rows.map((r) => {
+            const daily = Number(r.daily);
+            cumulative += daily;
+            return { date: r.date, cumulative, daily };
+        });
+    }
+
+    async getSavingsRate(params: { userId: string; months: number }): Promise<SavingsRateItem[]> {
+        const end = new Date();
+        const start = new Date();
+        start.setMonth(start.getMonth() - params.months);
+        start.setDate(1);
+        start.setHours(0, 0, 0, 0);
+
+        const rows = await this.db
+            .select({
+                month: sql<string>`to_char(${transactionsTable.transactionDate}, 'YYYY-MM')`,
+                income: sql<string>`coalesce(sum(case when ${transactionsTable.transactionType} = 'credited' then ${transactionsTable.amount}::numeric else 0 end), 0)`,
+                expenses: sql<string>`coalesce(sum(case when ${transactionsTable.transactionType} = 'debited' then ${transactionsTable.amount}::numeric else 0 end), 0)`,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    gte(transactionsTable.transactionDate, start),
+                    lte(transactionsTable.transactionDate, end),
+                ),
+            )
+            .groupBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM')`)
+            .orderBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM') asc`);
+
+        return rows.map((r) => {
+            const income = Number(r.income);
+            const expenses = Number(r.expenses);
+            const savings = income - expenses;
+            return {
+                month: r.month,
+                income,
+                expenses,
+                savings,
+                savingsRate: income > 0 ? Math.round((savings / income) * 10000) / 100 : 0,
+            };
+        });
+    }
+
+    async getCardCategoryBreakdown(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<CardCategoryItem[]> {
+        const rows = await this.db
+            .select({
+                cardLast4: transactionsTable.cardLast4,
+                cardName: transactionsTable.cardName,
+                category: transactionsTable.category,
+                amount: sql<string>`sum(${transactionsTable.amount}::numeric)`,
+                count: sql<number>`count(*)::int`,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    gte(transactionsTable.transactionDate, params.range.start),
+                    lt(transactionsTable.transactionDate, params.range.end),
+                    eq(transactionsTable.transactionType, "debited"),
+                    eq(transactionsTable.transactionMode, "credit_card"),
+                    sql`${transactionsTable.cardLast4} is not null`,
+                ),
+            )
+            .groupBy(
+                transactionsTable.cardLast4,
+                transactionsTable.cardName,
+                transactionsTable.category,
+            )
+            .orderBy(
+                transactionsTable.cardLast4,
+                sql`sum(${transactionsTable.amount}::numeric) desc`,
+            );
+
+        return rows.map((r) => {
+            const meta = CATEGORY_META[r.category];
+            return {
+                cardLast4: r.cardLast4 ?? "",
+                cardName: r.cardName ?? `Card ••${r.cardLast4}`,
+                category: r.category,
+                displayName: meta?.name ?? r.category,
+                amount: Number(r.amount),
+                count: r.count,
+            };
+        });
+    }
+
+    async getTopVpas(params: {
+        userId: string;
+        range: DateRange;
+        limit: number;
+    }): Promise<TopVpaItem[]> {
+        const rows = await this.db
+            .select({
+                vpa: transactionsTable.vpa,
+                merchant: transactionsTable.merchant,
+                amount: sql<string>`sum(${transactionsTable.amount}::numeric)`,
+                count: sql<number>`count(*)::int`,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    gte(transactionsTable.transactionDate, params.range.start),
+                    lt(transactionsTable.transactionDate, params.range.end),
+                    eq(transactionsTable.transactionType, "debited"),
+                    eq(transactionsTable.transactionMode, "upi"),
+                    sql`${transactionsTable.vpa} is not null`,
+                ),
+            )
+            .groupBy(transactionsTable.vpa, transactionsTable.merchant)
+            .orderBy(sql`sum(${transactionsTable.amount}::numeric) desc`)
+            .limit(params.limit);
+
+        return rows.map((r) => ({
+            vpa: r.vpa ?? "",
+            merchant: r.merchant,
+            amount: Number(r.amount),
+            count: r.count,
+        }));
+    }
+
+    async getSpendingVelocity(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<SpendingVelocityItem[]> {
+        // Get daily spending, then compute 7-day rolling average
+        const rows = await this.db
+            .select({
+                date: sql<string>`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD')`,
+                daily: sql<string>`coalesce(sum(${transactionsTable.amount}::numeric), 0)`,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    gte(transactionsTable.transactionDate, params.range.start),
+                    lt(transactionsTable.transactionDate, params.range.end),
+                    eq(transactionsTable.transactionType, "debited"),
+                ),
+            )
+            .groupBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD')`)
+            .orderBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD') asc`);
+
+        const WINDOW = 7;
+        const dailyAmounts = rows.map((r) => ({ date: r.date, amount: Number(r.daily) }));
+
+        return dailyAmounts.map((item, index) => {
+            const windowStart = Math.max(0, index - WINDOW + 1);
+            const window = dailyAmounts.slice(windowStart, index + 1);
+            const avg = window.reduce((sum, w) => sum + w.amount, 0) / window.length;
+            return {
+                date: item.date,
+                velocity: Math.round(avg * 100) / 100,
+            };
+        });
+    }
+
+    async getLargestTransactions(params: {
+        userId: string;
+        range: DateRange;
+        limit: number;
+    }): Promise<LargestTransactionItem[]> {
+        const rows = await this.db
+            .select({
+                id: transactionsTable.id,
+                merchant: transactionsTable.merchant,
+                amount: transactionsTable.amount,
+                transactionDate: transactionsTable.transactionDate,
+                category: transactionsTable.category,
+                transactionMode: transactionsTable.transactionMode,
+            })
+            .from(transactionsTable)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    gte(transactionsTable.transactionDate, params.range.start),
+                    lt(transactionsTable.transactionDate, params.range.end),
+                    eq(transactionsTable.transactionType, "debited"),
+                ),
+            )
+            .orderBy(sql`${transactionsTable.amount}::numeric desc`)
+            .limit(params.limit);
+
+        return rows.map((r) => {
+            const meta = CATEGORY_META[r.category];
+            return {
+                id: r.id,
+                merchant: r.merchant,
+                amount: Number(r.amount),
+                transactionDate: r.transactionDate.toISOString(),
+                category: r.category,
+                displayName: meta?.name ?? r.category,
+                transactionMode: r.transactionMode,
+            };
+        });
     }
 
     // ── Merchant bulk categorization ──
