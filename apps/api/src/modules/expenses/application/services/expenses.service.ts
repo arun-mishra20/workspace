@@ -664,7 +664,7 @@ export class ExpensesService {
 
             for (const [id, milestone] of Object.entries(card.milestones)) {
                 const duration = milestone.durations[0] ?? "yearly";
-                const { start, end, label } = this.computeMilestoneDateRange(
+                const { start, end } = this.computeMilestoneDateRange(
                     duration,
                     milestone.milestone_start_date,
                     milestone.milestone_end_date,

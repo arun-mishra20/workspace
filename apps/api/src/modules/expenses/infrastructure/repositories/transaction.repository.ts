@@ -350,7 +350,6 @@ export class TransactionRepositoryImpl implements TransactionRepository {
                     eq(transactionsTable.userId, params.userId),
                     gte(transactionsTable.transactionDate, params.range.start),
                     lt(transactionsTable.transactionDate, params.range.end),
-                    eq(transactionsTable.transactionType, "debited"),
                 ),
             )
             .groupBy(transactionsTable.transactionMode)
@@ -760,7 +759,6 @@ export class TransactionRepositoryImpl implements TransactionRepository {
                     eq(transactionsTable.userId, params.userId),
                     gte(transactionsTable.transactionDate, params.range.start),
                     lt(transactionsTable.transactionDate, params.range.end),
-                    eq(transactionsTable.transactionType, "debited"),
                     eq(transactionsTable.transactionMode, "upi"),
                     sql`${transactionsTable.vpa} is not null`,
                 ),
