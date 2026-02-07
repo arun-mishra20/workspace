@@ -428,6 +428,33 @@ export class ExpensesService {
         return this.transactionRepository.updateById(params);
     }
 
+    /**
+     * Get distinct merchants with their most common category, for the user.
+     */
+    async getDistinctMerchants(userId: string) {
+        return this.transactionRepository.getDistinctMerchants(userId);
+    }
+
+    /**
+     * Bulk update category and subcategory for all transactions of a given merchant.
+     */
+    async bulkCategorizeByMerchant(params: {
+        userId: string;
+        merchant: string;
+        category: string;
+        subcategory: string;
+        categoryMetadata?: { icon: string; color: string; parent: string | null };
+    }): Promise<{ merchant: string; category: string; subcategory: string; updatedCount: number }> {
+        const updatedCount = await this.transactionRepository.bulkCategorizeByMerchant(params);
+
+        return {
+            merchant: params.merchant,
+            category: params.category,
+            subcategory: params.subcategory,
+            updatedCount,
+        };
+    }
+
     async getExpenseEmailById(params: { userId: string; id: string }): Promise<RawEmail | null> {
         return this.rawEmailRepository.findById(params);
     }

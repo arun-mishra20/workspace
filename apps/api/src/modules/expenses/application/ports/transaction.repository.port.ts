@@ -54,6 +54,33 @@ export interface TransactionRepository {
         cardLast4: string;
         range: DateRange;
     }): Promise<number>;
+
+    // ── Merchant bulk categorization ──
+
+    /**
+     * Get distinct merchants for a user with their current category info
+     */
+    getDistinctMerchants(
+        userId: string,
+    ): Promise<
+        {
+            merchant: string;
+            category: string;
+            subcategory: string;
+            transactionCount: number;
+        }[]
+    >;
+
+    /**
+     * Bulk update category/subcategory for all transactions matching a merchant
+     */
+    bulkCategorizeByMerchant(params: {
+        userId: string;
+        merchant: string;
+        category: string;
+        subcategory: string;
+        categoryMetadata?: { icon: string; color: string; parent: string | null };
+    }): Promise<number>;
 }
 
 export const TRANSACTION_REPOSITORY = Symbol("TRANSACTION_REPOSITORY");

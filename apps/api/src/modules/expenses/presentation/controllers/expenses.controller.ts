@@ -23,6 +23,7 @@ import { SyncExpensesDto } from "@/modules/expenses/presentation/dtos/sync-expen
 import { ListExpenseEmailsDto } from "@/modules/expenses/presentation/dtos/list-expense-emails.dto";
 import { ListExpensesDto } from "@/modules/expenses/presentation/dtos/list-expenses.dto";
 import { UpdateTransactionDto } from "@/modules/expenses/presentation/dtos/update-transaction.dto";
+import { BulkCategorizeDto } from "@/modules/expenses/presentation/dtos/bulk-categorize.dto";
 import { OffsetListResponseDto } from "@/shared/infrastructure/dtos/list-response.dto";
 import type { RawEmail, Transaction, AnalyticsPeriod } from "@workspace/domain";
 import type { FastifyReply, FastifyRequest } from "fastify";
@@ -197,6 +198,31 @@ export class ExpensesController {
         return transaction;
     }
 
+    @Patch("transactions/bulk-categorize")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Bulk categorize transactions by merchant",
+        description:
+            "Updates the category and subcategory for ALL transactions matching the given merchant name.",
+    })
+    @ApiResponse({
+        status: 200,
+        description: "Returns the merchant, new category, subcategory, and count of updated rows",
+    })
+    async bulkCategorizeByMerchant(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Body() dto: BulkCategorizeDto,
+    ) {
+        const result = await this.expensesService.bulkCategorizeByMerchant({
+            userId: req.user.id,
+            merchant: dto.merchant,
+            category: dto.category,
+            subcategory: dto.subcategory,
+            categoryMetadata: dto.categoryMetadata,
+        });
+        return { data: result };
+    }
+
     @Patch("transactions/:id")
     @UseGuards(JwtAuthGuard)
     @ApiOperation({ summary: "Update / correct a transaction" })
@@ -215,6 +241,24 @@ export class ExpensesController {
             id,
             data: dto,
         });
+    }
+
+    @Get("merchants")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Get distinct merchants with category info",
+        description:
+            "Returns a list of unique merchants for the user with their most common category assignment and transaction count.",
+    })
+    @ApiResponse({
+        status: 200,
+        description: "Returns list of merchants with category info",
+    })
+    async getDistinctMerchants(
+        @Request() req: FastifyRequest & { user: { id: string } },
+    ) {
+        const merchants = await this.expensesService.getDistinctMerchants(req.user.id);
+        return { data: merchants };
     }
 
     @Get("emails/:id")

@@ -20,6 +20,8 @@ import {
   type UpdateTransactionInput,
 } from "@/features/expenses/api/update-transaction";
 import { useSyncJob } from "@/features/expenses/hooks/use-sync-job";
+import { MerchantCategorizeDialog } from "@/features/expenses/components/merchant-categorize-dialog";
+import { CATEGORY_OPTIONS } from "@/features/expenses/constants/category-options";
 import { Badge } from "@workspace/ui/components/ui/badge";
 import { Button } from "@workspace/ui/components/ui/button";
 import {
@@ -66,6 +68,8 @@ import {
   RotateCw,
   RefreshCcw,
   Unplug,
+  IndianRupee,
+  Send,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { appPaths } from "@/config/app-paths";
@@ -79,38 +83,9 @@ const TRANSACTION_MODES = [
   "imps",
   "rtgs",
 ] as const;
-const CATEGORIES = [
-  "uncategorized",
-  "food_dining",
-  "groceries",
-  "shopping",
-  "transport",
-  "utilities",
-  "utility_bills",
-  "income_salary",
-  "personal_transfer",
-  "apps_and_software",
-  "banking_and_finance",
-  "cards_and_finance_charges",
-  "education",
-  "emi",
-  "entertainment",
-  "medical",
-  "health_and_wellness",
-  "wallet_and_digital_payment",
-  "cash_withdrawal",
-  "reversal_and_refunds",
-  "rent",
-  "cars_and_rentals",
-  "government_payments",
-  "insurance",
-  "wallet_loads",
-  "professional_services",
-  "credit_card_bills",
-  "cashback",
-  "friends",
-  "others",
-] as const;
+function getCategoryMeta(value: string) {
+  return CATEGORY_OPTIONS.find((c) => c.value === value);
+}
 
 type ExpenseView = "expense" | "emails";
 
@@ -221,11 +196,25 @@ const buildExpenseColumns = (
   {
     accessorKey: "category",
     header: "Category",
-    cell: ({ row }) => (
-      <Badge variant="secondary" className="capitalize">
-        {row.original.category.replace(/_/g, " ")}
-      </Badge>
-    ),
+    cell: ({ row }) => {
+      const meta = getCategoryMeta(row.original.category);
+      return (
+        <Badge
+          variant="secondary"
+          className="capitalize"
+          style={{
+            borderColor: meta?.color,
+            color: meta?.color,
+          }}
+        >
+          <span
+            className="inline-block size-2 rounded-full mr-1.5"
+            style={{ backgroundColor: meta?.color ?? "#95A5A6" }}
+          />
+          {meta?.label ?? row.original.category.replace(/_/g, " ")}
+        </Badge>
+      );
+    },
   },
   {
     accessorKey: "transactionMode",
@@ -568,10 +557,17 @@ const ExpenseEmailsPage = () => {
               <CardTitle className="text-base font-semibold">
                 {activeView === "expense" ? "All Expenses" : "Recent Emails"}
               </CardTitle>
-              <div className="flex items-center gap-2">
-                <TabsList className="mr-2">
-                  <TabsTrigger value="expense">Expense</TabsTrigger>
-                  <TabsTrigger value="emails">Emails</TabsTrigger>
+              <div className="flex items-center gap-2 justify-center">
+                {activeView === "expense" && <MerchantCategorizeDialog />}
+                <TabsList className="ml-2">
+                  <TabsTrigger value="expense" className="flex gap-1">
+                    <IndianRupee className="size-4" />
+                    Expense
+                  </TabsTrigger>
+                  <TabsTrigger value="emails" className="flex gap-1">
+                    <Send className="size-4" />
+                    Emails
+                  </TabsTrigger>
                 </TabsList>
                 <Badge variant="outline">
                   {activeView === "expense"
@@ -929,9 +925,15 @@ const ExpenseEmailsPage = () => {
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c} className="capitalize">
-                      {c.replace(/_/g, " ")}
+                  {CATEGORY_OPTIONS.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="inline-block size-2 rounded-full"
+                          style={{ backgroundColor: cat.color }}
+                        />
+                        {cat.label}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

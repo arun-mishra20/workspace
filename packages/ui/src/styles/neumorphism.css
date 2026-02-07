@@ -154,14 +154,12 @@
       box-shadow 300ms ease-out;
   }
 
-  /* :root[data-theme-preset="neumorphism"] [data-slot="card"]:hover {
-    transform: translateY(-2px);
-    box-shadow: var(
-      --neu-shadow-card-hover,
-      24px 24px 44px rgb(151 165 186 / 0.82),
-      -24px -24px 44px rgb(255 255 255 / 0.95)
-    ) !important;
-  } */
+  :root[data-theme-preset="neumorphism"] [data-slot="card"]:hover {
+    transform: translateY(-0.15px);
+    box-shadow:
+      4px 4px 8px rgb(151 165 186 / 0.2),
+      -4px -4px 8px rgb(255 255 255 / 0.5);
+  }
 
   :root[data-theme-preset="neumorphism"]
     [data-slot="blank-layout"][data-bordered] {

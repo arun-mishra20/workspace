@@ -509,6 +509,90 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         return Number(row?.total ?? 0);
     }
 
+    // ── Merchant bulk categorization ──
+
+    async getDistinctMerchants(
+        userId: string,
+    ): Promise<
+        { merchant: string; category: string; subcategory: string; transactionCount: number }[]
+    > {
+        const rows = await this.db
+            .select({
+                merchant: transactionsTable.merchant,
+                category: transactionsTable.category,
+                subcategory: transactionsTable.subcategory,
+                transactionCount: sql<number>`count(*)::int`,
+            })
+            .from(transactionsTable)
+            .where(eq(transactionsTable.userId, userId))
+            .groupBy(
+                transactionsTable.merchant,
+                transactionsTable.category,
+                transactionsTable.subcategory,
+            )
+            .orderBy(sql`count(*) desc`);
+
+        // Aggregate: same merchant may have multiple categories — pick the most common one
+        const merchantMap = new Map<
+            string,
+            { merchant: string; category: string; subcategory: string; transactionCount: number }
+        >();
+
+        for (const row of rows) {
+            const existing = merchantMap.get(row.merchant);
+            if (!existing || row.transactionCount > existing.transactionCount) {
+                merchantMap.set(row.merchant, {
+                    merchant: row.merchant,
+                    category: row.category,
+                    subcategory: row.subcategory,
+                    transactionCount: existing
+                        ? existing.transactionCount + row.transactionCount
+                        : row.transactionCount,
+                });
+            } else {
+                existing.transactionCount += row.transactionCount;
+            }
+        }
+
+        return Array.from(merchantMap.values()).sort(
+            (a, b) => b.transactionCount - a.transactionCount,
+        );
+    }
+
+    async bulkCategorizeByMerchant(params: {
+        userId: string;
+        merchant: string;
+        category: string;
+        subcategory: string;
+        categoryMetadata?: { icon: string; color: string; parent: string | null };
+    }): Promise<number> {
+        const setClause: Record<string, unknown> = {
+            category: params.category,
+            subcategory: params.subcategory,
+            categorizationMethod: "merchant_rule",
+            confidence: "1.0000",
+            requiresReview: false,
+            updatedAt: new Date(),
+        };
+
+        if (params.categoryMetadata) {
+            setClause.categoryMetadata = params.categoryMetadata;
+        }
+
+        const result = await this.db
+            .update(transactionsTable)
+            .set(setClause)
+            .where(
+                and(
+                    eq(transactionsTable.userId, params.userId),
+                    eq(transactionsTable.merchant, params.merchant),
+                ),
+            )
+            .returning({ id: transactionsTable.id });
+
+        return result.length;
+    }
+
     private toInsert(transaction: Transaction): InsertTransaction {
         return {
             id: transaction.id,
