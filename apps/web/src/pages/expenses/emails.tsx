@@ -70,6 +70,8 @@ import {
   Unplug,
   IndianRupee,
   Send,
+  ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { appPaths } from "@/config/app-paths";
@@ -660,6 +662,7 @@ const ExpenseEmailsPage = () => {
                             onClick={() => expenseTable.previousPage()}
                             disabled={!expenseTable.getCanPreviousPage()}
                           >
+                            <ArrowLeft />
                             Previous
                           </Button>
                           <Button
@@ -669,6 +672,7 @@ const ExpenseEmailsPage = () => {
                             disabled={!expenseTable.getCanNextPage()}
                           >
                             Next
+                            <ArrowRight />
                           </Button>
                         </div>
                       </div>

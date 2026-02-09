@@ -71,7 +71,6 @@ export class HdfcEmailParser implements EmailParser {
         const dedupeHash = buildTransactionHash({
             userId: email.userId,
             sourceEmailId: email.id,
-            merchantRaw,
             amount: details.amount,
             currency: details.currency,
             transactionDate,

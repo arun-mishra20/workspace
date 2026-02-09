@@ -252,12 +252,12 @@ export class ExpensesService {
             if (lastSync?.completedAt) {
                 // Incremental sync: fetch emails since last completed sync
                 const afterDate = this.formatGmailDate(lastSync.completedAt);
-                query = `subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank) after:${afterDate}`;
+                query = `subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank OR upi) after:${afterDate}`;
                 this.logger.log(`Incremental sync for user ${params.userId} after ${afterDate}`);
             } else {
                 // First sync: fetch emails from last 6 months
                 query =
-                    "subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank) newer_than:180d";
+                    "subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank OR upi) newer_than:180d";
                 this.logger.log(`First sync for user ${params.userId}, fetching last 6 months`);
             }
         }

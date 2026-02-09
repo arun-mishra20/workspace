@@ -60,7 +60,7 @@ export const envSchema = z.object({
 
     JWT_EXPIRES_IN: z
         .string()
-        .default("15m")
+        .default("1d")
         .refine((value) => /^\d+[smhd]$/.test(value), {
             message: "JWT_EXPIRES_IN format invalid (e.g., 60s, 15m, 2h, 7d)",
         }),

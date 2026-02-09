@@ -106,23 +106,61 @@ export class TransactionRepositoryImpl implements TransactionRepository {
                 .onConflictDoUpdate({
                     target: [transactionsTable.userId, transactionsTable.dedupeHash],
                     set: {
-                        merchant: value.merchant,
-                        merchantRaw: value.merchantRaw,
-                        vpa: value.vpa ?? null,
+                        // Only overwrite merchant if the new value is NOT a fallback
+                        // (i.e. keep existing real merchant over "Card ••XXXX Transaction")
+                        merchant: sql`CASE
+                            WHEN ${sql.raw(`'${value.merchant.replace(/'/g, "''")}'`)} LIKE 'Card %% Transaction'
+                                OR ${sql.raw(`'${value.merchant.replace(/'/g, "''")}'`)} = 'Unknown Merchant'
+                            THEN ${transactionsTable.merchant}
+                            ELSE ${value.merchant}
+                        END`,
+                        merchantRaw: sql`CASE
+                            WHEN ${sql.raw(`'${value.merchantRaw.replace(/'/g, "''")}'`)} LIKE 'Card %% Transaction'
+                                OR ${sql.raw(`'${value.merchantRaw.replace(/'/g, "''")}'`)} = 'Unknown Merchant'
+                            THEN ${transactionsTable.merchantRaw}
+                            ELSE ${value.merchantRaw}
+                        END`,
+                        vpa: value.vpa ?? sql`${transactionsTable.vpa}`,
                         amount: value.amount,
                         currency: value.currency,
                         transactionDate: value.transactionDate,
                         transactionType: value.transactionType,
                         transactionMode: value.transactionMode,
-                        cardLast4: value.cardLast4 ?? null,
-                        cardName: value.cardName ?? null,
-                        category: value.category,
-                        subcategory: value.subcategory,
-                        confidence: value.confidence,
-                        categorizationMethod: value.categorizationMethod,
-                        requiresReview: value.requiresReview,
-                        categoryMetadata: value.categoryMetadata,
-                        statementId: value.statementId ?? null,
+                        cardLast4: value.cardLast4 ?? sql`${transactionsTable.cardLast4}`,
+                        cardName: value.cardName ?? sql`${transactionsTable.cardName}`,
+                        // Only overwrite category if the new value is actually categorized
+                        // (keep existing categorization over "uncategorized")
+                        category: sql`CASE
+                            WHEN ${value.category} = 'uncategorized'
+                            THEN ${transactionsTable.category}
+                            ELSE ${value.category}
+                        END`,
+                        subcategory: sql`CASE
+                            WHEN ${value.subcategory} = 'uncategorized'
+                            THEN ${transactionsTable.subcategory}
+                            ELSE ${value.subcategory}
+                        END`,
+                        confidence: sql`CASE
+                            WHEN ${value.category} = 'uncategorized'
+                            THEN ${transactionsTable.confidence}
+                            ELSE ${value.confidence}
+                        END`,
+                        categorizationMethod: sql`CASE
+                            WHEN ${value.category} = 'uncategorized'
+                            THEN ${transactionsTable.categorizationMethod}
+                            ELSE ${value.categorizationMethod}
+                        END`,
+                        requiresReview: sql`CASE
+                            WHEN ${value.category} = 'uncategorized'
+                            THEN ${transactionsTable.requiresReview}
+                            ELSE ${value.requiresReview}
+                        END`,
+                        categoryMetadata: sql`CASE
+                            WHEN ${value.category} = 'uncategorized'
+                            THEN ${transactionsTable.categoryMetadata}
+                            ELSE ${value.categoryMetadata}
+                        END`,
+                        statementId: value.statementId ?? sql`${transactionsTable.statementId}`,
                         updatedAt: new Date(),
                     },
                 });
