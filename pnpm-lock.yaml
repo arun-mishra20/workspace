@@ -26,6 +26,9 @@ importers:
       syncpack:
         specifier: 14.0.0-alpha.32
         version: 14.0.0-alpha.32
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
       turbo:
         specifier: ^2.6.3
         version: 2.7.6
@@ -218,7 +221,7 @@ importers:
         version: 5.1.4(typescript@5.9.3)
       vitest:
         specifier: ^4.0.15
-        version: 4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0)(msw@2.12.7)
+        version: 4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0)(msw@2.12.7)(tsx@4.21.0)
 
   apps/web:
     dependencies:
@@ -375,10 +378,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 6.0.11
-        version: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)
+        version: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)(tsx@4.21.0)
       vitest:
         specifier: ^4.0.15
-        version: 4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0)(msw@2.12.7)
+        version: 4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0)(msw@2.12.7)(tsx@4.21.0)
 
   packages/database:
     dependencies:
@@ -546,7 +549,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.15
-        version: 4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0)(msw@2.12.7)
+        version: 4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0)(msw@2.12.7)(tsx@4.21.0)
 
   packages/icons:
     dependencies:
@@ -775,7 +778,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.15
-        version: 4.0.18(@types/node@24.10.9)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)
+        version: 4.0.18(@types/node@24.10.9)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(tsx@4.21.0)
 
 packages:
 
@@ -2761,7 +2764,7 @@ packages:
       glob: 11.1.0
       react-docgen-typescript: 2.4.0(typescript@5.9.3)
       typescript: 5.9.3
-      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)
+      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)(tsx@4.21.0)
     dev: true
 
   /@jridgewell/gen-mapping@0.3.13:
@@ -5208,7 +5211,7 @@ packages:
       '@storybook/icons': 2.0.1(react-dom@19.2.4)(react@19.2.4)
       '@vitest/browser-playwright': 4.0.18(playwright@1.58.0)(vite@6.0.11)(vitest@4.0.18)
       storybook: 10.2.1(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@19.2.4)(react@19.2.4)
-      vitest: 4.0.18(@types/node@24.10.9)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)
+      vitest: 4.0.18(@types/node@24.10.9)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(tsx@4.21.0)
     transitivePeerDependencies:
       - react
       - react-dom
@@ -5223,7 +5226,7 @@ packages:
       '@storybook/csf-plugin': 10.2.1(storybook@10.2.1)(vite@6.0.11)
       storybook: 10.2.1(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@19.2.4)(react@19.2.4)
       ts-dedent: 2.2.0
-      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)
+      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)(tsx@4.21.0)
     transitivePeerDependencies:
       - esbuild
       - rollup
@@ -5250,7 +5253,7 @@ packages:
     dependencies:
       storybook: 10.2.1(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@19.2.4)(react@19.2.4)
       unplugin: 2.3.11
-      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)
+      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)(tsx@4.21.0)
     dev: true
 
   /@storybook/global@5.0.0:
@@ -5297,7 +5300,7 @@ packages:
       resolve: 1.22.11
       storybook: 10.2.1(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@19.2.4)(react@19.2.4)
       tsconfig-paths: 4.2.0
-      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)
+      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)(tsx@4.21.0)
     transitivePeerDependencies:
       - esbuild
       - rollup
@@ -6615,7 +6618,7 @@ packages:
       '@rolldown/pluginutils': 1.0.0-beta.53
       '@types/babel__core': 7.20.5
       react-refresh: 0.18.0
-      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)
+      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)(tsx@4.21.0)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -6630,7 +6633,7 @@ packages:
       '@vitest/mocker': 4.0.18(msw@2.12.7)(vite@6.0.11)
       playwright: 1.58.0
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@types/node@24.10.9)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)
+      vitest: 4.0.18(@types/node@24.10.9)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(tsx@4.21.0)
     transitivePeerDependencies:
       - bufferutil
       - msw
@@ -6650,7 +6653,7 @@ packages:
       pngjs: 7.0.0
       sirv: 3.0.2
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@types/node@24.10.9)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)
+      vitest: 4.0.18(@types/node@24.10.9)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(tsx@4.21.0)
       ws: 8.19.0
     transitivePeerDependencies:
       - bufferutil
@@ -6678,7 +6681,7 @@ packages:
       obug: 2.1.1
       std-env: 3.10.0
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0)(msw@2.12.7)
+      vitest: 4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0)(msw@2.12.7)(tsx@4.21.0)
     dev: true
 
   /@vitest/eslint-plugin@1.6.6(eslint@9.39.2)(typescript@5.9.3)(vitest@4.0.18):
@@ -6698,7 +6701,7 @@ packages:
       '@typescript-eslint/utils': 8.54.0(eslint@9.39.2)(typescript@5.9.3)
       eslint: 9.39.2(jiti@2.6.1)
       typescript: 5.9.3
-      vitest: 4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0)(msw@2.12.7)
+      vitest: 4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0)(msw@2.12.7)(tsx@4.21.0)
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -6737,7 +6740,7 @@ packages:
       estree-walker: 3.0.3
       magic-string: 0.30.21
       msw: 2.12.7(@types/node@24.10.9)(typescript@5.9.3)
-      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)
+      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)(tsx@4.21.0)
 
   /@vitest/pretty-format@3.2.4:
     resolution: {integrity: sha512-IVNZik8IVRJRTr9fxlitMKeJeXFFFN0JaB9PHPGQ8NKQbGpfjlTx9zO4RefN8gp7eqjNy8nyK3NZmBzOPeIxtA==}
@@ -6782,7 +6785,7 @@ packages:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0)(msw@2.12.7)
+      vitest: 4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0)(msw@2.12.7)(tsx@4.21.0)
 
   /@vitest/utils@3.2.4:
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
@@ -13813,7 +13816,6 @@ packages:
       get-tsconfig: 4.13.0
     optionalDependencies:
       fsevents: 2.3.3
-    dev: true
 
   /turbo-darwin-64@2.7.6:
     resolution: {integrity: sha512-bYu0qnWju2Ha3EbIkPCk1SMLT3sltKh1P/Jy5FER6BmH++H5z+T5MHh3W1Xoers9rk4N1VdKvog9FO1pxQyjhw==}
@@ -14202,7 +14204,7 @@ packages:
       - typescript
     dev: true
 
-  /vite@6.0.11(@types/node@24.10.9)(jiti@2.6.1):
+  /vite@6.0.11(@types/node@24.10.9)(jiti@2.6.1)(tsx@4.21.0):
     resolution: {integrity: sha512-4VL9mQPKoHy4+FE0NnRE/kbY51TOfaknxAjt3fJbGJxhIpBZiqVzlZDEesWWsuREXHwNdAoOFZ9MkPEVXczHwg==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     hasBin: true
@@ -14247,10 +14249,11 @@ packages:
       jiti: 2.6.1
       postcss: 8.5.6
       rollup: 4.57.0
+      tsx: 4.21.0
     optionalDependencies:
       fsevents: 2.3.3
 
-  /vitest@4.0.18(@types/node@24.10.9)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1):
+  /vitest@4.0.18(@types/node@24.10.9)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(tsx@4.21.0):
     resolution: {integrity: sha512-hOQuK7h0FGKgBAas7v0mSAsnvrIgAvWmRFjmzpJ7SwFHH3g1k2u37JtYwOwmEKhK6ZO3v9ggDBBm0La1LCK4uQ==}
     engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
     hasBin: true
@@ -14304,7 +14307,7 @@ packages:
       tinyexec: 1.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)
+      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)(tsx@4.21.0)
       why-is-node-running: 2.3.0
     transitivePeerDependencies:
       - jiti
@@ -14320,7 +14323,7 @@ packages:
       - yaml
     dev: true
 
-  /vitest@4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0)(msw@2.12.7):
+  /vitest@4.0.18(@types/node@24.10.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0)(msw@2.12.7)(tsx@4.21.0):
     resolution: {integrity: sha512-hOQuK7h0FGKgBAas7v0mSAsnvrIgAvWmRFjmzpJ7SwFHH3g1k2u37JtYwOwmEKhK6ZO3v9ggDBBm0La1LCK4uQ==}
     engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
     hasBin: true
@@ -14375,7 +14378,7 @@ packages:
       tinyexec: 1.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)
+      vite: 6.0.11(@types/node@24.10.9)(jiti@2.6.1)(tsx@4.21.0)
       why-is-node-running: 2.3.0
     transitivePeerDependencies:
       - jiti

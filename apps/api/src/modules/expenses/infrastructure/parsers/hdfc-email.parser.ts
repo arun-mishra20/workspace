@@ -162,6 +162,7 @@ export class HdfcEmailParser implements EmailParser {
     private extractAmount(textLower: string): number | null {
         const amountPatterns = [
             /rs\.?\s*inr\.?\s*(\d+(?:,\d+)*(?:\.\d{1,2})?)/i,
+            /rs\.?\s*(\d+(?:,\d+)*(?:\.\d{1,2})?)\s+has\s+been\s+(?:debited|credited)/i,
             /rs\.?\s*(\d+(?:,\d+)*(?:\.\d{1,2})?)/i,
             /inr\.?\s*(\d+(?:,\d+)*(?:\.\d{1,2})?)/i,
             /(?:amount|total|sum).*?rs\.?\s*(\d+(?:,\d+)*(?:\.\d{1,2})?)/i,
@@ -212,6 +213,12 @@ export class HdfcEmailParser implements EmailParser {
         mode: TransactionMode | null;
         cardLast4: string | null;
     } {
+        // Check for RuPay Credit Card UPI transactions (has both UPI and card info)
+        const rupayUpiMatch = textLower.match(/rupay\s+credit\s+card\s+xx(\d{4}).*?\bupi\b/i);
+        if (rupayUpiMatch?.[1]) {
+            return { mode: "upi", cardLast4: rupayUpiMatch[1] };
+        }
+
         if (/\bupi\b/i.test(textLower)) {
             return { mode: "upi", cardLast4: null };
         }
@@ -249,6 +256,7 @@ export class HdfcEmailParser implements EmailParser {
         const paidToPatterns = [
             /(?:neft|imps|rtgs)\s+cr-[a-z0-9]+-([A-Z][A-Z0-9\s&.\-]+?)(?:\s+(?:CLIENT|LLP|PVT|PRIVATE|LIMITED))?\s*-/i,
             /towards\s+([A-Z][A-Z0-9\s*,.&\-]+?)(?:\s+on\s+\d|\s+at\s+\d)/i,
+            /to\s+[\w.\-]+@[\w]+\s+([A-Z][A-Z0-9]+)(?:\s+on\s+\d)/i,
             /to\s+vpa\s+[\w.\-]+@[\w]+\s+([A-Z][A-Za-z0-9\s.\-&]+?)(?:\s+on\s+\d)/i,
             /to\s+[\w.\-]+@[\w]+\s+([A-Z][A-Z0-9\s.\-&]+?)(?:\s+on\s+\d)/i,
             /by\s+vpa\s+[\w.\-]+@[\w]+\s+([A-Z][A-Za-z0-9\s.\-&]+?)(?:\s+on\s+\d)/i,

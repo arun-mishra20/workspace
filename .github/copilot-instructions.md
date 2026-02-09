@@ -1,5 +1,7 @@
 # Copilot Instructions
 
+## Focus on implementing the features, not tests. This is a experiment project, we dont have to honor tests.
+
 ## Codebase Overview
 
 This is a **monorepo full-stack boilerplate** using NestJS (backend) + Next.js (frontend) with Turborepo, pnpm, and PostgreSQL. The architecture emphasizes **Domain-Driven Design (DDD)** patterns and modular layering.

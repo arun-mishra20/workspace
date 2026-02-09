@@ -1,6 +1,7 @@
 import {
   boolean,
   date,
+  index,
   jsonb,
   numeric,
   pgTable,
@@ -125,10 +126,11 @@ export const transactionsTable = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    uniqueIndex("transactions_user_dedupe_hash_idx").on(
+    uniqueIndex("transactions_user_source_email_idx").on(
       table.userId,
-      table.dedupeHash,
+      table.sourceEmailId,
     ),
+    index("transactions_dedupe_hash_idx").on(table.dedupeHash),
   ],
 );
 

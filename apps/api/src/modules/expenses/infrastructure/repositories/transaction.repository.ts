@@ -104,30 +104,32 @@ export class TransactionRepositoryImpl implements TransactionRepository {
                 .insert(transactionsTable)
                 .values(value)
                 .onConflictDoUpdate({
-                    target: [transactionsTable.userId, transactionsTable.dedupeHash],
+                    target: [transactionsTable.userId, transactionsTable.sourceEmailId],
                     set: {
+                        // Always update the dedupeHash to the latest algorithm
+                        dedupeHash: value.dedupeHash,
                         // Only overwrite merchant if the new value is NOT a fallback
                         // (i.e. keep existing real merchant over "Card ••XXXX Transaction")
                         merchant: sql`CASE
-                            WHEN ${sql.raw(`'${value.merchant.replace(/'/g, "''")}'`)} LIKE 'Card %% Transaction'
-                                OR ${sql.raw(`'${value.merchant.replace(/'/g, "''")}'`)} = 'Unknown Merchant'
+                            WHEN ${value.merchant} LIKE 'Card %Transaction'
+                                OR ${value.merchant} = 'Unknown Merchant'
                             THEN ${transactionsTable.merchant}
                             ELSE ${value.merchant}
                         END`,
                         merchantRaw: sql`CASE
-                            WHEN ${sql.raw(`'${value.merchantRaw.replace(/'/g, "''")}'`)} LIKE 'Card %% Transaction'
-                                OR ${sql.raw(`'${value.merchantRaw.replace(/'/g, "''")}'`)} = 'Unknown Merchant'
+                            WHEN ${value.merchantRaw} LIKE 'Card %Transaction'
+                                OR ${value.merchantRaw} = 'Unknown Merchant'
                             THEN ${transactionsTable.merchantRaw}
                             ELSE ${value.merchantRaw}
                         END`,
-                        vpa: value.vpa ?? sql`${transactionsTable.vpa}`,
+                        vpa: sql`COALESCE(${value.vpa}, ${transactionsTable.vpa})`,
                         amount: value.amount,
                         currency: value.currency,
                         transactionDate: value.transactionDate,
                         transactionType: value.transactionType,
                         transactionMode: value.transactionMode,
-                        cardLast4: value.cardLast4 ?? sql`${transactionsTable.cardLast4}`,
-                        cardName: value.cardName ?? sql`${transactionsTable.cardName}`,
+                        cardLast4: sql`COALESCE(${value.cardLast4}, ${transactionsTable.cardLast4})`,
+                        cardName: sql`COALESCE(${value.cardName}, ${transactionsTable.cardName})`,
                         // Only overwrite category if the new value is actually categorized
                         // (keep existing categorization over "uncategorized")
                         category: sql`CASE
@@ -160,7 +162,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
                             THEN ${transactionsTable.categoryMetadata}
                             ELSE ${value.categoryMetadata}
                         END`,
-                        statementId: value.statementId ?? sql`${transactionsTable.statementId}`,
+                        statementId: sql`COALESCE(${value.statementId}, ${transactionsTable.statementId})`,
                         updatedAt: new Date(),
                     },
                 });
