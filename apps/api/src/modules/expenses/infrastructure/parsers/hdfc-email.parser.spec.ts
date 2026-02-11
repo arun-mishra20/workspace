@@ -95,4 +95,101 @@ describe("HdfcEmailParser", () => {
         expect(txn.vpa).toBe("bmtc.ka01ar4188@cnrb");
         expect(txn.transactionDate).toBe("2026-02-07T00:00:00.000Z");
     });
+
+    it("parses RuPay UPI from HTML-only emails (no plain text body)", () => {
+        const parser = new HdfcEmailParser();
+
+        const htmlOnlyEmail: RawEmail = {
+            ...baseEmail,
+            from: "alerts@hdfcbank.net",
+            subject: "❗ You have done a UPI txn. Check details!",
+            bodyText: "",
+            bodyHtml:
+                '<div style="font-family:Arial">Dear Customer,<br><br>Rs.60.00 has been debited from your HDFC Bank RuPay Credit Card XX2312 to bmtc.ka01ar4188@cnrb KA01AR4188 on 07-02-26. Your UPI transaction reference number is 118317224974.<br><br>If you did not authorize this transaction, please report it immediately by calling 18002586161 Or SMS BLOCK CC 2312 to 7308080808.<br><br>Warm Regards,<br>HDFC Bank</div>',
+            snippet:
+                "Rs.60.00 has been debited from your HDFC Bank RuPay Credit Card XX2312 to bmtc.ka01ar4188@cnrb KA01AR4188 on 07-02-26.",
+            receivedAt: "2026-02-07T10:30:00.000Z",
+        };
+
+        expect(parser.canParse(htmlOnlyEmail)).toBe(true);
+
+        const transactions = parser.parseTransactions(htmlOnlyEmail);
+
+        expect(transactions).toHaveLength(1);
+
+        const txn = transactions[0]!;
+        expect(txn.amount).toBe(60.0);
+        expect(txn.transactionType).toBe("debited");
+        expect(txn.transactionMode).toBe("upi");
+        expect(txn.cardLast4).toBe("2312");
+        expect(txn.merchantRaw).toBe("KA01AR4188");
+        expect(txn.vpa).toBe("bmtc.ka01ar4188@cnrb");
+        expect(txn.transactionDate).toBe("2026-02-07T00:00:00.000Z");
+    });
+
+    it("detects hdfcbank.net sender correctly", () => {
+        const parser = new HdfcEmailParser();
+
+        expect(
+            parser.canParse({
+                ...baseEmail,
+                from: "alerts@hdfcbank.net",
+                subject: "❗ You have done a UPI txn. Check details!",
+            }),
+        ).toBe(true);
+    });
+
+    it("parses standard HDFC UPI debit from account", () => {
+        const parser = new HdfcEmailParser();
+
+        const upiAccountEmail: RawEmail = {
+            ...baseEmail,
+            from: "alerts@hdfcbank.net",
+            subject: "❗ You have done a UPI txn. Check details!",
+            bodyText:
+                "Dear Customer, Rs.290.00 has been debited from account 9212 to VPA 9611653384@axl BABA FAKRUDDIN on 08-02-26. Your UPI transaction reference number is 603927536719. If you did not authorize this transaction, please report it immediately by calling 18002586161 Or SMS BLOCK UPI to 7308080808. Warm Regards, HDFC Bank",
+            snippet:
+                "Dear Customer, Rs.290.00 has been debited from account 9212 to VPA 9611653384@axl BABA FAKRUDDIN on 08-02-26.",
+            receivedAt: "2026-02-08T10:00:00.000Z",
+        };
+
+        const transactions = parser.parseTransactions(upiAccountEmail);
+
+        expect(transactions).toHaveLength(1);
+
+        const txn = transactions[0]!;
+        expect(txn.amount).toBe(290.0);
+        expect(txn.currency).toBe("INR");
+        expect(txn.transactionType).toBe("debited");
+        expect(txn.transactionMode).toBe("upi");
+        expect(txn.merchantRaw).toBe("BABA FAKRUDDIN");
+        expect(txn.vpa).toBe("9611653384@axl");
+        expect(txn.transactionDate).toBe("2026-02-08T00:00:00.000Z");
+    });
+
+    it("parses UPI debit with empty bodyText (HTML-only, reprocess scenario)", () => {
+        const parser = new HdfcEmailParser();
+
+        const htmlOnlyUpiEmail: RawEmail = {
+            ...baseEmail,
+            from: "alerts@hdfcbank.net",
+            subject: "❗ You have done a UPI txn. Check details!",
+            bodyText: "",
+            bodyHtml:
+                "<p>Dear Customer, Rs.290.00 has been debited from account 9212 to VPA 9611653384@axl BABA FAKRUDDIN on 08-02-26. Your UPI transaction reference number is 603927536719.</p><p>If you did not authorize this transaction, please report it immediately by calling 18002586161 Or SMS BLOCK UPI to 7308080808.</p><p>Warm Regards,<br>HDFC Bank</p>",
+            snippet: "",
+            receivedAt: "2026-02-08T10:00:00.000Z",
+        };
+
+        const transactions = parser.parseTransactions(htmlOnlyUpiEmail);
+
+        expect(transactions).toHaveLength(1);
+
+        const txn = transactions[0]!;
+        expect(txn.amount).toBe(290.0);
+        expect(txn.transactionType).toBe("debited");
+        expect(txn.transactionMode).toBe("upi");
+        expect(txn.merchantRaw).toBe("BABA FAKRUDDIN");
+        expect(txn.vpa).toBe("9611653384@axl");
+    });
 });

@@ -36,7 +36,12 @@ export class HdfcEmailParser implements EmailParser {
         const from = email.from.toLowerCase();
         const subject = email.subject.toLowerCase();
 
-        return from.includes("hdfcbank.com") || from.includes("hdfc") || subject.includes("hdfc");
+        return (
+            from.includes("hdfcbank.com") ||
+            from.includes("hdfcbank.net") ||
+            from.includes("hdfc") ||
+            subject.includes("hdfc")
+        );
     }
 
     parseTransactions(email: RawEmail): Transaction[] {
@@ -45,6 +50,7 @@ export class HdfcEmailParser implements EmailParser {
             email.bodyText,
             email.snippet,
             email.receivedAt,
+            email.bodyHtml,
         );
         const confidence = this.calculateParsingConfidence(details);
 
@@ -134,8 +140,18 @@ export class HdfcEmailParser implements EmailParser {
         text: string,
         snippet: string,
         receivedAt: string,
+        bodyHtml?: string,
     ): ParsedHdfcDetails {
-        const searchableText = `${subject}\n${text}\n${snippet}`;
+        // Fall back to stripped HTML when plain-text body is empty
+        let effectiveText = text?.trim() || "";
+        if (!effectiveText && bodyHtml) {
+            try {
+                effectiveText = this.stripHtmlTags(bodyHtml);
+            } catch {
+                effectiveText = "";
+            }
+        }
+        const searchableText = `${subject ?? ""}\n${effectiveText}\n${snippet ?? ""}`;
         const textLower = searchableText.toLowerCase();
 
         const amount = this.extractAmount(textLower);
@@ -213,14 +229,10 @@ export class HdfcEmailParser implements EmailParser {
         mode: TransactionMode | null;
         cardLast4: string | null;
     } {
-        // Check for RuPay Credit Card UPI transactions (has both UPI and card info)
-        const rupayUpiMatch = textLower.match(/rupay\s+credit\s+card\s+xx(\d{4}).*?\bupi\b/i);
-        if (rupayUpiMatch?.[1]) {
-            return { mode: "upi", cardLast4: rupayUpiMatch[1] };
-        }
-
         if (/\bupi\b/i.test(textLower)) {
-            return { mode: "upi", cardLast4: null };
+            // UPI transaction — also look for card info (RuPay Credit Card UPI)
+            const cardMatch = textLower.match(/(?:rupay\s+)?credit\s+card\s+(?:xx|\*\*)(\d{4})/i);
+            return { mode: "upi", cardLast4: cardMatch?.[1] ?? null };
         }
         if (/\bneft\b/i.test(textLower)) {
             return { mode: "neft", cardLast4: null };
@@ -436,5 +448,25 @@ export class HdfcEmailParser implements EmailParser {
             score += 0.1;
         }
         return score;
+    }
+
+    /**
+     * Strip HTML tags and decode common entities to produce plain text.
+     * Used as a fallback when bodyText is empty (HTML-only emails).
+     */
+    private stripHtmlTags(html: string): string {
+        return html
+            .replace(/<br\s*\/?>/gi, "\n")
+            .replace(/<\/(?:p|div|tr|li|h[1-6])>/gi, "\n")
+            .replace(/<[^>]+>/g, "")
+            .replace(/&nbsp;/gi, " ")
+            .replace(/&amp;/gi, "&")
+            .replace(/&lt;/gi, "<")
+            .replace(/&gt;/gi, ">")
+            .replace(/&quot;/gi, '"')
+            .replace(/&#39;/gi, "'")
+            .replace(/&rupee;|&#8377;/gi, "Rs.")
+            .replace(/\n{3,}/g, "\n\n")
+            .trim();
     }
 }

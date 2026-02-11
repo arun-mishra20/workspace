@@ -14,6 +14,7 @@ interface RawEmailReadRecord {
     providerMessageId: string;
     from: string;
     subject: string;
+    snippet: string;
     receivedAt: Date;
     bodyText: string;
     bodyHtml: string | null;
@@ -44,7 +45,10 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
                         rawEmailsTable.providerMessageId,
                     ],
                     set: {
-                        // Only update if content changed (minimal update)
+                        // Update snippet and body content on re-sync
+                        snippet: insertData.snippet,
+                        bodyText: insertData.bodyText,
+                        bodyHtml: insertData.bodyHtml,
                         updatedAt: new Date(),
                     },
                 })
@@ -166,6 +170,7 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
             providerMessageId: email.providerMessageId,
             from: email.from,
             subject: email.subject,
+            snippet: email.snippet,
             receivedAt: new Date(email.receivedAt),
             bodyText: email.bodyText,
             bodyHtml: email.bodyHtml,
@@ -181,6 +186,7 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
             providerMessageId: rawEmailsTable.providerMessageId,
             from: rawEmailsTable.from,
             subject: rawEmailsTable.subject,
+            snippet: rawEmailsTable.snippet,
             receivedAt: rawEmailsTable.receivedAt,
             bodyText: rawEmailsTable.bodyText,
             bodyHtml: rawEmailsTable.bodyHtml,
@@ -196,7 +202,7 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
             providerMessageId: record.providerMessageId,
             from: record.from,
             subject: record.subject,
-            snippet: this.deriveSnippet(record.bodyText),
+            snippet: record.snippet || this.deriveSnippet(record.bodyText, record.bodyHtml),
             receivedAt: record.receivedAt.toISOString(),
             bodyText: record.bodyText,
             bodyHtml: record.bodyHtml ?? undefined,
@@ -204,8 +210,21 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
         };
     }
 
-    private deriveSnippet(bodyText: string): string {
-        const snippet = bodyText.replace(/\s+/g, " ").trim();
-        return snippet.slice(0, 180);
+    private deriveSnippet(bodyText: string, bodyHtml: string | null): string {
+        if (bodyText.trim()) {
+            return bodyText.replace(/\s+/g, " ").trim().slice(0, 180);
+        }
+        if (bodyHtml) {
+            const stripped = bodyHtml
+                .replace(/<br\s*\/?>/gi, " ")
+                .replace(/<\/(?:p|div|tr|li)>/gi, " ")
+                .replace(/<[^>]+>/g, "")
+                .replace(/&nbsp;/gi, " ")
+                .replace(/&amp;/gi, "&")
+                .replace(/\s+/g, " ")
+                .trim();
+            return stripped.slice(0, 180);
+        }
+        return "";
     }
 }

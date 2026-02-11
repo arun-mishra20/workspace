@@ -210,4 +210,12 @@ export const CATEGORY_OPTIONS = [
     color: "#95A5A6",
     parent: null,
   },
+  // investments
+  {
+    value: "investments",
+    label: "Investments",
+    icon: "chart-line",
+    color: "#2C3E50",
+    parent: "finance",
+  },
 ] as const;

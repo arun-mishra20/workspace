@@ -24,6 +24,7 @@ import { ListExpenseEmailsDto } from "@/modules/expenses/presentation/dtos/list-
 import { ListExpensesDto } from "@/modules/expenses/presentation/dtos/list-expenses.dto";
 import { UpdateTransactionDto } from "@/modules/expenses/presentation/dtos/update-transaction.dto";
 import { BulkCategorizeDto } from "@/modules/expenses/presentation/dtos/bulk-categorize.dto";
+import { BulkUpdateTransactionsDto } from "@/modules/expenses/presentation/dtos/bulk-update-transactions.dto";
 import { OffsetListResponseDto } from "@/shared/infrastructure/dtos/list-response.dto";
 import type { RawEmail, Transaction, AnalyticsPeriod } from "@workspace/domain";
 import type { FastifyReply, FastifyRequest } from "fastify";
@@ -160,10 +161,19 @@ export class ExpensesController {
         const page_size = query.page_size ?? 20;
         const offset = (page - 1) * page_size;
 
+        const filters: Record<string, unknown> = {};
+        if (query.category) filters.category = query.category;
+        if (query.mode) filters.mode = query.mode;
+        if (query.review !== undefined) filters.requiresReview = query.review === "true";
+        if (query.date_from) filters.dateFrom = new Date(query.date_from);
+        if (query.date_to) filters.dateTo = new Date(query.date_to);
+        if (query.search) filters.search = query.search;
+
         const { data, total } = await this.expensesService.listExpenses({
             userId: req.user.id,
             limit: page_size,
             offset,
+            filters: Object.keys(filters).length > 0 ? (filters as any) : undefined,
         });
 
         return {
@@ -219,6 +229,29 @@ export class ExpensesController {
             category: dto.category,
             subcategory: dto.subcategory,
             categoryMetadata: dto.categoryMetadata,
+        });
+        return { data: result };
+    }
+
+    @Patch("transactions/bulk-update")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Bulk update transactions by IDs",
+        description:
+            "Updates category, subcategory, mode, or review status for a set of transaction IDs.",
+    })
+    @ApiResponse({
+        status: 200,
+        description: "Returns the count of updated transactions",
+    })
+    async bulkUpdateTransactions(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Body() dto: BulkUpdateTransactionsDto,
+    ) {
+        const result = await this.expensesService.bulkUpdateByIds({
+            userId: req.user.id,
+            ids: dto.ids,
+            data: dto.data,
         });
         return { data: result };
     }
@@ -468,6 +501,35 @@ export class ExpensesController {
             period,
             limit ? parseInt(limit, 10) : 10,
         );
+    }
+
+    @Get("analytics/bus-spending")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Bus spending analytics and patterns" })
+    @ApiResponse({
+        status: 200,
+        description: "Returns bus spending summary, routes, frequency, and trends",
+    })
+    async getBusAnalytics(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "year",
+    ) {
+        return this.expensesService.getBusAnalytics(req.user.id, period);
+    }
+
+    @Get("analytics/investment-patterns")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Investment analytics across stocks, mutual funds, and gold" })
+    @ApiResponse({
+        status: 200,
+        description:
+            "Returns investment summary, asset allocation, platform breakdown, SIP detection, and trends",
+    })
+    async getInvestmentAnalytics(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "year",
+    ) {
+        return this.expensesService.getInvestmentAnalytics(req.user.id, period);
     }
 
     @Get("gmail/connect")

@@ -16,11 +16,22 @@ import type {
     TopVpaItem,
     SpendingVelocityItem,
     LargestTransactionItem,
+    BusAnalytics,
+    InvestmentAnalytics,
 } from "@workspace/domain";
 
 export interface DateRange {
     start: Date;
     end: Date;
+}
+
+export interface TransactionFilters {
+    category?: string;
+    mode?: string;
+    requiresReview?: boolean;
+    dateFrom?: Date;
+    dateTo?: Date;
+    search?: string;
 }
 
 /**
@@ -34,8 +45,13 @@ export interface TransactionRepository {
         id: string;
         data: UpdateTransactionInput;
     }): Promise<Transaction>;
-    listByUser(params: { userId: string; limit: number; offset: number }): Promise<Transaction[]>;
-    countByUser(userId: string): Promise<number>;
+    listByUser(params: {
+        userId: string;
+        limit: number;
+        offset: number;
+        filters?: TransactionFilters;
+    }): Promise<Transaction[]>;
+    countByUser(userId: string, filters?: TransactionFilters): Promise<number>;
     listByUserMonth(params: {
         userId: string;
         year: number;
@@ -93,6 +109,13 @@ export interface TransactionRepository {
         limit: number;
     }): Promise<LargestTransactionItem[]>;
 
+    // ── Pattern Analytics ──
+    getBusAnalytics(params: { userId: string; range: DateRange }): Promise<BusAnalytics>;
+    getInvestmentAnalytics(params: {
+        userId: string;
+        range: DateRange;
+    }): Promise<InvestmentAnalytics>;
+
     // ── Merchant bulk categorization ──
 
     /**
@@ -116,6 +139,20 @@ export interface TransactionRepository {
         category: string;
         subcategory: string;
         categoryMetadata?: { icon: string; color: string; parent: string | null };
+    }): Promise<number>;
+
+    /**
+     * Bulk update fields on multiple transactions by ID
+     */
+    bulkUpdateByIds(params: {
+        userId: string;
+        ids: string[];
+        data: {
+            category?: string;
+            subcategory?: string;
+            transactionMode?: string;
+            requiresReview?: boolean;
+        };
     }): Promise<number>;
 }
 

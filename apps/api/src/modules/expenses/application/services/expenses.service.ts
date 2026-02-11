@@ -19,6 +19,7 @@ import {
 import {
     TRANSACTION_REPOSITORY,
     type TransactionRepository,
+    type TransactionFilters,
     type DateRange,
 } from "@/modules/expenses/application/ports/transaction.repository.port";
 import {
@@ -176,11 +177,21 @@ export class ExpensesService {
                 try {
                     const parser = this.findParser(email);
                     if (!parser) {
+                        this.logger.debug(
+                            `Reprocess job ${jobId}: no parser found for email ${email.id} (from=${email.from}, subject=${email.subject.slice(0, 60)})`,
+                        );
                         await this.syncJobRepository.incrementProgress(jobId, "processedEmails");
                         continue;
                     }
 
                     const parsedTransactions = parser.parseTransactions(email);
+
+                    if (parsedTransactions.length === 0) {
+                        this.logger.debug(
+                            `Reprocess job ${jobId}: parser returned 0 txns for email ${email.id} (subject=${email.subject.slice(0, 60)}, bodyLen=${email.bodyText.length}, htmlLen=${email.bodyHtml?.length ?? 0}, snippet=${email.snippet.slice(0, 60)})`,
+                        );
+                    }
+
                     const transactions = this.categorizeTransactions(parsedTransactions);
 
                     if (transactions.length > 0) {
@@ -202,9 +213,12 @@ export class ExpensesService {
 
                     await this.syncJobRepository.incrementProgress(jobId, "processedEmails");
                 } catch (emailError) {
+                    const errMsg =
+                        emailError instanceof Error
+                            ? `${emailError.message}\n${emailError.stack}`
+                            : String(emailError);
                     this.logger.warn(
-                        `Reprocess job ${jobId}: failed to process email ${email.id}`,
-                        emailError,
+                        `Reprocess job ${jobId}: failed to process email ${email.id} (subject=${email.subject.slice(0, 60)}, bodyLen=${email.bodyText.length}, htmlLen=${email.bodyHtml?.length ?? 0}): ${errMsg}`,
                     );
                     await this.syncJobRepository.incrementProgress(jobId, "processedEmails");
                 }
@@ -249,16 +263,15 @@ export class ExpensesService {
         if (!query) {
             const lastSync = await this.syncJobRepository.findLastCompletedByUserId(params.userId);
 
-            if (lastSync?.completedAt) {
+            if (lastSync?.completedAt && false) {
                 // Incremental sync: fetch emails since last completed sync
-                const afterDate = this.formatGmailDate(lastSync.completedAt);
-                query = `subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank OR upi) after:${afterDate}`;
-                this.logger.log(`Incremental sync for user ${params.userId} after ${afterDate}`);
+                // const afterDate = this.formatGmailDate(lastSync.completedAt);
+                // query = `subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank OR upi) after:${afterDate}`;
+                // this.logger.log(`Incremental sync for user ${params.userId} after ${afterDate}`);
             } else {
-                // First sync: fetch emails from last 6 months
                 query =
                     "subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank OR upi) newer_than:180d";
-                this.logger.log(`First sync for user ${params.userId}, fetching last 6 months`);
+                this.logger.log(`First sync for user ${params.userId}, fetching last 30 days`);
             }
         }
 
@@ -418,10 +431,11 @@ export class ExpensesService {
         userId: string;
         limit: number;
         offset: number;
+        filters?: TransactionFilters;
     }): Promise<{ data: Transaction[]; total: number }> {
         const [data, total] = await Promise.all([
             this.transactionRepository.listByUser(params),
-            this.transactionRepository.countByUser(params.userId),
+            this.transactionRepository.countByUser(params.userId, params.filters),
         ]);
         return { data, total };
     }
@@ -463,6 +477,23 @@ export class ExpensesService {
             subcategory: params.subcategory,
             updatedCount,
         };
+    }
+
+    /**
+     * Bulk update fields on multiple transactions by ID.
+     */
+    async bulkUpdateByIds(params: {
+        userId: string;
+        ids: string[];
+        data: {
+            category?: string;
+            subcategory?: string;
+            transactionMode?: string;
+            requiresReview?: boolean;
+        };
+    }): Promise<{ updatedCount: number }> {
+        const updatedCount = await this.transactionRepository.bulkUpdateByIds(params);
+        return { updatedCount };
     }
 
     async getExpenseEmailById(params: { userId: string; id: string }): Promise<RawEmail | null> {
@@ -728,6 +759,18 @@ export class ExpensesService {
     ): Promise<LargestTransactionItem[]> {
         const range = this.computeDateRange(period);
         return this.transactionRepository.getLargestTransactions({ userId, range, limit });
+    }
+
+    // ── Pattern Analytics ──
+
+    async getBusAnalytics(userId: string, period: AnalyticsPeriod) {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getBusAnalytics({ userId, range });
+    }
+
+    async getInvestmentAnalytics(userId: string, period: AnalyticsPeriod) {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getInvestmentAnalytics({ userId, range });
     }
 
     /**

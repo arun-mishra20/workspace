@@ -5,6 +5,7 @@ import {
   getCoreRowModel,
   flexRender,
   type ColumnDef,
+  type RowSelectionState,
 } from "@tanstack/react-table";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { format } from "date-fns";
@@ -21,6 +22,7 @@ import {
 } from "@/features/expenses/api/update-transaction";
 import { useSyncJob } from "@/features/expenses/hooks/use-sync-job";
 import { MerchantCategorizeDialog } from "@/features/expenses/components/merchant-categorize-dialog";
+import { BulkActionsToolbar } from "@/features/expenses/components/bulk-actions-toolbar";
 import { CATEGORY_OPTIONS } from "@/features/expenses/constants/category-options";
 import { Badge } from "@workspace/ui/components/ui/badge";
 import { Button } from "@workspace/ui/components/ui/button";
@@ -30,6 +32,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/ui/card";
+import { Checkbox } from "@workspace/ui/components/ui/checkbox";
 import { Input } from "@workspace/ui/components/ui/input";
 import { Label } from "@workspace/ui/components/ui/label";
 import {
@@ -76,6 +79,14 @@ import {
 import { useNavigate } from "react-router-dom";
 import { appPaths } from "@/config/app-paths";
 import type { Transaction } from "@workspace/domain";
+import {
+  SelectFilter,
+  DateRangeFilter,
+  SearchFilter,
+  type FilterOption,
+} from "@/components/filters";
+import { useDebounce } from "@/hooks/use-debounce";
+import { Separator } from "@workspace/ui/components/ui/separator";
 
 const TRANSACTION_TYPES = ["debited", "credited"] as const;
 const TRANSACTION_MODES = [
@@ -88,6 +99,22 @@ const TRANSACTION_MODES = [
 function getCategoryMeta(value: string) {
   return CATEGORY_OPTIONS.find((c) => c.value === value);
 }
+
+const CATEGORY_FILTER_OPTIONS: FilterOption[] = CATEGORY_OPTIONS.map((c) => ({
+  value: c.value,
+  label: c.label,
+  color: c.color,
+}));
+
+const MODE_FILTER_OPTIONS: FilterOption[] = TRANSACTION_MODES.map((m) => ({
+  value: m,
+  label: m.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+}));
+
+const REVIEW_FILTER_OPTIONS: FilterOption[] = [
+  { value: "true", label: "Needs Review" },
+  { value: "false", label: "Reviewed" },
+];
 
 type ExpenseView = "expense" | "emails";
 
@@ -168,6 +195,31 @@ const emailColumns: ColumnDef<RawEmail>[] = [
 const buildExpenseColumns = (
   onEdit: (transaction: Transaction) => void,
 ): ColumnDef<Transaction>[] => [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected()}
+        indeterminate={
+          table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+        className="translate-y-0.5"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+        className="translate-y-0.5"
+        onClick={(e) => e.stopPropagation()}
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: "transactionDate",
     header: "Date",
@@ -282,6 +334,39 @@ const ExpenseEmailsPage = () => {
   const pageSize = 20;
   const navigate = useNavigate();
 
+  // ── Row selection ──
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
+  // ── Filter state ──
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterMode, setFilterMode] = useState("");
+  const [filterReview, setFilterReview] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState<string | undefined>();
+  const [filterDateTo, setFilterDateTo] = useState<string | undefined>();
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  const hasActiveFilters =
+    filterCategory ||
+    filterMode ||
+    filterReview ||
+    filterDateFrom ||
+    filterDateTo ||
+    debouncedSearch;
+
+  // Reset to first page and clear selection whenever filters change
+  useEffect(() => {
+    setExpensePageIndex(0);
+    setRowSelection({});
+  }, [
+    filterCategory,
+    filterMode,
+    filterReview,
+    filterDateFrom,
+    filterDateTo,
+    debouncedSearch,
+  ]);
+
   // ── Edit form state ──
   const [editForm, setEditForm] = useState<UpdateTransactionInput>({});
 
@@ -354,9 +439,28 @@ const ExpenseEmailsPage = () => {
     isLoading: isExpensesLoading,
     isError: isExpensesError,
   } = useQuery({
-    queryKey: ["expenses", "transactions", expensePageIndex + 1],
+    queryKey: [
+      "expenses",
+      "transactions",
+      expensePageIndex + 1,
+      filterCategory,
+      filterMode,
+      filterReview,
+      filterDateFrom,
+      filterDateTo,
+      debouncedSearch,
+    ],
     queryFn: () =>
-      listExpenses({ page: expensePageIndex + 1, page_size: pageSize }),
+      listExpenses({
+        page: expensePageIndex + 1,
+        page_size: pageSize,
+        ...(filterCategory && { category: filterCategory }),
+        ...(filterMode && { mode: filterMode }),
+        ...(filterReview && { review: filterReview }),
+        ...(filterDateFrom && { date_from: filterDateFrom }),
+        ...(filterDateTo && { date_to: filterDateTo }),
+        ...(debouncedSearch && { search: debouncedSearch }),
+      }),
     enabled: activeView === "expense",
   });
 
@@ -393,6 +497,7 @@ const ExpenseEmailsPage = () => {
         pageIndex: expensePageIndex,
         pageSize,
       },
+      rowSelection,
     },
     onPaginationChange: (updater) => {
       if (typeof updater === "function") {
@@ -401,7 +506,11 @@ const ExpenseEmailsPage = () => {
       } else {
         setExpensePageIndex(updater.pageIndex);
       }
+      setRowSelection({});
     },
+    onRowSelectionChange: setRowSelection,
+    getRowId: (row) => row.id,
+    enableRowSelection: true,
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
   });
@@ -590,6 +699,63 @@ const ExpenseEmailsPage = () => {
               </div>
             </CardHeader>
             <CardContent>
+              {/* ── Filter bar (expense tab only) ── */}
+              {activeView === "expense" && (
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <SearchFilter
+                    value={searchInput}
+                    onChange={setSearchInput}
+                    placeholder="Search merchant…"
+                  />
+                  <SelectFilter
+                    label="Categories"
+                    value={filterCategory}
+                    options={CATEGORY_FILTER_OPTIONS}
+                    onChange={setFilterCategory}
+                  />
+                  <SelectFilter
+                    label="Modes"
+                    value={filterMode}
+                    options={MODE_FILTER_OPTIONS}
+                    onChange={setFilterMode}
+                  />
+                  <SelectFilter
+                    label="Review"
+                    value={filterReview}
+                    options={REVIEW_FILTER_OPTIONS}
+                    onChange={setFilterReview}
+                    className="w-35 h-9 text-xs"
+                  />
+                  <DateRangeFilter
+                    dateFrom={filterDateFrom}
+                    dateTo={filterDateTo}
+                    onChange={({ from, to }) => {
+                      setFilterDateFrom(from);
+                      setFilterDateTo(to);
+                    }}
+                  />
+                  {hasActiveFilters && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 text-xs text-muted-foreground"
+                      onClick={() => {
+                        setFilterCategory("");
+                        setFilterMode("");
+                        setFilterReview("");
+                        setFilterDateFrom(undefined);
+                        setFilterDateTo(undefined);
+                        setSearchInput("");
+                      }}
+                    >
+                      Clear all
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              <Separator className="mb-4" />
+
               <TabsContent value="expense" className="mt-0">
                 {isExpensesLoading ? (
                   <p className="text-sm text-muted-foreground">
@@ -631,7 +797,10 @@ const ExpenseEmailsPage = () => {
                       </TableHeader>
                       <TableBody>
                         {expenseTable.getRowModel().rows.map((row) => (
-                          <TableRow key={row.id}>
+                          <TableRow
+                            key={row.id}
+                            data-state={row.getIsSelected() && "selected"}
+                          >
                             {row.getVisibleCells().map((cell) => (
                               <TableCell key={cell.id}>
                                 {flexRender(
@@ -677,6 +846,10 @@ const ExpenseEmailsPage = () => {
                         </div>
                       </div>
                     )}
+                    <BulkActionsToolbar
+                      selectedIds={Object.keys(rowSelection)}
+                      onClearSelection={() => setRowSelection({})}
+                    />
                   </div>
                 ) : null}
               </TabsContent>

@@ -474,7 +474,7 @@ const AnalyticsPage = () => {
               ) : categoryChartData.length > 0 ? (
                 <ChartContainer
                   config={categoryChartConfig}
-                  className="mx-auto aspect-square h-65"
+                  className="mx-auto aspect-square h-80"
                 >
                   <PieChart>
                     <ChartTooltip
