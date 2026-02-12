@@ -18,9 +18,10 @@ import { RequestContextInterceptor } from "@/app/interceptors/request-context.in
 import { TraceContextInterceptor } from "@/app/interceptors/trace-context.interceptor";
 import { LoggerModule } from "@/app/logger/logger.module";
 import { ApiVersionMiddleware } from "@/app/middleware/api-version.middleware";
-import { ETagMiddleware } from "@/app/middleware/etag.middleware";
 import { SwaggerDevController } from "@/app/swagger/swagger-dev.controller";
 import { AuthModule } from "@/modules/auth/auth.module";
+import { ExpensesModule } from "@/modules/expenses/expenses.module";
+import { HoldingsModule } from "@/modules/holdings/holdings.module";
 import { TodoModule } from "@/modules/todo/todo.module";
 import { DrizzleModule } from "@/shared/infrastructure/db/db.module";
 import { DomainEventsModule } from "@/shared/infrastructure/events/domain-events.module";
@@ -41,7 +42,7 @@ import type { NestModule, MiddlewareConsumer } from "@nestjs/common";
         ConfigModule.forRoot({
             isGlobal: true, // Make ConfigService available app-wide
             validate: validateEnv, // Validate env vars with Zod
-            cache: true, // Cache env vars for performance
+            cache: process.env.NODE_ENV === "production", // Only cache in production
         }),
         // CLS module: request context management (Request ID, tracing, etc.)
         ClsModule.forRoot(createClsConfig()),
@@ -70,6 +71,8 @@ import type { NestModule, MiddlewareConsumer } from "@nestjs/common";
         // Business modules
         TodoModule, // Todo module (anemic model example)
         AuthModule, // Auth module (authentication + DDD example)
+        ExpensesModule, // Expenses module (email parsing + finance data)
+        HoldingsModule, // Holdings module (investment portfolio management)
     ],
     controllers: [
         // Dev helper controller (dev only)
@@ -95,11 +98,9 @@ import type { NestModule, MiddlewareConsumer } from "@nestjs/common";
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
         // Register global middleware
-        consumer
-            .apply(
-                ApiVersionMiddleware, // API versioning (must be before ETag)
-                ETagMiddleware, // ETag and 304 Not Modified support
-            )
-            .forRoutes("{*path}"); // Apply to all routes
+        const middlewares = [
+            ApiVersionMiddleware, // API versioning
+        ];
+        consumer.apply(...middlewares).forRoutes("{*path}"); // Apply to all routes
     }
 }

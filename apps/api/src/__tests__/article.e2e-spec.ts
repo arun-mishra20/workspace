@@ -1,9 +1,10 @@
 import { Test } from '@nestjs/testing'
 import request from 'supertest'
+import { FastifyAdapter } from '@nestjs/platform-fastify'
+import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 
 import { AppModule } from '@/app.module'
 
-import type { INestApplication } from '@nestjs/common'
 import type { TestingModule } from '@nestjs/testing'
 import type { SuperTest, Test as SuperTestType } from 'supertest'
 import type TestAgent from 'supertest/lib/agent'
@@ -25,7 +26,7 @@ interface ArticleResponse {
 /**
  * Create type-safe supertest instance
  */
-function createRequest(app: INestApplication): TestAgent<SuperTestType> {
+function createRequest(app: NestFastifyApplication): TestAgent<SuperTestType> {
   return request(app.getHttpServer() as never)
 }
 
@@ -43,7 +44,7 @@ function createRequest(app: INestApplication): TestAgent<SuperTestType> {
  * - Recommend using separate test database
  */
 describe('article E2E Tests', () => {
-  let app: INestApplication
+  let app: NestFastifyApplication
   let createdArticleId: string
 
   beforeAll(async () => {
@@ -51,8 +52,11 @@ describe('article E2E Tests', () => {
       imports: [AppModule],
     }).compile()
 
-    app = moduleFixture.createNestApplication()
+    app = moduleFixture.createNestApplication<NestFastifyApplication>(
+      new FastifyAdapter(),
+    )
     await app.init()
+    await app.getHttpAdapter().getInstance().ready()
   })
 
   afterAll(async () => {

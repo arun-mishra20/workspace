@@ -23,10 +23,12 @@
 
     /* Paths */
     "baseUrl": ".",
-    "ignoreDeprecations": "5.0",
+    "isolatedDeclarations": false,
     "paths": {
       "@/*": ["./src/*"],
-      "@workspace/ui/*": ["../../packages/ui/src/*"]
+      "@workspace/ui/*": ["../../packages/ui/src/*"],
+      "@workspace/domain": ["../../packages/domain/src/index.ts"],
+      "@workspace/domain/*": ["../../packages/domain/src/*"]
     }
   },
   "include": ["src", "vite.config.ts", "vitest.config.mts"],

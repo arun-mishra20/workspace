@@ -1,0 +1,52 @@
+{
+    "exact_matches": {
+        "swiggy": "food_dining",
+        "zomato": "food_dining",
+        "zepto": "groceries",
+        "blinkit": "groceries",
+        "uber": "transport",
+        "ola": "transport",
+        "amazon": "shopping",
+        "flipkart": "shopping"
+    },
+    "merchant_patterns": [
+        {
+            "category": "food_dining",
+            "confidence": 0.9,
+            "keywords": ["swiggy", "zomato", "food", "restaurant", "cafe"]
+        },
+        {
+            "category": "groceries",
+            "confidence": 0.88,
+            "keywords": ["blinkit", "zepto", "bigbasket", "grocery"]
+        },
+        {
+            "category": "transport",
+            "confidence": 0.86,
+            "keywords": ["uber", "ola", "metro", "fuel", "petrol", "ka01"]
+        },
+        {
+            "category": "utilities",
+            "confidence": 0.85,
+            "keywords": ["electricity", "water", "billpay", "gas"]
+        }
+    ],
+    "vpa_amount_rules": [],
+    "vpa_patterns": [
+        {
+            "pattern": ".*salary.*@.*",
+            "category": "income_salary",
+            "confidence": 0.92
+        },
+        {
+            "pattern": ".*@okhdfcbank$",
+            "category": "personal_transfer",
+            "confidence": 0.8
+        }
+    ],
+    "neft_patterns": {
+        "category": "income_salary",
+        "confidence": 0.9,
+        "salary_keywords": ["salary", "payroll", "sal", "monthly salary", "wages"]
+    }
+}

@@ -2,6 +2,7 @@
     "extends": "@workspace/typescript-config/tsconfig.nestjs.json",
     "compilerOptions": {
         "baseUrl": "./",
+        "isolatedDeclarations": false,
         "paths": {
             "@/*": ["src/*"]
         }

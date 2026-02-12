@@ -1,0 +1,67 @@
+{
+    "HDFC Regalia Gold": {
+        "type": "Credit Card",
+        "name": "Regalia Gold",
+        "bank": "HDFC Bank",
+        "icon": "credit-card",
+        "last_four_digits": "7374",
+        "milestones": {
+            "milestone_1": {
+                "type": "spend",
+                "description": "Spend ₹150,000 per Quarter to avail Rs 1500 Myntra or Marks & Spencer or Reliance Digital or Nykaa voucher ",
+                "amount": 150000,
+                "reward_points": 0,
+                "durations": [
+                    "quarterly"
+                ]
+            },
+            "milestone_2": {
+                "type": "spend",
+                "description": "Spend ₹500,000 per Quarter to avail Rs 5000 Smartbuy voucher",
+                "amount": 500000,
+                "reward_points": 0,
+                "durations": [
+                    "yearly"
+                ],
+                "milestone_start_date": "2025-09-23",
+                "milestone_end_date": "2026-09-24"
+            },
+            "milestone_3": {
+                "type": "spend",
+                "description": "Spend ₹750,000 per Quarter to avail Rs 5000 Smaartbuy voucher",
+                "amount": 750000,
+                "durations": [
+                    "yearly"
+                ],
+                "milestone_start_date": "2025-09-23",
+                "milestone_end_date": "2026-09-24"
+            },
+            "milestone_4": {
+                "type": "fee waiver",
+                "description": "Spend ₹400,000 to waive off the annual fee of ₹2500",
+                "amount": 400000,
+                "durations": [
+                    "yearly"
+                ],
+                "milestone_start_date": "2025-09-23",
+                "milestone_end_date": "2026-09-24"
+            }
+        }
+    },
+    "HDFC Swiggy": {
+        "type": "Credit Card",
+        "bank": "HDFC Bank",
+        "icon": "credit-card",
+        "last_four_digits": "2866",
+        "name": "HDFC Swiggy",
+        "milestones": {}
+    },
+    "HDFC Tata Neu": {
+        "type": "Credit Card",
+        "bank": "HDFC Bank",
+        "icon": "credit-card",
+        "last_four_digits": "2312",
+        "name": "HDFC Tata Neu",
+        "milestones": {}
+    }
+}

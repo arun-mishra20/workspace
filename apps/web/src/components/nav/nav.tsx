@@ -1,8 +1,9 @@
 import { Header } from "@/components/layouts";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { $api } from "@/lib/fetch-client";
 import { getAccessToken } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/api-client";
+import type { SessionResponse } from "@/lib/api-types";
 
 import { Button } from "@workspace/ui/components/ui/button";
 import { Link } from "react-router-dom";
@@ -12,7 +13,13 @@ import NavTabs from "./nav-tabs";
 const Nav = () => {
   const accessToken = getAccessToken();
   const sessionQuery = useQuery({
-    ...$api.queryOptions("get", "/api/auth/session"),
+    queryKey: ["auth", "session"],
+    queryFn: ({ signal }) =>
+      apiRequest<SessionResponse>({
+        method: "GET",
+        url: "/api/auth/session",
+        signal,
+      }),
     enabled: !!accessToken, // Only fetch session if user has a token
   });
 
@@ -20,13 +27,13 @@ const Nav = () => {
   const isSuccess = sessionQuery.isSuccess && !!accessToken;
 
   return (
-    <Header className="absolute top-0 w-full">
+    <Header className="absolute top-0 w-full h-12">
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4">
         <div className="flex items-center">
           <Logo />
         </div>
         <NavTabs />
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-4">
           <ThemeToggle />
           {isSuccess ? (
             <NavUser username={email} />

@@ -8,7 +8,7 @@ import type {
   NestInterceptor,
   ExecutionContext,
   CallHandler } from '@nestjs/common'
-import type { Response } from 'express'
+import type { FastifyReply } from 'fastify'
 import type { Observable } from 'rxjs'
 
 /**
@@ -21,12 +21,12 @@ export class CorrelationIdInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const httpContext = context.switchToHttp()
-    const response = httpContext.getResponse<Response>()
+    const response = httpContext.getResponse<FastifyReply>()
 
     const correlationId = this.cls.get<string>('correlationId')
 
     if (correlationId) {
-      response.setHeader('X-Correlation-Id', correlationId)
+      response.header('X-Correlation-Id', correlationId)
     }
 
     return next.handle().pipe(

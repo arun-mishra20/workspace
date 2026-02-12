@@ -6,6 +6,12 @@ import { RegisterPage } from "@/pages/auth/register";
 import { NotFoundPage } from "@/pages/not-found";
 import { ProtectedRoute } from "@/components/protected-routes/protected-route";
 import Dashboard from "@/pages/dashboard";
+import ThemeSettingsPage from "@/pages/theme";
+import ExpenseEmailsPage from "@/pages/expenses/emails";
+import ExpenseEmailDetailsPage from "@/pages/expenses/email-details";
+import AnalyticsPage from "@/pages/expenses/analytics";
+import PatternsPage from "@/pages/expenses/patterns";
+import HoldingsPage from "@/pages/holdings";
 
 const router = createBrowserRouter([
   {
@@ -50,7 +56,7 @@ const router = createBrowserRouter([
         path: "themes",
         element: (
           <ProtectedRoute>
-            <Dashboard />
+            <ThemeSettingsPage />
           </ProtectedRoute>
         ),
       },
@@ -58,7 +64,7 @@ const router = createBrowserRouter([
         path: "analytics",
         element: (
           <ProtectedRoute>
-            <Dashboard />
+            <AnalyticsPage />
           </ProtectedRoute>
         ),
       },
@@ -66,15 +72,32 @@ const router = createBrowserRouter([
         path: "patterns",
         element: (
           <ProtectedRoute>
-            <Dashboard />
+            <PatternsPage />
+          </ProtectedRoute>
+        ),
+      },
+
+      {
+        path: "holdings",
+        element: (
+          <ProtectedRoute>
+            <HoldingsPage />
           </ProtectedRoute>
         ),
       },
       {
-        path: "metrics",
+        path: "expenses/emails",
         element: (
           <ProtectedRoute>
-            <Dashboard />
+            <ExpenseEmailsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "expenses/emails/:id",
+        element: (
+          <ProtectedRoute>
+            <ExpenseEmailDetailsPage />
           </ProtectedRoute>
         ),
       },

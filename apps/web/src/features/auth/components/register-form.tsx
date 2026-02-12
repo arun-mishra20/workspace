@@ -20,11 +20,12 @@ import { Input } from "@workspace/ui/components/ui/input";
 import { Button } from "@workspace/ui/components/ui/button";
 
 import { appPaths } from "@/config/app-paths";
-import { $api } from "@/lib/fetch-client";
+import { apiRequest } from "@/lib/api-client";
 import { setStoredTokens } from "@/lib/auth";
-import { toast } from "sonner";
 import { Spinner } from "@workspace/ui/components/ui/spinner";
 import { registerSchema, type RegisterFormData } from "../schemas";
+import { useMutation } from "@tanstack/react-query";
+import type { RegisterResponse } from "@/lib/api-types";
 
 const RegisterForm = () => {
   const navigate = useNavigate();
@@ -38,20 +39,22 @@ const RegisterForm = () => {
     },
   });
 
-  const { mutateAsync, isPending } = $api.useMutation(
-    "post",
-    "/api/auth/register",
-  );
+  const { mutateAsync, isPending } = useMutation({
+    mutationFn: (payload: Omit<RegisterFormData, "confirmPassword">) =>
+      apiRequest<RegisterResponse>({
+        method: "POST",
+        url: "/api/auth/register",
+        data: payload,
+        toastSuccess: true,
+        successMessage: "Account created",
+      }),
+  });
 
   const onSubmit = async (data: RegisterFormData) => {
     const { confirmPassword: _confirmPassword, ...payload } = data;
     try {
       const result = await mutateAsync(
-        { body: payload },
-        {
-          onError: (error) =>
-            toast.error(error.detail ?? "Registration failed"),
-        },
+        payload,
       );
 
       if (result?.accessToken && result?.refreshToken) {

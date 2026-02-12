@@ -5,8 +5,22 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1769530100762,
-      "tag": "0000_nifty_wind_dancer",
+      "when": 1770220940924,
+      "tag": "0000_initial_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1770411000000,
+      "tag": "0001_expense_enrichment",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770824529313,
+      "tag": "0002_add_holdings_table",
       "breakpoints": true
     }
   ]

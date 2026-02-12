@@ -1,5 +1,8 @@
 import { RequestMethod } from "@nestjs/common";
 import { NestFactory, Reflector } from "@nestjs/core";
+import { FastifyAdapter, type NestFastifyApplication } from "@nestjs/platform-fastify";
+import fastifyCors from "@fastify/cors";
+import fastifyEtag from "@fastify/etag";
 import { Logger } from "nestjs-pino";
 
 import { corsConfig } from "@/app/config/security.config";
@@ -16,11 +19,12 @@ import { RequestContextInterceptor } from "@/app/interceptors/request-context.in
 import { TimeoutInterceptor } from "@/app/interceptors/timeout.interceptor";
 import { TraceContextInterceptor } from "@/app/interceptors/trace-context.interceptor";
 import { TransformInterceptor } from "@/app/interceptors/transform.interceptor";
+import { closeDatabasePool } from "@/shared/infrastructure/db/db.provider";
 
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule, {
+    const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
         bufferLogs: true, // Buffer logs until Logger is ready
     });
 
@@ -28,7 +32,12 @@ async function bootstrap() {
     app.useLogger(app.get(Logger));
 
     // CORS config
-    app.enableCors(corsConfig);
+    await app.register(fastifyCors, corsConfig);
+
+    // ETag support (production only)
+    if (process.env.NODE_ENV === "production") {
+        await app.register(fastifyEtag);
+    }
 
     // Global route prefix
     app.setGlobalPrefix("api", {
@@ -39,6 +48,8 @@ async function bootstrap() {
             // Exclude health check endpoints
             { path: "health", method: RequestMethod.ALL },
             { path: "health/{*path}", method: RequestMethod.ALL },
+            // Exclude Gmail OAuth callback (Google requires exact redirect URI)
+            { path: "auth/google/callback", method: RequestMethod.GET },
         ],
     });
 
@@ -78,8 +89,8 @@ async function bootstrap() {
     // Swagger docs
     await setupSwagger(app);
 
-    const port = process.env.PORT ?? 3000;
-    await app.listen(port);
+    const port = Number(process.env.PORT ?? 3000);
+    await app.listen(port, "0.0.0.0");
 
     const logger = app.get(Logger);
     const env = process.env.NODE_ENV ?? "development";
@@ -103,6 +114,31 @@ async function bootstrap() {
 └─────────────────────────────────────────────────────┘`;
 
     logger.log(startupMessage);
+
+    // Enable graceful shutdown hooks
+    app.enableShutdownHooks();
+
+    // Handle shutdown signals
+    const signals = ["SIGTERM", "SIGINT"] as const;
+    for (const signal of signals) {
+        process.on(signal, async () => {
+            logger.log(`Received ${signal}, starting graceful shutdown...`);
+
+            try {
+                // Close NestJS application
+                await app.close();
+
+                // Close database pool
+                await closeDatabasePool();
+
+                logger.log("Graceful shutdown completed");
+                process.exit(0);
+            } catch (error) {
+                logger.error("Error during graceful shutdown", error);
+                process.exit(1);
+            }
+        });
+    }
 }
 
 await bootstrap();

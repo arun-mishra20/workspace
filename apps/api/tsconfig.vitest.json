@@ -6,6 +6,7 @@
         "noUnusedLocals": false,
         "noUnusedParameters": false,
         "baseUrl": "./",
+        "isolatedDeclarations": false,
         "paths": {
             "@/*": ["src/*"]
         }

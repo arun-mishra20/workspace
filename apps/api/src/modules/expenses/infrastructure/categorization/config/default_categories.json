@@ -1,0 +1,184 @@
+{
+    "categories": {
+        "uncategorized": {
+            "name": "Uncategorized",
+            "icon": "question-circle",
+            "color": "#BDC3C7",
+            "parent": null
+        },
+        "food_dining": {
+            "name": "Food and Dining",
+            "icon": "utensils",
+            "color": "#E67E22",
+            "parent": "expenses"
+        },
+        "groceries": {
+            "name": "Groceries",
+            "icon": "shopping-basket",
+            "color": "#27AE60",
+            "parent": "expenses"
+        },
+        "shopping": {
+            "name": "Shopping",
+            "icon": "shopping-bag",
+            "color": "#8E44AD",
+            "parent": "expenses"
+        },
+        "transport": {
+            "name": "Transport",
+            "icon": "car",
+            "color": "#2980B9",
+            "parent": "expenses"
+        },
+        "utilities": {
+            "name": "Utilities",
+            "icon": "bolt",
+            "color": "#16A085",
+            "parent": "expenses"
+        },
+        "utility_bills": {
+            "name": "Utility Bills",
+            "icon": "file-text",
+            "color": "#1ABC9C",
+            "parent": "expenses"
+        },
+        "income_salary": {
+            "name": "Salary",
+            "icon": "briefcase",
+            "color": "#2ECC71",
+            "parent": "income"
+        },
+        "personal_transfer": {
+            "name": "Personal Transfer",
+            "icon": "exchange",
+            "color": "#7F8C8D",
+            "parent": "transfer"
+        },
+        "apps_and_software": {
+            "name": "Apps and Software",
+            "icon": "monitor",
+            "color": "#3498DB",
+            "parent": "expenses"
+        },
+        "banking_and_finance": {
+            "name": "Banking and Finance",
+            "icon": "landmark",
+            "color": "#2C3E50",
+            "parent": "finance"
+        },
+        "cards_and_finance_charges": {
+            "name": "Cards and Finance Charges",
+            "icon": "credit-card",
+            "color": "#34495E",
+            "parent": "finance"
+        },
+        "education": {
+            "name": "Education",
+            "icon": "graduation-cap",
+            "color": "#9B59B6",
+            "parent": "expenses"
+        },
+        "emi": {
+            "name": "EMI",
+            "icon": "calendar",
+            "color": "#E74C3C",
+            "parent": "finance"
+        },
+        "entertainment": {
+            "name": "Entertainment",
+            "icon": "film",
+            "color": "#E91E63",
+            "parent": "expenses"
+        },
+        "medical": {
+            "name": "Medical",
+            "icon": "heart-pulse",
+            "color": "#E74C3C",
+            "parent": "expenses"
+        },
+        "health_and_wellness": {
+            "name": "Health and Wellness",
+            "icon": "activity",
+            "color": "#1ABC9C",
+            "parent": "expenses"
+        },
+        "wallet_and_digital_payment": {
+            "name": "Wallet and Digital Payment",
+            "icon": "wallet",
+            "color": "#F39C12",
+            "parent": "transfer"
+        },
+        "cash_withdrawal": {
+            "name": "Cash Withdrawal",
+            "icon": "banknote",
+            "color": "#95A5A6",
+            "parent": "transfer"
+        },
+        "reversal_and_refunds": {
+            "name": "Reversal and Refunds",
+            "icon": "undo",
+            "color": "#2ECC71",
+            "parent": "income"
+        },
+        "rent": {
+            "name": "Rent",
+            "icon": "home",
+            "color": "#D35400",
+            "parent": "expenses"
+        },
+        "cars_and_rentals": {
+            "name": "Cars and Rentals",
+            "icon": "car",
+            "color": "#2980B9",
+            "parent": "expenses"
+        },
+        "government_payments": {
+            "name": "Government Payments",
+            "icon": "landmark",
+            "color": "#7F8C8D",
+            "parent": "expenses"
+        },
+        "insurance": {
+            "name": "Insurance",
+            "icon": "shield",
+            "color": "#1F618D",
+            "parent": "finance"
+        },
+        "wallet_loads": {
+            "name": "Wallet Loads",
+            "icon": "wallet",
+            "color": "#F1C40F",
+            "parent": "transfer"
+        },
+        "professional_services": {
+            "name": "Professional Services",
+            "icon": "briefcase",
+            "color": "#8E44AD",
+            "parent": "expenses"
+        },
+        "credit_card_bills": {
+            "name": "Credit Card Bills",
+            "icon": "credit-card",
+            "color": "#C0392B",
+            "parent": "finance"
+        },
+        "cashback": {
+            "name": "Cashback",
+            "icon": "gift",
+            "color": "#27AE60",
+            "parent": "income"
+        },
+        "friends": {
+            "name": "Friends",
+            "icon": "users",
+            "color": "#3498DB",
+            "parent": "transfer"
+        },
+        "others": {
+            "name": "Others",
+            "icon": "more-horizontal",
+            "color": "#95A5A6",
+            "parent": null
+        }
+    }
+}

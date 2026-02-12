@@ -7,7 +7,7 @@ import type {
   NestInterceptor,
   ExecutionContext,
   CallHandler } from '@nestjs/common'
-import type { Response, Request } from 'express'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { Observable } from 'rxjs'
 
 /**
@@ -24,19 +24,19 @@ export class LinkHeaderInterceptor implements NestInterceptor {
         }
 
         const httpContext = context.switchToHttp()
-        const response = httpContext.getResponse<Response>()
-        const request = httpContext.getRequest<Request>()
+        const response = httpContext.getResponse<FastifyReply>()
+        const request = httpContext.getRequest<FastifyRequest>()
 
         const links = this.buildLinks(request, data)
         if (links.length > 0) {
-          response.setHeader('Link', links.join(', '))
+          response.header('Link', links.join(', '))
         }
 
         // Add total count header for offset pagination
         if (this.isOffsetListResponse(data)) {
-          response.setHeader('X-Total-Count', String(data.total))
+          response.header('X-Total-Count', String(data.total))
           const totalPages = Math.ceil(data.total / data.page_size)
-          response.setHeader('X-Page-Count', String(totalPages))
+          response.header('X-Page-Count', String(totalPages))
         }
       }),
     )
@@ -76,10 +76,13 @@ export class LinkHeaderInterceptor implements NestInterceptor {
    * Build RFC 8288 Link header array
    */
   private buildLinks(
-    request: Request,
+    request: FastifyRequest,
     data: Record<string, unknown>,
   ): string[] {
-    const baseUrl = `${request.protocol}://${request.get('host')}${request.path}`
+    const protocol = request.protocol ?? 'http'
+    const host = request.headers.host ?? 'localhost'
+    const requestPath = request.url.split('?')[0]
+    const baseUrl = `${protocol}://${host}${requestPath}`
     const links: string[] = []
 
     // Cursor pagination
@@ -91,13 +94,20 @@ export class LinkHeaderInterceptor implements NestInterceptor {
         && data.next_cursor
         && typeof data.next_cursor === 'string'
       ) {
-        const nextUrl = this.buildUrl(baseUrl, request.query, {
-          cursor: data.next_cursor,
-        })
+        const nextUrl = this.buildUrl(
+          baseUrl,
+          request.query as Record<string, unknown>,
+          {
+            cursor: data.next_cursor,
+          },
+        )
         links.push(`<${nextUrl}>; rel="next"`)
       }
 
-      const selfUrl = this.buildUrl(baseUrl, request.query)
+      const selfUrl = this.buildUrl(
+        baseUrl,
+        request.query as Record<string, unknown>,
+      )
       links.push(`<${selfUrl}>; rel="self"`)
 
       return links
@@ -113,37 +123,56 @@ export class LinkHeaderInterceptor implements NestInterceptor {
       const hasNext = data.has_more
 
       if (page > 1) {
-        const firstUrl = this.buildUrl(baseUrl, request.query, {
-          page: 1,
-          page_size,
-        })
+        const firstUrl = this.buildUrl(
+          baseUrl,
+          request.query as Record<string, unknown>,
+          {
+            page: 1,
+            page_size,
+          },
+        )
         links.push(`<${firstUrl}>; rel="first"`)
       }
 
       if (hasPrevious) {
-        const previousUrl = this.buildUrl(baseUrl, request.query, {
-          page: page - 1,
-          page_size,
-        })
+        const previousUrl = this.buildUrl(
+          baseUrl,
+          request.query as Record<string, unknown>,
+          {
+            page: page - 1,
+            page_size,
+          },
+        )
         links.push(`<${previousUrl}>; rel="prev"`)
       }
 
-      const selfUrl = this.buildUrl(baseUrl, request.query)
+      const selfUrl = this.buildUrl(
+        baseUrl,
+        request.query as Record<string, unknown>,
+      )
       links.push(`<${selfUrl}>; rel="self"`)
 
       if (hasNext) {
-        const nextUrl = this.buildUrl(baseUrl, request.query, {
-          page: page + 1,
-          page_size,
-        })
+        const nextUrl = this.buildUrl(
+          baseUrl,
+          request.query as Record<string, unknown>,
+          {
+            page: page + 1,
+            page_size,
+          },
+        )
         links.push(`<${nextUrl}>; rel="next"`)
       }
 
       if (page < totalPages) {
-        const lastUrl = this.buildUrl(baseUrl, request.query, {
-          page: totalPages,
-          page_size,
-        })
+        const lastUrl = this.buildUrl(
+          baseUrl,
+          request.query as Record<string, unknown>,
+          {
+            page: totalPages,
+            page_size,
+          },
+        )
         links.push(`<${lastUrl}>; rel="last"`)
       }
     }

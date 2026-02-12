@@ -9,19 +9,20 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@workspace/ui": path.resolve(__dirname, "../../packages/ui/src"),
+      "@workspace/domain": path.resolve(__dirname, "../../packages/domain/src"),
     },
   },
   server: {
-    port: 8000,
+    port: 5173,
     proxy: {
       "/api": {
-        target: "http://localhost:3000",
+        target: "http://127.0.0.1:3000",
         changeOrigin: true,
       },
     },
   },
   preview: {
-    port: 8000,
+    port: 5173,
   },
   build: {
     outDir: "dist",

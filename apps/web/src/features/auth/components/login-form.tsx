@@ -22,10 +22,11 @@ import { Spinner } from "@workspace/ui/components/ui/spinner";
 import { useNavigate, Link } from "react-router-dom";
 import { appPaths } from "@/config/app-paths";
 
-import { $api } from "@/lib/fetch-client";
+import { apiRequest } from "@/lib/api-client";
 import { setStoredTokens } from "@/lib/auth";
-import { toast } from "sonner";
 import { loginSchema, type LoginFormData } from "../schemas";
+import { useMutation } from "@tanstack/react-query";
+import type { LoginResponse } from "@/lib/api-types";
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -37,18 +38,21 @@ const LoginForm = () => {
     },
   });
 
-  const { mutateAsync, isPending } = $api.useMutation(
-    "post",
-    "/api/auth/login",
-  );
+  const { mutateAsync, isPending } = useMutation({
+    mutationFn: (payload: LoginFormData) =>
+      apiRequest<LoginResponse>({
+        method: "POST",
+        url: "/api/auth/login",
+        data: payload,
+        toastSuccess: true,
+        successMessage: "Logged in",
+      }),
+  });
 
   const onSubmit = async (data: LoginFormData) => {
     try {
       const result = await mutateAsync(
-        { body: data },
-        {
-          onError: (error) => toast.error(error.detail ?? "Login failed"),
-        },
+        data,
       );
 
       if (result?.accessToken && result?.refreshToken) {

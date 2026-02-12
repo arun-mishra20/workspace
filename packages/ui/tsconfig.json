@@ -3,6 +3,7 @@
   "extends": "@workspace/typescript-config/tsconfig.react-library.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "isolatedDeclarations": false,
     "paths": {
       "@workspace/ui/*": ["./src/*"]
     }
