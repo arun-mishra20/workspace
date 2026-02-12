@@ -271,11 +271,18 @@ function MonthlyTrendChart({ data }: { data: BusAnalytics["monthlyTrend"] }) {
             <ChartTooltip
               content={
                 <ChartTooltipContent
-                  formatter={(value, name) =>
-                    name === "amount"
-                      ? fmtCurrency(value as number)
-                      : `${value} trips`
-                  }
+                  formatter={(value, name) => (
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">
+                        {name === "amount" ? "Amount" : "Trips"}
+                      </span>
+                      <span className="font-mono font-medium tabular-nums">
+                        {name === "amount"
+                          ? fmtCurrency(value as number)
+                          : `${value} trips`}
+                      </span>
+                    </div>
+                  )}
                 />
               }
             />
@@ -324,11 +331,18 @@ function DayOfWeekChart({ data }: { data: BusAnalytics["dayOfWeek"] }) {
             <ChartTooltip
               content={
                 <ChartTooltipContent
-                  formatter={(value, name) =>
-                    name === "trips"
-                      ? `${value} trips`
-                      : fmtCurrency(value as number)
-                  }
+                  formatter={(value, name) => (
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">
+                        {name === "trips" ? "Trips" : "Amount"}
+                      </span>
+                      <span className="font-mono font-medium tabular-nums">
+                        {name === "trips"
+                          ? `${value} trips`
+                          : fmtCurrency(value as number)}
+                      </span>
+                    </div>
+                  )}
                 />
               }
             />
@@ -377,7 +391,16 @@ function TimeOfDayChart({ data }: { data: BusAnalytics["timeOfDay"] }) {
             <YAxis tickLine={false} axisLine={false} allowDecimals={false} />
             <ChartTooltip
               content={
-                <ChartTooltipContent formatter={(value) => `${value} trips`} />
+                <ChartTooltipContent
+                  formatter={(value) => (
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">Trips</span>
+                      <span className="font-mono font-medium tabular-nums">
+                        {value} trips
+                      </span>
+                    </div>
+                  )}
+                />
               }
             />
             <Bar
@@ -428,7 +451,16 @@ function DailyFrequencyChart({
             <YAxis tickLine={false} axisLine={false} allowDecimals={false} />
             <ChartTooltip
               content={
-                <ChartTooltipContent formatter={(value) => `${value} trips`} />
+                <ChartTooltipContent
+                  formatter={(value) => (
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">Trips</span>
+                      <span className="font-mono font-medium tabular-nums">
+                        {value} trips
+                      </span>
+                    </div>
+                  )}
+                />
               }
             />
             <Line
@@ -883,7 +915,20 @@ function MonthlyInvestmentTrendChart({
             <ChartTooltip
               content={
                 <ChartTooltipContent
-                  formatter={(value) => fmtCurrency(value as number)}
+                  formatter={(value, name) => (
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">
+                        {name === "stocks"
+                          ? "Stocks"
+                          : name === "mutualFunds"
+                            ? "Mutual Funds"
+                            : "Gold"}
+                      </span>
+                      <span className="font-mono font-medium tabular-nums">
+                        {fmtCurrency(value as number)}
+                      </span>
+                    </div>
+                  )}
                 />
               }
             />
@@ -1059,11 +1104,18 @@ function InvestmentDayOfWeekChart({
             <ChartTooltip
               content={
                 <ChartTooltipContent
-                  formatter={(value, name) =>
-                    name === "transactionCount"
-                      ? `${value} investments`
-                      : fmtCurrency(value as number)
-                  }
+                  formatter={(value, name) => (
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">
+                        {name === "transactionCount" ? "Investments" : "Amount"}
+                      </span>
+                      <span className="font-mono font-medium tabular-nums">
+                        {name === "transactionCount"
+                          ? `${value} investments`
+                          : fmtCurrency(value as number)}
+                      </span>
+                    </div>
+                  )}
                 />
               }
             />
@@ -1124,7 +1176,14 @@ function InvestmentTimeOfDayChart({
             <ChartTooltip
               content={
                 <ChartTooltipContent
-                  formatter={(value) => `${value} investments`}
+                  formatter={(value) => (
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">Investments</span>
+                      <span className="font-mono font-medium tabular-nums">
+                        {value} investments
+                      </span>
+                    </div>
+                  )}
                 />
               }
             />

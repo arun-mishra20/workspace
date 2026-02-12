@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Briefcase } from "lucide-react";
+import { Plus } from "lucide-react";
 import { MainLayout } from "@/components/layouts";
 import {
   Tabs,

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -42,6 +42,8 @@ import type { Holding } from "@workspace/domain";
 import { toast } from "sonner";
 import { HoldingFormDialog } from "./holding-form-dialog";
 
+// --- Types & Constants ---
+
 type SortKey =
   | "name"
   | "symbol"
@@ -54,30 +56,207 @@ type SortKey =
   | "returnsPercentage";
 
 type SortDir = "asc" | "desc";
-
-function numVal(v: string | null | undefined): number {
-  return v ? parseFloat(v) : 0;
-}
-
-function compareFn(a: Holding, b: Holding, key: SortKey, dir: SortDir): number {
-  let cmp = 0;
-  if (key === "name" || key === "symbol") {
-    cmp = (a[key] ?? "").localeCompare(b[key] ?? "");
-  } else {
-    cmp = numVal(a[key]) - numVal(b[key]);
-  }
-  return dir === "asc" ? cmp : -cmp;
-}
-
 type AssetType = "stock" | "mutual_fund" | "gold" | "etf" | "pf";
 
-const assetTypeLabels: Record<AssetType, string> = {
-  stock: "stocks",
-  mutual_fund: "mutual funds",
-  gold: "gold holdings",
-  etf: "ETFs",
-  pf: "provident fund entries",
+interface AssetConfig {
+  label: string; // plural label for empty state
+  symbolLabel: string;
+  qtyLabel: string;
+  avgPriceLabel: string;
+  cmpLabel: string;
+  qtyDecimals: number;
+}
+
+const ASSET_CONFIG: Record<AssetType, AssetConfig> = {
+  stock: {
+    label: "stocks",
+    symbolLabel: "Symbol",
+    qtyLabel: "Qty",
+    avgPriceLabel: "Avg Price",
+    cmpLabel: "CMP",
+    qtyDecimals: 0,
+  },
+  mutual_fund: {
+    label: "mutual funds",
+    symbolLabel: "Scheme",
+    qtyLabel: "Units",
+    avgPriceLabel: "Avg NAV",
+    cmpLabel: "Current NAV",
+    qtyDecimals: 3,
+  },
+  gold: {
+    label: "gold holdings",
+    symbolLabel: "Type",
+    qtyLabel: "Grams/Units",
+    avgPriceLabel: "Avg Buy Price",
+    cmpLabel: "Current Price",
+    qtyDecimals: 3,
+  },
+  etf: {
+    label: "ETFs",
+    symbolLabel: "Symbol",
+    qtyLabel: "Qty",
+    avgPriceLabel: "Avg Price",
+    cmpLabel: "CMP",
+    qtyDecimals: 0,
+  },
+  pf: {
+    label: "provident fund entries",
+    symbolLabel: "Account",
+    qtyLabel: "Balance",
+    avgPriceLabel: "Total Contrib.",
+    cmpLabel: "Current Value",
+    qtyDecimals: 2,
+  },
 };
+
+// --- Utility Functions ---
+
+const parseNum = (val: string | null | undefined): number =>
+  val ? parseFloat(val) : 0;
+
+// --- Sub-Components ---
+
+interface SortableHeaderProps {
+  label: string;
+  sortKey: SortKey;
+  currentKey: SortKey;
+  direction: SortDir;
+  onSort: (key: SortKey) => void;
+  className?: string;
+}
+
+const SortableHeader = ({
+  label,
+  sortKey,
+  currentKey,
+  direction,
+  onSort,
+  className,
+}: SortableHeaderProps) => {
+  const isActive = sortKey === currentKey;
+  const Icon = isActive
+    ? direction === "asc"
+      ? ArrowUp
+      : ArrowDown
+    : ArrowUpDown;
+
+  return (
+    <TableHead
+      className={`cursor-pointer select-none ${className || ""}`}
+      onClick={() => onSort(sortKey)}
+    >
+      <span className="inline-flex items-center">
+        {label}
+        <Icon
+          className={`ml-1.5 h-3.5 w-3.5 ${isActive ? "" : "opacity-40"}`}
+        />
+      </span>
+    </TableHead>
+  );
+};
+
+interface HoldingRowProps {
+  holding: Holding;
+  config: AssetConfig;
+  onEdit: (holding: Holding) => void;
+  onDelete: (id: string) => void;
+}
+
+const HoldingRow = ({ holding, config, onEdit, onDelete }: HoldingRowProps) => {
+  const returns = parseNum(holding.totalReturns);
+  const returnsPct = parseNum(holding.returnsPercentage);
+  const isPositive = returns >= 0;
+
+  return (
+    <TableRow key={holding.id}>
+      <TableCell className="font-medium">
+        <div className="flex flex-col gap-1">
+          <span className="truncate max-w-[220px]">{holding.name}</span>
+          {holding.platform && (
+            <Badge
+              variant="info"
+              className="text-xs text-muted-foreground w-fit"
+            >
+              {holding.platform}
+            </Badge>
+          )}
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge variant="outline" className="font-mono text-xs">
+          {holding.symbol}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-right tabular-nums">
+        {parseNum(holding.quantity).toFixed(config.qtyDecimals)}
+      </TableCell>
+      <TableCell className="text-right tabular-nums">
+        {formatCurrency(parseNum(holding.avgBuyPrice))}
+      </TableCell>
+      <TableCell className="text-right tabular-nums">
+        {holding.currentPrice
+          ? formatCurrency(parseNum(holding.currentPrice))
+          : "—"}
+      </TableCell>
+      <TableCell className="text-right tabular-nums">
+        {formatCurrency(parseNum(holding.investedValue))}
+      </TableCell>
+      <TableCell className="text-right tabular-nums">
+        {holding.currentValue
+          ? formatCurrency(parseNum(holding.currentValue))
+          : "—"}
+      </TableCell>
+      <TableCell className="text-right">
+        <span
+          className={`inline-flex items-center gap-1 tabular-nums font-medium ${
+            isPositive ? "text-green-600" : "text-red-600"
+          }`}
+        >
+          {isPositive ? (
+            <TrendingUp className="h-3.5 w-3.5" />
+          ) : (
+            <TrendingDown className="h-3.5 w-3.5" />
+          )}
+          {formatCurrency(Math.abs(returns))}
+        </span>
+      </TableCell>
+      <TableCell className="text-right">
+        <Badge
+          variant={isPositive ? "default" : "destructive"}
+          className="tabular-nums font-mono text-xs"
+        >
+          {isPositive ? "+" : ""}
+          {returnsPct.toFixed(2)}%
+        </Badge>
+      </TableCell>
+      <TableCell className="w-[50px]">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onEdit(holding)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => onDelete(holding.id)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  );
+};
+
+// --- Main Component ---
 
 interface HoldingsTableProps {
   holdings: Holding[];
@@ -90,39 +269,54 @@ export function HoldingsTable({
   isLoading,
   assetType,
 }: HoldingsTableProps) {
+  const config = ASSET_CONFIG[assetType];
+
+  // State
   const [editHolding, setEditHolding] = useState<Holding | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("investedValue");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  // API
   const deleteMutation = useDeleteHolding();
 
-  const filtered = holdings.filter((h) => h.assetType === assetType);
-
-  const sorted = useMemo(
-    () => [...filtered].sort((a, b) => compareFn(a, b, sortKey, sortDir)),
-    [filtered, sortKey, sortDir],
+  // Derived State
+  const filtered = useMemo(
+    () => holdings.filter((h) => h.assetType === assetType),
+    [holdings, assetType],
   );
 
-  const toggleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDir(key === "name" || key === "symbol" ? "asc" : "desc");
-    }
-  };
+  const sorted = useMemo(() => {
+    const sortedData = [...filtered];
+    sortedData.sort((a, b) => {
+      const key = sortKey;
+      let cmp = 0;
 
-  const SortIcon = ({ col }: { col: SortKey }) => {
-    if (sortKey !== col)
-      return <ArrowUpDown className="ml-1 inline h-3 w-3 opacity-40" />;
-    return sortDir === "asc" ? (
-      <ArrowUp className="ml-1 inline h-3 w-3" />
-    ) : (
-      <ArrowDown className="ml-1 inline h-3 w-3" />
-    );
-  };
+      if (key === "name" || key === "symbol") {
+        cmp = (a[key] ?? "").localeCompare(b[key] ?? "");
+      } else {
+        cmp = parseNum(a[key]) - parseNum(b[key]);
+      }
 
-  const handleDelete = () => {
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return sortedData;
+  }, [filtered, sortKey, sortDir]);
+
+  // Handlers
+  const toggleSort = useCallback(
+    (key: SortKey) => {
+      if (sortKey === key) {
+        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      } else {
+        setSortKey(key);
+        setSortDir(key === "name" || key === "symbol" ? "asc" : "desc");
+      }
+    },
+    [sortKey],
+  );
+
+  const handleDelete = useCallback(() => {
     if (!deleteId) return;
     deleteMutation.mutate(deleteId, {
       onSuccess: () => {
@@ -133,8 +327,9 @@ export function HoldingsTable({
         toast.error("Failed to delete holding");
       },
     });
-  };
+  }, [deleteId, deleteMutation]);
 
+  // UI States
   if (isLoading) {
     return (
       <div className="space-y-3 pt-2">
@@ -149,7 +344,7 @@ export function HoldingsTable({
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <p className="text-muted-foreground">
-          No {assetTypeLabels[assetType]} in your portfolio yet.
+          No {config.label} in your portfolio yet.
         </p>
         <p className="text-sm text-muted-foreground mt-1">
           Import from Groww or add manually using the buttons above.
@@ -158,226 +353,109 @@ export function HoldingsTable({
     );
   }
 
-  const isMF = assetType === "mutual_fund";
-  const isGold = assetType === "gold";
-  const isPF = assetType === "pf";
-
-  const symbolLabel = isMF
-    ? "Scheme"
-    : isGold
-      ? "Type"
-      : isPF
-        ? "Account"
-        : "Symbol";
-  const qtyLabel = isMF
-    ? "Units"
-    : isGold
-      ? "Grams/Units"
-      : isPF
-        ? "Balance"
-        : "Qty";
-  const avgPriceLabel = isMF
-    ? "Avg NAV"
-    : isGold
-      ? "Avg Buy Price"
-      : isPF
-        ? "Total Contrib."
-        : "Avg Price";
-  const cmpLabel = isMF
-    ? "Current NAV"
-    : isGold
-      ? "Current Price"
-      : isPF
-        ? "Current Value"
-        : "CMP";
-
   return (
     <>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead
-                className="w-62.5 cursor-pointer select-none"
-                onClick={() => toggleSort("name")}
-              >
-                Name
-                <SortIcon col="name" />
-              </TableHead>
-              <TableHead
-                className="cursor-pointer select-none"
-                onClick={() => toggleSort("symbol")}
-              >
-                {symbolLabel}
-                <SortIcon col="symbol" />
-              </TableHead>
-              <TableHead
-                className="text-right cursor-pointer select-none"
-                onClick={() => toggleSort("quantity")}
-              >
-                {qtyLabel}
-                <SortIcon col="quantity" />
-              </TableHead>
-              <TableHead
-                className="text-right cursor-pointer select-none"
-                onClick={() => toggleSort("avgBuyPrice")}
-              >
-                {avgPriceLabel}
-                <SortIcon col="avgBuyPrice" />
-              </TableHead>
-              <TableHead
-                className="text-right cursor-pointer select-none"
-                onClick={() => toggleSort("currentPrice")}
-              >
-                {cmpLabel}
-                <SortIcon col="currentPrice" />
-              </TableHead>
-              <TableHead
-                className="text-right cursor-pointer select-none"
-                onClick={() => toggleSort("investedValue")}
-              >
-                Invested
-                <SortIcon col="investedValue" />
-              </TableHead>
-              <TableHead
-                className="text-right cursor-pointer select-none"
-                onClick={() => toggleSort("currentValue")}
-              >
-                Current
-                <SortIcon col="currentValue" />
-              </TableHead>
-              <TableHead
-                className="text-right cursor-pointer select-none"
-                onClick={() => toggleSort("totalReturns")}
-              >
-                P&L
-                <SortIcon col="totalReturns" />
-              </TableHead>
-              <TableHead
-                className="text-right cursor-pointer select-none"
-                onClick={() => toggleSort("returnsPercentage")}
-              >
-                P&L %
-                <SortIcon col="returnsPercentage" />
-              </TableHead>
-              <TableHead className="w-12.5" />
+              <SortableHeader
+                label="Name"
+                sortKey="name"
+                currentKey={sortKey}
+                direction={sortDir}
+                onSort={toggleSort}
+                className="min-w-[220px]"
+              />
+              <SortableHeader
+                label={config.symbolLabel}
+                sortKey="symbol"
+                currentKey={sortKey}
+                direction={sortDir}
+                onSort={toggleSort}
+              />
+              <SortableHeader
+                label={config.qtyLabel}
+                sortKey="quantity"
+                currentKey={sortKey}
+                direction={sortDir}
+                onSort={toggleSort}
+                className="text-right"
+              />
+              <SortableHeader
+                label={config.avgPriceLabel}
+                sortKey="avgBuyPrice"
+                currentKey={sortKey}
+                direction={sortDir}
+                onSort={toggleSort}
+                className="text-right"
+              />
+              <SortableHeader
+                label={config.cmpLabel}
+                sortKey="currentPrice"
+                currentKey={sortKey}
+                direction={sortDir}
+                onSort={toggleSort}
+                className="text-right"
+              />
+              <SortableHeader
+                label="Invested"
+                sortKey="investedValue"
+                currentKey={sortKey}
+                direction={sortDir}
+                onSort={toggleSort}
+                className="text-right"
+              />
+              <SortableHeader
+                label="Current"
+                sortKey="currentValue"
+                currentKey={sortKey}
+                direction={sortDir}
+                onSort={toggleSort}
+                className="text-right"
+              />
+              <SortableHeader
+                label="P&L"
+                sortKey="totalReturns"
+                currentKey={sortKey}
+                direction={sortDir}
+                onSort={toggleSort}
+                className="text-right"
+              />
+              <SortableHeader
+                label="P&L %"
+                sortKey="returnsPercentage"
+                currentKey={sortKey}
+                direction={sortDir}
+                onSort={toggleSort}
+                className="text-right"
+              />
+              <TableHead className="w-[50px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sorted.map((holding) => {
-              const returns = holding.totalReturns
-                ? parseFloat(holding.totalReturns)
-                : 0;
-              const returnsPct = holding.returnsPercentage
-                ? parseFloat(holding.returnsPercentage)
-                : 0;
-              const isPositive = returns >= 0;
-
-              return (
-                <TableRow key={holding.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex flex-col">
-                      <span className="truncate max-w-57.5">
-                        {holding.name}
-                      </span>
-                      {holding.platform && (
-                        <Badge
-                          className="text-xs text-muted-foreground w-fit"
-                          variant={"info"}
-                        >
-                          {holding.platform}
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono text-xs">
-                      {holding.symbol}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {parseFloat(holding.quantity).toFixed(
-                      isMF || isGold ? 3 : isPF ? 2 : 0,
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatCurrency(parseFloat(holding.avgBuyPrice))}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {holding.currentPrice
-                      ? formatCurrency(parseFloat(holding.currentPrice))
-                      : "—"}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatCurrency(parseFloat(holding.investedValue))}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {holding.currentValue
-                      ? formatCurrency(parseFloat(holding.currentValue))
-                      : "—"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span
-                      className={`inline-flex items-center gap-1 tabular-nums font-medium ${isPositive ? "text-green-600" : "text-red-600"}`}
-                    >
-                      {isPositive ? (
-                        <TrendingUp className="h-3 w-3" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3" />
-                      )}
-                      {formatCurrency(Math.abs(returns))}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Badge
-                      variant={isPositive ? "default" : "destructive"}
-                      className="tabular-nums font-mono text-xs"
-                    >
-                      {isPositive ? "+" : ""}
-                      {returnsPct.toFixed(2)}%
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => setEditHolding(holding)}
-                        >
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => setDeleteId(holding.id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+            {sorted.map((holding) => (
+              <HoldingRow
+                key={holding.id}
+                holding={holding}
+                config={config}
+                onEdit={setEditHolding}
+                onDelete={setDeleteId}
+              />
+            ))}
           </TableBody>
         </Table>
       </div>
 
-      {/* Edit dialog */}
+      {/* Dialogs */}
       {editHolding && (
         <HoldingFormDialog
           open={!!editHolding}
-          onOpenChange={(open: boolean) => !open && setEditHolding(null)}
+          onOpenChange={(open) => !open && setEditHolding(null)}
           holding={editHolding}
         />
       )}
 
-      {/* Delete confirmation */}
       <AlertDialog
         open={!!deleteId}
         onOpenChange={(open) => !open && setDeleteId(null)}

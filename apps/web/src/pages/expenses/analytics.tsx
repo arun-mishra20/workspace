@@ -437,7 +437,16 @@ const AnalyticsPage = () => {
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
-                          formatter={(value) => fmtCurrency(Number(value))}
+                          formatter={(value, name) => (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-muted-foreground">
+                                {name === "debited" ? "Spent" : "Received"}
+                              </span>
+                              <span className="font-mono font-medium tabular-nums">
+                                {fmtCurrency(Number(value))}
+                              </span>
+                            </div>
+                          )}
                         />
                       }
                     />
@@ -480,7 +489,16 @@ const AnalyticsPage = () => {
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
-                          formatter={(value) => fmtCurrency(Number(value))}
+                          formatter={(value, name) => (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-muted-foreground">
+                                {String(name).replace(/_/g, " ")}
+                              </span>
+                              <span className="font-mono font-medium tabular-nums">
+                                {fmtCurrency(Number(value))}
+                              </span>
+                            </div>
+                          )}
                         />
                       }
                     />
@@ -549,7 +567,20 @@ const AnalyticsPage = () => {
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
-                          formatter={(value) => fmtCurrency(Number(value))}
+                          formatter={(value, name) => (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-muted-foreground">
+                                {name === "debited"
+                                  ? "Spent"
+                                  : name === "credited"
+                                    ? "Received"
+                                    : "Net"}
+                              </span>
+                              <span className="font-mono font-medium tabular-nums">
+                                {fmtCurrency(Number(value))}
+                              </span>
+                            </div>
+                          )}
                         />
                       }
                     />
@@ -604,7 +635,16 @@ const AnalyticsPage = () => {
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
-                          formatter={(value) => fmtCurrency(Number(value))}
+                          formatter={(value, name) => (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-muted-foreground">
+                                {String(name).replace(/_/g, " ")}
+                              </span>
+                              <span className="font-mono font-medium tabular-nums">
+                                {fmtCurrency(Number(value))}
+                              </span>
+                            </div>
+                          )}
                         />
                       }
                     />
@@ -866,7 +906,16 @@ const AnalyticsPage = () => {
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
-                          formatter={(value) => fmtCurrency(Number(value))}
+                          formatter={(value) => (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-muted-foreground">
+                                Amount Spent
+                              </span>
+                              <span className="font-mono font-medium tabular-nums">
+                                {fmtCurrency(Number(value))}
+                              </span>
+                            </div>
+                          )}
                         />
                       }
                     />
@@ -968,7 +1017,16 @@ const AnalyticsPage = () => {
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
-                          formatter={(value) => fmtCurrency(Number(value))}
+                          formatter={(value) => (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-muted-foreground">
+                                Cumulative Spend
+                              </span>
+                              <span className="font-mono font-medium tabular-nums">
+                                {fmtCurrency(Number(value))}
+                              </span>
+                            </div>
+                          )}
                         />
                       }
                     />
@@ -1038,7 +1096,16 @@ const AnalyticsPage = () => {
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
-                          formatter={(value) => fmtCurrency(Number(value))}
+                          formatter={(value, name) => (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-muted-foreground">
+                                {String(name).replace(/_/g, " ")}
+                              </span>
+                              <span className="font-mono font-medium tabular-nums">
+                                {fmtCurrency(Number(value))}
+                              </span>
+                            </div>
+                          )}
                         />
                       }
                     />
@@ -1119,11 +1186,22 @@ const AnalyticsPage = () => {
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
-                          formatter={(value, name) =>
-                            name === "savingsRate"
-                              ? `${Number(value).toFixed(1)}%`
-                              : fmtCurrency(Number(value))
-                          }
+                          formatter={(value, name) => (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-muted-foreground">
+                                {name === "savingsRate"
+                                  ? "Savings Rate"
+                                  : name === "income"
+                                    ? "Income"
+                                    : "Expenses"}
+                              </span>
+                              <span className="font-mono font-medium tabular-nums">
+                                {name === "savingsRate"
+                                  ? `${Number(value).toFixed(1)}%`
+                                  : fmtCurrency(Number(value))}
+                              </span>
+                            </div>
+                          )}
                         />
                       }
                     />
@@ -1224,9 +1302,16 @@ const AnalyticsPage = () => {
                   <ChartTooltip
                     content={
                       <ChartTooltipContent
-                        formatter={(value) =>
-                          `${fmtCurrency(Number(value))}/day`
-                        }
+                        formatter={(value) => (
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="text-muted-foreground">
+                              Avg. Spend
+                            </span>
+                            <span className="font-mono font-medium tabular-nums">
+                              {fmtCurrency(Number(value))}/day
+                            </span>
+                          </div>
+                        )}
                       />
                     }
                   />
