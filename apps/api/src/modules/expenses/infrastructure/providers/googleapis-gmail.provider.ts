@@ -84,6 +84,19 @@ export class GoogleApisGmailProvider implements GmailProvider {
 
         console.log("Gmail API response: fetchEmailContent", res.data);
 
+        // Parse received date: use internalDate (epoch ms) if available, else parse Date header
+        let receivedAt: string;
+        if (res.data.internalDate) {
+            // Gmail's internalDate is in milliseconds since epoch
+            receivedAt = new Date(Number(res.data.internalDate)).toISOString();
+        } else if (headers.date) {
+            // Fallback to Date header (RFC 2822 format)
+            receivedAt = new Date(headers.date).toISOString();
+        } else {
+            // Last resort fallback
+            receivedAt = new Date().toISOString();
+        }
+
         return {
             id: randomUUID(),
             userId: params.userId,
@@ -92,7 +105,7 @@ export class GoogleApisGmailProvider implements GmailProvider {
             from: headers.from ?? "",
             subject: headers.subject ?? "",
             snippet: res.data.snippet ?? "",
-            receivedAt: headers.date ?? new Date().toISOString(),
+            receivedAt,
             bodyText,
             bodyHtml,
             rawHeaders: headers,

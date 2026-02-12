@@ -263,11 +263,11 @@ export class ExpensesService {
         if (!query) {
             const lastSync = await this.syncJobRepository.findLastCompletedByUserId(params.userId);
 
-            if (lastSync?.completedAt && false) {
+            if (lastSync?.completedAt) {
                 // Incremental sync: fetch emails since last completed sync
-                // const afterDate = this.formatGmailDate(lastSync.completedAt);
-                // query = `subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank OR upi) after:${afterDate}`;
-                // this.logger.log(`Incremental sync for user ${params.userId} after ${afterDate}`);
+                const afterDate = this.formatGmailDate(lastSync.completedAt);
+                query = `subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank OR upi) after:${afterDate}`;
+                this.logger.log(`Incremental sync for user ${params.userId} after ${afterDate}`);
             } else {
                 query =
                     "subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank OR upi) newer_than:180d";

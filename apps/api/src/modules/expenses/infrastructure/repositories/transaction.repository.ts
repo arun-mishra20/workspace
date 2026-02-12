@@ -1371,7 +1371,8 @@ export class TransactionRepositoryImpl implements TransactionRepository {
             totalInvested: data.totalInvested,
             transactionCount: data.transactionCount,
             avgAmount: data.totalInvested / data.transactionCount,
-            primaryAssetType: data.assetTypes.size > 0 ? (Array.from(data.assetTypes)[0] ?? null) : null,
+            primaryAssetType:
+                data.assetTypes.size > 0 ? (Array.from(data.assetTypes)[0] ?? null) : null,
         }));
 
         // Monthly trend with asset type breakdown

@@ -25,8 +25,8 @@ export const appPaths = {
     patterns: {
       getHref: () => "/patterns",
     },
-    metrics: {
-      getHref: () => "/metrics",
+    holdings: {
+      getHref: () => "/holdings",
     },
     expensesEmails: {
       getHref: () => "/expenses/emails",
