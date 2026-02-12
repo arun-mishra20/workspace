@@ -23,6 +23,8 @@ import { SyncExpensesDto } from "@/modules/expenses/presentation/dtos/sync-expen
 import { ListExpenseEmailsDto } from "@/modules/expenses/presentation/dtos/list-expense-emails.dto";
 import { ListExpensesDto } from "@/modules/expenses/presentation/dtos/list-expenses.dto";
 import { UpdateTransactionDto } from "@/modules/expenses/presentation/dtos/update-transaction.dto";
+import { BulkCategorizeDto } from "@/modules/expenses/presentation/dtos/bulk-categorize.dto";
+import { BulkUpdateTransactionsDto } from "@/modules/expenses/presentation/dtos/bulk-update-transactions.dto";
 import { OffsetListResponseDto } from "@/shared/infrastructure/dtos/list-response.dto";
 import type { RawEmail, Transaction, AnalyticsPeriod } from "@workspace/domain";
 import type { FastifyReply, FastifyRequest } from "fastify";
@@ -159,10 +161,19 @@ export class ExpensesController {
         const page_size = query.page_size ?? 20;
         const offset = (page - 1) * page_size;
 
+        const filters: Record<string, unknown> = {};
+        if (query.category) filters.category = query.category;
+        if (query.mode) filters.mode = query.mode;
+        if (query.review !== undefined) filters.requiresReview = query.review === "true";
+        if (query.date_from) filters.dateFrom = new Date(query.date_from);
+        if (query.date_to) filters.dateTo = new Date(query.date_to);
+        if (query.search) filters.search = query.search;
+
         const { data, total } = await this.expensesService.listExpenses({
             userId: req.user.id,
             limit: page_size,
             offset,
+            filters: Object.keys(filters).length > 0 ? (filters as any) : undefined,
         });
 
         return {
@@ -197,6 +208,54 @@ export class ExpensesController {
         return transaction;
     }
 
+    @Patch("transactions/bulk-categorize")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Bulk categorize transactions by merchant",
+        description:
+            "Updates the category and subcategory for ALL transactions matching the given merchant name.",
+    })
+    @ApiResponse({
+        status: 200,
+        description: "Returns the merchant, new category, subcategory, and count of updated rows",
+    })
+    async bulkCategorizeByMerchant(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Body() dto: BulkCategorizeDto,
+    ) {
+        const result = await this.expensesService.bulkCategorizeByMerchant({
+            userId: req.user.id,
+            merchant: dto.merchant,
+            category: dto.category,
+            subcategory: dto.subcategory,
+            categoryMetadata: dto.categoryMetadata,
+        });
+        return { data: result };
+    }
+
+    @Patch("transactions/bulk-update")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Bulk update transactions by IDs",
+        description:
+            "Updates category, subcategory, mode, or review status for a set of transaction IDs.",
+    })
+    @ApiResponse({
+        status: 200,
+        description: "Returns the count of updated transactions",
+    })
+    async bulkUpdateTransactions(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Body() dto: BulkUpdateTransactionsDto,
+    ) {
+        const result = await this.expensesService.bulkUpdateByIds({
+            userId: req.user.id,
+            ids: dto.ids,
+            data: dto.data,
+        });
+        return { data: result };
+    }
+
     @Patch("transactions/:id")
     @UseGuards(JwtAuthGuard)
     @ApiOperation({ summary: "Update / correct a transaction" })
@@ -215,6 +274,22 @@ export class ExpensesController {
             id,
             data: dto,
         });
+    }
+
+    @Get("merchants")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Get distinct merchants with category info",
+        description:
+            "Returns a list of unique merchants for the user with their most common category assignment and transaction count.",
+    })
+    @ApiResponse({
+        status: 200,
+        description: "Returns list of merchants with category info",
+    })
+    async getDistinctMerchants(@Request() req: FastifyRequest & { user: { id: string } }) {
+        const merchants = await this.expensesService.getDistinctMerchants(req.user.id);
+        return { data: merchants };
     }
 
     @Get("emails/:id")
@@ -314,6 +389,147 @@ export class ExpensesController {
         @Query("period") period: AnalyticsPeriod = "month",
     ) {
         return this.expensesService.getSpendingByCard(req.user.id, period);
+    }
+
+    // ── Extended Analytics ──
+
+    @Get("analytics/day-of-week")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Spending by day of week" })
+    async getDayOfWeekSpending(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+    ) {
+        return this.expensesService.getDayOfWeekSpending(req.user.id, period);
+    }
+
+    @Get("analytics/category-trend")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Category spending trend over months" })
+    async getCategoryTrend(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("months") months?: string,
+    ) {
+        return this.expensesService.getCategoryTrend(
+            req.user.id,
+            months ? parseInt(months, 10) : 6,
+        );
+    }
+
+    @Get("analytics/period-comparison")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Compare current vs previous period" })
+    async getPeriodComparison(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+    ) {
+        return this.expensesService.getPeriodComparison(req.user.id, period);
+    }
+
+    @Get("analytics/cumulative")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Cumulative spending over time" })
+    async getCumulativeSpend(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+    ) {
+        return this.expensesService.getCumulativeSpend(req.user.id, period);
+    }
+
+    @Get("analytics/savings-rate")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Monthly savings rate (income vs expenses)" })
+    async getSavingsRate(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("months") months?: string,
+    ) {
+        return this.expensesService.getSavingsRate(req.user.id, months ? parseInt(months, 10) : 12);
+    }
+
+    @Get("analytics/card-categories")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Per-card category breakdown" })
+    async getCardCategories(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+    ) {
+        return this.expensesService.getCardCategoryBreakdown(req.user.id, period);
+    }
+
+    @Get("analytics/top-vpas")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Top UPI VPA payees" })
+    async getTopVpas(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+        @Query("limit") limit?: string,
+    ) {
+        return this.expensesService.getTopVpas(
+            req.user.id,
+            period,
+            limit ? parseInt(limit, 10) : 10,
+        );
+    }
+
+    @Get("analytics/velocity")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Spending velocity (rolling average ₹/day)" })
+    async getSpendingVelocity(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+    ) {
+        return this.expensesService.getSpendingVelocity(req.user.id, period);
+    }
+
+    @Get("analytics/milestone-etas")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Milestone completion ETAs for all cards" })
+    async getMilestoneEtas(@Request() req: FastifyRequest & { user: { id: string } }) {
+        return this.expensesService.getMilestoneEtas(req.user.id);
+    }
+
+    @Get("analytics/largest-transactions")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Largest transactions in period" })
+    async getLargestTransactions(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "month",
+        @Query("limit") limit?: string,
+    ) {
+        return this.expensesService.getLargestTransactions(
+            req.user.id,
+            period,
+            limit ? parseInt(limit, 10) : 10,
+        );
+    }
+
+    @Get("analytics/bus-spending")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Bus spending analytics and patterns" })
+    @ApiResponse({
+        status: 200,
+        description: "Returns bus spending summary, routes, frequency, and trends",
+    })
+    async getBusAnalytics(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "year",
+    ) {
+        return this.expensesService.getBusAnalytics(req.user.id, period);
+    }
+
+    @Get("analytics/investment-patterns")
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: "Investment analytics across stocks, mutual funds, and gold" })
+    @ApiResponse({
+        status: 200,
+        description:
+            "Returns investment summary, asset allocation, platform breakdown, SIP detection, and trends",
+    })
+    async getInvestmentAnalytics(
+        @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("period") period: AnalyticsPeriod = "year",
+    ) {
+        return this.expensesService.getInvestmentAnalytics(req.user.id, period);
     }
 
     @Get("gmail/connect")

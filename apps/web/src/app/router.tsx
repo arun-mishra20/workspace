@@ -10,6 +10,8 @@ import ThemeSettingsPage from "@/pages/theme";
 import ExpenseEmailsPage from "@/pages/expenses/emails";
 import ExpenseEmailDetailsPage from "@/pages/expenses/email-details";
 import AnalyticsPage from "@/pages/expenses/analytics";
+import PatternsPage from "@/pages/expenses/patterns";
+import HoldingsPage from "@/pages/holdings";
 
 const router = createBrowserRouter([
   {
@@ -70,15 +72,16 @@ const router = createBrowserRouter([
         path: "patterns",
         element: (
           <ProtectedRoute>
-            <AnalyticsPage />
+            <PatternsPage />
           </ProtectedRoute>
         ),
       },
+
       {
-        path: "metrics",
+        path: "holdings",
         element: (
           <ProtectedRoute>
-            <AnalyticsPage />
+            <HoldingsPage />
           </ProtectedRoute>
         ),
       },

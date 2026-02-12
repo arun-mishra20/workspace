@@ -16,6 +16,8 @@ export interface CreditCardConfig {
             amount: number;
             reward_points?: number;
             durations: string[];
+            milestone_start_date?: string;
+            milestone_end_date?: string;
         }
     >;
 }

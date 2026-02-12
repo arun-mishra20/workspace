@@ -19,6 +19,7 @@ import {
 import {
     TRANSACTION_REPOSITORY,
     type TransactionRepository,
+    type TransactionFilters,
     type DateRange,
 } from "@/modules/expenses/application/ports/transaction.repository.port";
 import {
@@ -41,6 +42,17 @@ import type {
     DailySpendingItem,
     MonthlyTrendItem,
     SpendingByCardItem,
+    MilestoneProgress,
+    DayOfWeekSpendingItem,
+    CategoryTrendItem,
+    PeriodComparison,
+    CumulativeSpendItem,
+    SavingsRateItem,
+    CardCategoryItem,
+    TopVpaItem,
+    SpendingVelocityItem,
+    MilestoneEta,
+    LargestTransactionItem,
 } from "@workspace/domain";
 
 @Injectable()
@@ -165,11 +177,21 @@ export class ExpensesService {
                 try {
                     const parser = this.findParser(email);
                     if (!parser) {
+                        this.logger.debug(
+                            `Reprocess job ${jobId}: no parser found for email ${email.id} (from=${email.from}, subject=${email.subject.slice(0, 60)})`,
+                        );
                         await this.syncJobRepository.incrementProgress(jobId, "processedEmails");
                         continue;
                     }
 
                     const parsedTransactions = parser.parseTransactions(email);
+
+                    if (parsedTransactions.length === 0) {
+                        this.logger.debug(
+                            `Reprocess job ${jobId}: parser returned 0 txns for email ${email.id} (subject=${email.subject.slice(0, 60)}, bodyLen=${email.bodyText.length}, htmlLen=${email.bodyHtml?.length ?? 0}, snippet=${email.snippet.slice(0, 60)})`,
+                        );
+                    }
+
                     const transactions = this.categorizeTransactions(parsedTransactions);
 
                     if (transactions.length > 0) {
@@ -191,9 +213,12 @@ export class ExpensesService {
 
                     await this.syncJobRepository.incrementProgress(jobId, "processedEmails");
                 } catch (emailError) {
+                    const errMsg =
+                        emailError instanceof Error
+                            ? `${emailError.message}\n${emailError.stack}`
+                            : String(emailError);
                     this.logger.warn(
-                        `Reprocess job ${jobId}: failed to process email ${email.id}`,
-                        emailError,
+                        `Reprocess job ${jobId}: failed to process email ${email.id} (subject=${email.subject.slice(0, 60)}, bodyLen=${email.bodyText.length}, htmlLen=${email.bodyHtml?.length ?? 0}): ${errMsg}`,
                     );
                     await this.syncJobRepository.incrementProgress(jobId, "processedEmails");
                 }
@@ -241,13 +266,12 @@ export class ExpensesService {
             if (lastSync?.completedAt) {
                 // Incremental sync: fetch emails since last completed sync
                 const afterDate = this.formatGmailDate(lastSync.completedAt);
-                query = `subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank) after:${afterDate}`;
+                query = `subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank OR upi) after:${afterDate}`;
                 this.logger.log(`Incremental sync for user ${params.userId} after ${afterDate}`);
             } else {
-                // First sync: fetch emails from last 6 months
                 query =
-                    "subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank) newer_than:180d";
-                this.logger.log(`First sync for user ${params.userId}, fetching last 6 months`);
+                    "subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank OR upi) newer_than:180d";
+                this.logger.log(`First sync for user ${params.userId}, fetching last 30 days`);
             }
         }
 
@@ -407,10 +431,11 @@ export class ExpensesService {
         userId: string;
         limit: number;
         offset: number;
+        filters?: TransactionFilters;
     }): Promise<{ data: Transaction[]; total: number }> {
         const [data, total] = await Promise.all([
             this.transactionRepository.listByUser(params),
-            this.transactionRepository.countByUser(params.userId),
+            this.transactionRepository.countByUser(params.userId, params.filters),
         ]);
         return { data, total };
     }
@@ -425,6 +450,50 @@ export class ExpensesService {
         data: UpdateTransactionInput;
     }): Promise<Transaction> {
         return this.transactionRepository.updateById(params);
+    }
+
+    /**
+     * Get distinct merchants with their most common category, for the user.
+     */
+    async getDistinctMerchants(userId: string) {
+        return this.transactionRepository.getDistinctMerchants(userId);
+    }
+
+    /**
+     * Bulk update category and subcategory for all transactions of a given merchant.
+     */
+    async bulkCategorizeByMerchant(params: {
+        userId: string;
+        merchant: string;
+        category: string;
+        subcategory: string;
+        categoryMetadata?: { icon: string; color: string; parent: string | null };
+    }): Promise<{ merchant: string; category: string; subcategory: string; updatedCount: number }> {
+        const updatedCount = await this.transactionRepository.bulkCategorizeByMerchant(params);
+
+        return {
+            merchant: params.merchant,
+            category: params.category,
+            subcategory: params.subcategory,
+            updatedCount,
+        };
+    }
+
+    /**
+     * Bulk update fields on multiple transactions by ID.
+     */
+    async bulkUpdateByIds(params: {
+        userId: string;
+        ids: string[];
+        data: {
+            category?: string;
+            subcategory?: string;
+            transactionMode?: string;
+            requiresReview?: boolean;
+        };
+    }): Promise<{ updatedCount: number }> {
+        const updatedCount = await this.transactionRepository.bulkUpdateByIds(params);
+        return { updatedCount };
     }
 
     async getExpenseEmailById(params: { userId: string; id: string }): Promise<RawEmail | null> {
@@ -500,16 +569,305 @@ export class ExpensesService {
         const range = this.computeDateRange(period);
         const rows = await this.transactionRepository.getSpendingByCard({ userId, range });
 
-        // Enrich with card config metadata
-        return rows.map((row) => {
-            const resolved = this.cardResolver.resolve(row.cardLast4);
+        // Enrich with card config metadata + milestone progress
+        const enrichedCards = await Promise.all(
+            rows.map(async (row) => {
+                const resolved = this.cardResolver.resolve(row.cardLast4);
+                const milestones = resolved?.milestones
+                    ? await this.computeMilestoneProgress(
+                          userId,
+                          row.cardLast4,
+                          resolved.milestones,
+                      )
+                    : [];
+
+                return {
+                    ...row,
+                    cardName: resolved?.cardName ?? row.cardName,
+                    bank: resolved?.bank ?? row.bank,
+                    icon: resolved?.icon ?? row.icon,
+                    milestones: milestones.length > 0 ? milestones : undefined,
+                };
+            }),
+        );
+
+        return enrichedCards;
+    }
+
+    // ── Extended Analytics ──
+
+    async getDayOfWeekSpending(
+        userId: string,
+        period: AnalyticsPeriod,
+    ): Promise<DayOfWeekSpendingItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getDayOfWeekSpending({ userId, range });
+    }
+
+    async getCategoryTrend(userId: string, months = 6): Promise<CategoryTrendItem[]> {
+        return this.transactionRepository.getCategoryTrend({ userId, months });
+    }
+
+    async getPeriodComparison(userId: string, period: AnalyticsPeriod): Promise<PeriodComparison> {
+        const currentRange = this.computeDateRange(period);
+
+        // Compute previous period range (same duration, shifted back)
+        const durationMs = currentRange.end.getTime() - currentRange.start.getTime();
+        const previousRange = {
+            start: new Date(currentRange.start.getTime() - durationMs),
+            end: new Date(currentRange.start.getTime()),
+        };
+
+        const [current, previous] = await Promise.all([
+            this.transactionRepository.getPeriodTotals({ userId, range: currentRange }),
+            this.transactionRepository.getPeriodTotals({ userId, range: previousRange }),
+        ]);
+
+        const pctChange = (curr: number, prev: number) =>
+            prev > 0 ? Math.round(((curr - prev) / prev) * 10000) / 100 : curr > 0 ? 100 : 0;
+
+        const currentAvg =
+            current.transactionCount > 0 ? current.totalSpent / current.transactionCount : 0;
+        const previousAvg =
+            previous.transactionCount > 0 ? previous.totalSpent / previous.transactionCount : 0;
+
+        return {
+            currentPeriod: {
+                totalSpent: current.totalSpent,
+                totalReceived: current.totalReceived,
+                transactionCount: current.transactionCount,
+                avgTransaction: currentAvg,
+            },
+            previousPeriod: {
+                totalSpent: previous.totalSpent,
+                totalReceived: previous.totalReceived,
+                transactionCount: previous.transactionCount,
+                avgTransaction: previousAvg,
+            },
+            changes: {
+                spentChange: pctChange(current.totalSpent, previous.totalSpent),
+                receivedChange: pctChange(current.totalReceived, previous.totalReceived),
+                countChange: pctChange(current.transactionCount, previous.transactionCount),
+                avgChange: pctChange(currentAvg, previousAvg),
+            },
+        };
+    }
+
+    async getCumulativeSpend(
+        userId: string,
+        period: AnalyticsPeriod,
+    ): Promise<CumulativeSpendItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getCumulativeSpend({ userId, range });
+    }
+
+    async getSavingsRate(userId: string, months = 12): Promise<SavingsRateItem[]> {
+        return this.transactionRepository.getSavingsRate({ userId, months });
+    }
+
+    async getCardCategoryBreakdown(
+        userId: string,
+        period: AnalyticsPeriod,
+    ): Promise<CardCategoryItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getCardCategoryBreakdown({ userId, range });
+    }
+
+    async getTopVpas(userId: string, period: AnalyticsPeriod, limit = 10): Promise<TopVpaItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getTopVpas({ userId, range, limit });
+    }
+
+    async getSpendingVelocity(
+        userId: string,
+        period: AnalyticsPeriod,
+    ): Promise<SpendingVelocityItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getSpendingVelocity({ userId, range });
+    }
+
+    async getMilestoneEtas(userId: string): Promise<MilestoneEta[]> {
+        const allCards = this.cardResolver.getAllCards();
+        const results: MilestoneEta[] = [];
+
+        for (const [cardLast4, card] of allCards.entries()) {
+            if (!card.milestones || Object.keys(card.milestones).length === 0) continue;
+
+            for (const [id, milestone] of Object.entries(card.milestones)) {
+                const duration = milestone.durations[0] ?? "yearly";
+                const { start, end } = this.computeMilestoneDateRange(
+                    duration,
+                    milestone.milestone_start_date,
+                    milestone.milestone_end_date,
+                );
+
+                const currentSpend = await this.transactionRepository.getCardSpendForRange({
+                    userId,
+                    cardLast4,
+                    range: { start, end },
+                });
+
+                const percentage = Math.min(100, (currentSpend / milestone.amount) * 100);
+                const remaining = Math.max(0, milestone.amount - currentSpend);
+
+                // Calculate daily rate and ETA
+                const elapsedMs = Date.now() - start.getTime();
+                const elapsedDays = Math.max(1, elapsedMs / (1000 * 60 * 60 * 24));
+                const dailyRate = currentSpend / elapsedDays;
+
+                let daysRemaining: number | null = null;
+                let estimatedCompletionDate: string | null = null;
+                const periodEndStr = end.toISOString().split("T")[0]!;
+
+                if (dailyRate > 0 && remaining > 0) {
+                    daysRemaining = Math.ceil(remaining / dailyRate);
+                    const eta = new Date();
+                    eta.setDate(eta.getDate() + daysRemaining);
+                    estimatedCompletionDate = eta.toISOString().split("T")[0]!;
+                } else if (remaining <= 0) {
+                    daysRemaining = 0;
+                }
+
+                const onTrack =
+                    remaining <= 0 ||
+                    (estimatedCompletionDate != null && estimatedCompletionDate <= periodEndStr);
+
+                results.push({
+                    id,
+                    cardLast4,
+                    cardName: card.cardName,
+                    description: milestone.description,
+                    targetAmount: milestone.amount,
+                    currentSpend,
+                    percentage: Math.round(percentage * 100) / 100,
+                    dailyRate: Math.round(dailyRate * 100) / 100,
+                    daysRemaining,
+                    estimatedCompletionDate,
+                    periodEnd: periodEndStr,
+                    onTrack,
+                });
+            }
+        }
+
+        return results;
+    }
+
+    async getLargestTransactions(
+        userId: string,
+        period: AnalyticsPeriod,
+        limit = 10,
+    ): Promise<LargestTransactionItem[]> {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getLargestTransactions({ userId, range, limit });
+    }
+
+    // ── Pattern Analytics ──
+
+    async getBusAnalytics(userId: string, period: AnalyticsPeriod) {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getBusAnalytics({ userId, range });
+    }
+
+    async getInvestmentAnalytics(userId: string, period: AnalyticsPeriod) {
+        const range = this.computeDateRange(period);
+        return this.transactionRepository.getInvestmentAnalytics({ userId, range });
+    }
+
+    /**
+     * Compute milestone progress for a specific card.
+     * For each milestone, determines the date range based on duration type
+     * (quarterly = current calendar quarter, yearly = custom dates or calendar year),
+     * queries actual spend in that range, and calculates progress.
+     */
+    private async computeMilestoneProgress(
+        userId: string,
+        cardLast4: string,
+        milestones: NonNullable<ReturnType<CardResolver["resolve"]>>["milestones"],
+    ): Promise<MilestoneProgress[]> {
+        const entries = Object.entries(milestones);
+        if (entries.length === 0) return [];
+
+        const results: MilestoneProgress[] = [];
+
+        for (const [id, milestone] of entries) {
+            const duration = milestone.durations[0] ?? "yearly";
+            const { start, end, label } = this.computeMilestoneDateRange(
+                duration,
+                milestone.milestone_start_date,
+                milestone.milestone_end_date,
+            );
+
+            const currentSpend = await this.transactionRepository.getCardSpendForRange({
+                userId,
+                cardLast4,
+                range: { start, end },
+            });
+
+            const percentage = Math.min(100, (currentSpend / milestone.amount) * 100);
+            const remaining = Math.max(0, milestone.amount - currentSpend);
+
+            results.push({
+                id,
+                type: milestone.type as "spend" | "fee waiver",
+                description: milestone.description,
+                targetAmount: milestone.amount,
+                currentSpend,
+                percentage: Math.round(percentage * 100) / 100,
+                remaining,
+                periodLabel: label,
+                periodStart: start.toISOString().split("T")[0]!,
+                periodEnd: end.toISOString().split("T")[0]!,
+            });
+        }
+
+        return results;
+    }
+
+    /**
+     * Compute the date range for a milestone based on its duration type.
+     * - "quarterly": Current calendar quarter (Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec)
+     * - "yearly" with custom dates: Uses milestone_start_date/milestone_end_date
+     * - "yearly" without custom dates: Current calendar year
+     */
+    private computeMilestoneDateRange(
+        duration: string,
+        startDate?: string,
+        endDate?: string,
+    ): { start: Date; end: Date; label: string } {
+        const now = new Date();
+
+        if (duration === "quarterly") {
+            const quarter = Math.floor(now.getMonth() / 3);
+            const quarterNames = ["Jan–Mar", "Apr–Jun", "Jul–Sep", "Oct–Dec"];
+            const start = new Date(now.getFullYear(), quarter * 3, 1);
+            const end = new Date(now.getFullYear(), quarter * 3 + 3, 1);
             return {
-                ...row,
-                cardName: resolved?.cardName ?? row.cardName,
-                bank: resolved?.bank ?? row.bank,
-                icon: resolved?.icon ?? row.icon,
+                start,
+                end,
+                label: `Q${quarter + 1} ${now.getFullYear()} (${quarterNames[quarter]})`,
             };
-        });
+        }
+
+        // Yearly with custom dates
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            start.setHours(0, 0, 0, 0);
+            end.setHours(23, 59, 59, 999);
+
+            const fmtDate = (d: Date) =>
+                d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+            return {
+                start,
+                end,
+                label: `${fmtDate(start)} – ${fmtDate(end)}`,
+            };
+        }
+
+        // Yearly default: calendar year
+        const start = new Date(now.getFullYear(), 0, 1);
+        const end = new Date(now.getFullYear() + 1, 0, 1);
+        return { start, end, label: `FY ${now.getFullYear()}` };
     }
 
     private findParser(email: RawEmail): EmailParser | null {

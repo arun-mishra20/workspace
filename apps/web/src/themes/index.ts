@@ -20,7 +20,7 @@ export { DEFAULT_PRESET_NAME, presets } from "./presets";
 export { ThemeCustomizationProvider, useThemeCustomization } from "./context";
 
 // Utilities (for advanced use cases)
-export { applyTheme, mergeThemeWithOverrides } from "./apply";
+export { applyTheme, applyThemeWithPreset, mergeThemeWithOverrides } from "./apply";
 export {
   clearThemeConfig,
   getDefaultConfig,

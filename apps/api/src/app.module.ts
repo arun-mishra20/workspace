@@ -21,6 +21,7 @@ import { ApiVersionMiddleware } from "@/app/middleware/api-version.middleware";
 import { SwaggerDevController } from "@/app/swagger/swagger-dev.controller";
 import { AuthModule } from "@/modules/auth/auth.module";
 import { ExpensesModule } from "@/modules/expenses/expenses.module";
+import { HoldingsModule } from "@/modules/holdings/holdings.module";
 import { TodoModule } from "@/modules/todo/todo.module";
 import { DrizzleModule } from "@/shared/infrastructure/db/db.module";
 import { DomainEventsModule } from "@/shared/infrastructure/events/domain-events.module";
@@ -71,6 +72,7 @@ import type { NestModule, MiddlewareConsumer } from "@nestjs/common";
         TodoModule, // Todo module (anemic model example)
         AuthModule, // Auth module (authentication + DDD example)
         ExpensesModule, // Expenses module (email parsing + finance data)
+        HoldingsModule, // Holdings module (investment portfolio management)
     ],
     controllers: [
         // Dev helper controller (dev only)

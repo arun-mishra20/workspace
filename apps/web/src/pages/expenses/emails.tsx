@@ -5,6 +5,7 @@ import {
   getCoreRowModel,
   flexRender,
   type ColumnDef,
+  type RowSelectionState,
 } from "@tanstack/react-table";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { format } from "date-fns";
@@ -20,6 +21,9 @@ import {
   type UpdateTransactionInput,
 } from "@/features/expenses/api/update-transaction";
 import { useSyncJob } from "@/features/expenses/hooks/use-sync-job";
+import { MerchantCategorizeDialog } from "@/features/expenses/components/merchant-categorize-dialog";
+import { BulkActionsToolbar } from "@/features/expenses/components/bulk-actions-toolbar";
+import { CATEGORY_OPTIONS } from "@/features/expenses/constants/category-options";
 import { Badge } from "@workspace/ui/components/ui/badge";
 import { Button } from "@workspace/ui/components/ui/button";
 import {
@@ -28,6 +32,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/ui/card";
+import { Checkbox } from "@workspace/ui/components/ui/checkbox";
 import { Input } from "@workspace/ui/components/ui/input";
 import { Label } from "@workspace/ui/components/ui/label";
 import {
@@ -66,10 +71,22 @@ import {
   RotateCw,
   RefreshCcw,
   Unplug,
+  IndianRupee,
+  Send,
+  ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { appPaths } from "@/config/app-paths";
 import type { Transaction } from "@workspace/domain";
+import {
+  SelectFilter,
+  DateRangeFilter,
+  SearchFilter,
+  type FilterOption,
+} from "@/components/filters";
+import { useDebounce } from "@/hooks/use-debounce";
+import { Separator } from "@workspace/ui/components/ui/separator";
 
 const TRANSACTION_TYPES = ["debited", "credited"] as const;
 const TRANSACTION_MODES = [
@@ -79,16 +96,25 @@ const TRANSACTION_MODES = [
   "imps",
   "rtgs",
 ] as const;
-const CATEGORIES = [
-  "uncategorized",
-  "food_dining",
-  "groceries",
-  "shopping",
-  "transport",
-  "utilities",
-  "income_salary",
-  "personal_transfer",
-] as const;
+function getCategoryMeta(value: string) {
+  return CATEGORY_OPTIONS.find((c) => c.value === value);
+}
+
+const CATEGORY_FILTER_OPTIONS: FilterOption[] = CATEGORY_OPTIONS.map((c) => ({
+  value: c.value,
+  label: c.label,
+  color: c.color,
+}));
+
+const MODE_FILTER_OPTIONS: FilterOption[] = TRANSACTION_MODES.map((m) => ({
+  value: m,
+  label: m.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+}));
+
+const REVIEW_FILTER_OPTIONS: FilterOption[] = [
+  { value: "true", label: "Needs Review" },
+  { value: "false", label: "Reviewed" },
+];
 
 type ExpenseView = "expense" | "emails";
 
@@ -170,6 +196,31 @@ const buildExpenseColumns = (
   onEdit: (transaction: Transaction) => void,
 ): ColumnDef<Transaction>[] => [
   {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected()}
+        indeterminate={
+          table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+        className="translate-y-0.5"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+        className="translate-y-0.5"
+        onClick={(e) => e.stopPropagation()}
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
     accessorKey: "transactionDate",
     header: "Date",
     cell: ({ row }) => formatDate(row.original.transactionDate),
@@ -199,11 +250,25 @@ const buildExpenseColumns = (
   {
     accessorKey: "category",
     header: "Category",
-    cell: ({ row }) => (
-      <Badge variant="secondary" className="capitalize">
-        {row.original.category.replace(/_/g, " ")}
-      </Badge>
-    ),
+    cell: ({ row }) => {
+      const meta = getCategoryMeta(row.original.category);
+      return (
+        <Badge
+          variant="secondary"
+          className="capitalize"
+          style={{
+            borderColor: meta?.color,
+            color: meta?.color,
+          }}
+        >
+          <span
+            className="inline-block size-2 rounded-full mr-1.5"
+            style={{ backgroundColor: meta?.color ?? "#95A5A6" }}
+          />
+          {meta?.label ?? row.original.category.replace(/_/g, " ")}
+        </Badge>
+      );
+    },
   },
   {
     accessorKey: "transactionMode",
@@ -268,6 +333,39 @@ const ExpenseEmailsPage = () => {
     useState<Transaction | null>(null);
   const pageSize = 20;
   const navigate = useNavigate();
+
+  // ── Row selection ──
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
+  // ── Filter state ──
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterMode, setFilterMode] = useState("");
+  const [filterReview, setFilterReview] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState<string | undefined>();
+  const [filterDateTo, setFilterDateTo] = useState<string | undefined>();
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  const hasActiveFilters =
+    filterCategory ||
+    filterMode ||
+    filterReview ||
+    filterDateFrom ||
+    filterDateTo ||
+    debouncedSearch;
+
+  // Reset to first page and clear selection whenever filters change
+  useEffect(() => {
+    setExpensePageIndex(0);
+    setRowSelection({});
+  }, [
+    filterCategory,
+    filterMode,
+    filterReview,
+    filterDateFrom,
+    filterDateTo,
+    debouncedSearch,
+  ]);
 
   // ── Edit form state ──
   const [editForm, setEditForm] = useState<UpdateTransactionInput>({});
@@ -341,9 +439,28 @@ const ExpenseEmailsPage = () => {
     isLoading: isExpensesLoading,
     isError: isExpensesError,
   } = useQuery({
-    queryKey: ["expenses", "transactions", expensePageIndex + 1],
+    queryKey: [
+      "expenses",
+      "transactions",
+      expensePageIndex + 1,
+      filterCategory,
+      filterMode,
+      filterReview,
+      filterDateFrom,
+      filterDateTo,
+      debouncedSearch,
+    ],
     queryFn: () =>
-      listExpenses({ page: expensePageIndex + 1, page_size: pageSize }),
+      listExpenses({
+        page: expensePageIndex + 1,
+        page_size: pageSize,
+        ...(filterCategory && { category: filterCategory }),
+        ...(filterMode && { mode: filterMode }),
+        ...(filterReview && { review: filterReview }),
+        ...(filterDateFrom && { date_from: filterDateFrom }),
+        ...(filterDateTo && { date_to: filterDateTo }),
+        ...(debouncedSearch && { search: debouncedSearch }),
+      }),
     enabled: activeView === "expense",
   });
 
@@ -380,6 +497,7 @@ const ExpenseEmailsPage = () => {
         pageIndex: expensePageIndex,
         pageSize,
       },
+      rowSelection,
     },
     onPaginationChange: (updater) => {
       if (typeof updater === "function") {
@@ -388,7 +506,11 @@ const ExpenseEmailsPage = () => {
       } else {
         setExpensePageIndex(updater.pageIndex);
       }
+      setRowSelection({});
     },
+    onRowSelectionChange: setRowSelection,
+    getRowId: (row) => row.id,
+    enableRowSelection: true,
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
   });
@@ -426,7 +548,7 @@ const ExpenseEmailsPage = () => {
 
   return (
     <MainLayout>
-      <div className="flex flex-1 flex-col gap-6 px-6 py-10">
+      <div className="flex flex-1 flex-col gap-6 px-6 py-10 mx-8">
         <header className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
@@ -546,10 +668,17 @@ const ExpenseEmailsPage = () => {
               <CardTitle className="text-base font-semibold">
                 {activeView === "expense" ? "All Expenses" : "Recent Emails"}
               </CardTitle>
-              <div className="flex items-center gap-2">
-                <TabsList className="mr-2">
-                  <TabsTrigger value="expense">Expense</TabsTrigger>
-                  <TabsTrigger value="emails">Emails</TabsTrigger>
+              <div className="flex items-center gap-2 justify-center">
+                {activeView === "expense" && <MerchantCategorizeDialog />}
+                <TabsList className="ml-2">
+                  <TabsTrigger value="expense" className="flex gap-1">
+                    <IndianRupee className="size-4" />
+                    Expense
+                  </TabsTrigger>
+                  <TabsTrigger value="emails" className="flex gap-1">
+                    <Send className="size-4" />
+                    Emails
+                  </TabsTrigger>
                 </TabsList>
                 <Badge variant="outline">
                   {activeView === "expense"
@@ -570,6 +699,63 @@ const ExpenseEmailsPage = () => {
               </div>
             </CardHeader>
             <CardContent>
+              {/* ── Filter bar (expense tab only) ── */}
+              {activeView === "expense" && (
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <SearchFilter
+                    value={searchInput}
+                    onChange={setSearchInput}
+                    placeholder="Search merchant…"
+                  />
+                  <SelectFilter
+                    label="Categories"
+                    value={filterCategory}
+                    options={CATEGORY_FILTER_OPTIONS}
+                    onChange={setFilterCategory}
+                  />
+                  <SelectFilter
+                    label="Modes"
+                    value={filterMode}
+                    options={MODE_FILTER_OPTIONS}
+                    onChange={setFilterMode}
+                  />
+                  <SelectFilter
+                    label="Review"
+                    value={filterReview}
+                    options={REVIEW_FILTER_OPTIONS}
+                    onChange={setFilterReview}
+                    className="w-35 h-9 text-xs"
+                  />
+                  <DateRangeFilter
+                    dateFrom={filterDateFrom}
+                    dateTo={filterDateTo}
+                    onChange={({ from, to }) => {
+                      setFilterDateFrom(from);
+                      setFilterDateTo(to);
+                    }}
+                  />
+                  {hasActiveFilters && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 text-xs text-muted-foreground"
+                      onClick={() => {
+                        setFilterCategory("");
+                        setFilterMode("");
+                        setFilterReview("");
+                        setFilterDateFrom(undefined);
+                        setFilterDateTo(undefined);
+                        setSearchInput("");
+                      }}
+                    >
+                      Clear all
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              <Separator className="mb-4" />
+
               <TabsContent value="expense" className="mt-0">
                 {isExpensesLoading ? (
                   <p className="text-sm text-muted-foreground">
@@ -611,7 +797,10 @@ const ExpenseEmailsPage = () => {
                       </TableHeader>
                       <TableBody>
                         {expenseTable.getRowModel().rows.map((row) => (
-                          <TableRow key={row.id}>
+                          <TableRow
+                            key={row.id}
+                            data-state={row.getIsSelected() && "selected"}
+                          >
                             {row.getVisibleCells().map((cell) => (
                               <TableCell key={cell.id}>
                                 {flexRender(
@@ -642,6 +831,7 @@ const ExpenseEmailsPage = () => {
                             onClick={() => expenseTable.previousPage()}
                             disabled={!expenseTable.getCanPreviousPage()}
                           >
+                            <ArrowLeft />
                             Previous
                           </Button>
                           <Button
@@ -651,10 +841,15 @@ const ExpenseEmailsPage = () => {
                             disabled={!expenseTable.getCanNextPage()}
                           >
                             Next
+                            <ArrowRight />
                           </Button>
                         </div>
                       </div>
                     )}
+                    <BulkActionsToolbar
+                      selectedIds={Object.keys(rowSelection)}
+                      onClearSelection={() => setRowSelection({})}
+                    />
                   </div>
                 ) : null}
               </TabsContent>
@@ -907,9 +1102,15 @@ const ExpenseEmailsPage = () => {
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c} className="capitalize">
-                      {c.replace(/_/g, " ")}
+                  {CATEGORY_OPTIONS.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="inline-block size-2 rounded-full"
+                          style={{ backgroundColor: cat.color }}
+                        />
+                        {cat.label}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

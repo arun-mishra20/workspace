@@ -14,10 +14,20 @@ const listExpensesSchema = z.object({
 
 export type ListExpensesResponse = z.infer<typeof listExpensesSchema>;
 
-export async function listExpenses(params?: {
+export interface ListExpensesParams {
   page?: number;
   page_size?: number;
-}): Promise<ListExpensesResponse> {
+  category?: string;
+  mode?: string;
+  review?: string;
+  date_from?: string;
+  date_to?: string;
+  search?: string;
+}
+
+export async function listExpenses(
+  params?: ListExpensesParams,
+): Promise<ListExpensesResponse> {
   const searchParams = new URLSearchParams();
 
   if (params?.page) {
@@ -26,6 +36,30 @@ export async function listExpenses(params?: {
 
   if (params?.page_size) {
     searchParams.set("page_size", params.page_size.toString());
+  }
+
+  if (params?.category) {
+    searchParams.set("category", params.category);
+  }
+
+  if (params?.mode) {
+    searchParams.set("mode", params.mode);
+  }
+
+  if (params?.review) {
+    searchParams.set("review", params.review);
+  }
+
+  if (params?.date_from) {
+    searchParams.set("date_from", params.date_from);
+  }
+
+  if (params?.date_to) {
+    searchParams.set("date_to", params.date_to);
+  }
+
+  if (params?.search) {
+    searchParams.set("search", params.search);
   }
 
   const url = `/api/expenses/transactions${searchParams.toString() ? `?${searchParams}` : ""}`;
