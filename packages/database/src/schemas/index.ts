@@ -2,4 +2,5 @@ export * from "./todos.schema.js";
 export * from "./articles.schema.js";
 export * from "./finance.schema.js";
 export * from "./holdings.schema.js";
+export * from "./merchant-rules.schema.js";
 export * from "./auth/index.js";

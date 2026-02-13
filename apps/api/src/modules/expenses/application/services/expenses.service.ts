@@ -27,7 +27,14 @@ import {
     type SyncJobRepository,
     type SyncJob,
 } from "@/modules/expenses/application/ports/sync-job.repository.port";
-import { TransactionCategorizer } from "@/modules/expenses/infrastructure/categorization/transaction-categorizer";
+import {
+    MERCHANT_RULE_REPOSITORY,
+    type MerchantCategoryRuleRepository,
+} from "@/modules/expenses/application/ports/merchant-rule.repository.port";
+import {
+    TransactionCategorizer,
+    type UserCategorizationRules,
+} from "@/modules/expenses/infrastructure/categorization/transaction-categorizer";
 import { CardResolver } from "@/modules/expenses/infrastructure/categorization/card-resolver";
 
 import type {
@@ -74,6 +81,8 @@ export class ExpensesService {
         private readonly rawEmailRepository: RawEmailRepository,
         @Inject(SYNC_JOB_REPOSITORY)
         private readonly syncJobRepository: SyncJobRepository,
+        @Inject(MERCHANT_RULE_REPOSITORY)
+        private readonly merchantRuleRepository: MerchantCategoryRuleRepository,
     ) {}
 
     /**
@@ -173,6 +182,9 @@ export class ExpensesService {
             let totalTransactions = 0;
             let totalStatements = 0;
 
+            // Load user's merchant category rules once for the entire reprocess
+            const userRules = await this.buildUserCategorizationRules(userId);
+
             for (const email of allEmails) {
                 try {
                     const parser = this.findParser(email);
@@ -192,7 +204,7 @@ export class ExpensesService {
                         );
                     }
 
-                    const transactions = this.categorizeTransactions(parsedTransactions);
+                    const transactions = this.categorizeTransactions(parsedTransactions, userRules);
 
                     if (transactions.length > 0) {
                         await this.transactionRepository.upsertMany(transactions);
@@ -265,7 +277,7 @@ export class ExpensesService {
 
             if (lastSync?.completedAt) {
                 // Incremental sync: fetch emails since last completed sync
-                const afterDate = this.formatGmailDate(lastSync.completedAt);
+                const afterDate = this.formatGmailAfterTimestamp(lastSync.completedAt, 5);
                 query = `subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank OR upi) after:${afterDate}`;
                 this.logger.log(`Incremental sync for user ${params.userId} after ${afterDate}`);
             } else {
@@ -297,6 +309,9 @@ export class ExpensesService {
 
             let totalTransactions = 0;
             let totalStatements = 0;
+
+            // Load user's merchant category rules once for the entire sync
+            const userRules = await this.buildUserCategorizationRules(params.userId);
 
             // Process emails in batches to avoid N+1 query problem
             const BATCH_SIZE = 100;
@@ -342,8 +357,10 @@ export class ExpensesService {
 
                             if (parser) {
                                 const parsedTransactions = parser.parseTransactions(emailWithId);
-                                const transactions =
-                                    this.categorizeTransactions(parsedTransactions);
+                                const transactions = this.categorizeTransactions(
+                                    parsedTransactions,
+                                    userRules,
+                                );
 
                                 if (transactions.length > 0) {
                                     await this.transactionRepository.upsertMany(transactions);
@@ -470,6 +487,15 @@ export class ExpensesService {
         categoryMetadata?: { icon: string; color: string; parent: string | null };
     }): Promise<{ merchant: string; category: string; subcategory: string; updatedCount: number }> {
         const updatedCount = await this.transactionRepository.bulkCategorizeByMerchant(params);
+
+        // Persist the merchant → category mapping for future syncs
+        await this.merchantRuleRepository.upsert({
+            userId: params.userId,
+            merchant: params.merchant,
+            category: params.category,
+            subcategory: params.subcategory,
+            categoryMetadata: params.categoryMetadata,
+        });
 
         return {
             merchant: params.merchant,
@@ -874,20 +900,49 @@ export class ExpensesService {
         return this.parsers.find((parser) => parser.canParse(email)) ?? null;
     }
 
-    private categorizeTransactions(transactions: Transaction[]): Transaction[] {
+    /**
+     * Build a UserCategorizationRules object from the user's persisted
+     * merchant → category rules. Called once per sync/reprocess.
+     */
+    private async buildUserCategorizationRules(
+        userId: string,
+    ): Promise<UserCategorizationRules | undefined> {
+        const rules = await this.merchantRuleRepository.findAllByUser(userId);
+        if (rules.length === 0) {
+            return undefined;
+        }
+
+        const exactMatches: Record<string, string> = {};
+        for (const rule of rules) {
+            // The categorizer's checkExactMatch lowercases paidTo, so store merchant as-is
+            exactMatches[rule.merchant] = rule.category;
+        }
+
+        this.logger.debug(`Loaded ${rules.length} merchant category rules for user ${userId}`);
+
+        return { exact_matches: exactMatches };
+    }
+
+    private categorizeTransactions(
+        transactions: Transaction[],
+        userRules?: UserCategorizationRules,
+    ): Transaction[] {
         if (transactions.length === 0) {
             return transactions;
         }
 
         return transactions.map((transaction) => {
-            const category = this.transactionCategorizer.categorizeTransaction({
-                id: transaction.id,
-                paid_to: transaction.merchantRaw,
-                vpa: transaction.vpa,
-                transaction_mode: transaction.transactionMode,
-                amount: transaction.amount,
-                transaction_type: transaction.transactionType,
-            });
+            const category = this.transactionCategorizer.categorizeTransaction(
+                {
+                    id: transaction.id,
+                    paid_to: transaction.merchantRaw,
+                    vpa: transaction.vpa,
+                    transaction_mode: transaction.transactionMode,
+                    amount: transaction.amount,
+                    transaction_type: transaction.transactionType,
+                },
+                userRules,
+            );
 
             // Resolve card name from last-4 digits
             const cardName = transaction.cardLast4
@@ -910,10 +965,10 @@ export class ExpensesService {
     /**
      * Format date for Gmail query (YYYY/MM/DD)
      */
-    private formatGmailDate(date: Date): string {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${year}/${month}/${day}`;
+    private formatGmailAfterTimestamp(date: Date, offsetByDays = 0): number {
+        const adjusted = new Date(date);
+        adjusted.setDate(adjusted.getDate() - offsetByDays);
+
+        return Math.floor(adjusted.getTime() / 1000); // Gmail expects seconds
     }
 }
