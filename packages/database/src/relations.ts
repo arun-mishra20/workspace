@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations } from 'drizzle-orm'
 
 import {
   usersTable,
@@ -9,7 +9,7 @@ import {
   statementsTable,
   transactionsTable,
   merchantCategoryRulesTable,
-} from "./schemas/index.js";
+} from './schemas/index.js'
 
 /**
  * Users table relations
@@ -32,7 +32,7 @@ export const usersRelations = relations(usersTable, ({ one, many }) => ({
   transactions: many(transactionsTable),
   // 1:N with merchant_category_rules
   merchantCategoryRules: many(merchantCategoryRulesTable),
-}));
+}))
 
 /**
  * Profiles table relations
@@ -43,7 +43,7 @@ export const profilesRelations = relations(profilesTable, ({ one }) => ({
     fields: [profilesTable.userId],
     references: [usersTable.id],
   }),
-}));
+}))
 
 /**
  * Auth Accounts table relations
@@ -54,7 +54,7 @@ export const accountsRelations = relations(accountsTable, ({ one }) => ({
     fields: [accountsTable.userId],
     references: [usersTable.id],
   }),
-}));
+}))
 
 /**
  * Auth Sessions table relations
@@ -65,7 +65,7 @@ export const sessionsRelations = relations(sessionsTable, ({ one }) => ({
     fields: [sessionsTable.userId],
     references: [usersTable.id],
   }),
-}));
+}))
 
 /**
  * Raw Emails table relations
@@ -83,7 +83,7 @@ export const rawEmailsRelations = relations(
     // 1:N with statements
     statements: many(statementsTable),
   }),
-);
+)
 
 /**
  * Statements table relations
@@ -104,7 +104,7 @@ export const statementsRelations = relations(
     // 1:N with transactions
     transactions: many(transactionsTable),
   }),
-);
+)
 
 /**
  * Transactions table relations
@@ -128,7 +128,7 @@ export const transactionsRelations = relations(
       references: [statementsTable.id],
     }),
   }),
-);
+)
 
 /**
  * Merchant category rules table relations
@@ -142,4 +142,4 @@ export const merchantCategoryRulesRelations = relations(
       references: [usersTable.id],
     }),
   }),
-);
+)

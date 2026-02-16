@@ -1,12 +1,12 @@
-import stylisticPlugin from "@stylistic/eslint-plugin";
-import { defineConfig } from "eslint/config";
+import stylisticPlugin from '@stylistic/eslint-plugin'
+import { defineConfig } from 'eslint/config'
 
-import { GLOB_SRC } from "../utils";
+import { GLOB_SRC } from '../utils'
 
-import type { OptionsOverrides } from "../types";
-import type { Linter } from "eslint";
+import type { OptionsOverrides } from '../types'
+import type { Linter } from 'eslint'
 
-export type StylisticOptions = OptionsOverrides;
+export type StylisticOptions = OptionsOverrides
 
 /**
  * Stylistic code style configuration
@@ -23,13 +23,13 @@ export type StylisticOptions = OptionsOverrides;
  * @returns ESLint config array
  */
 export function stylistic(options: StylisticOptions = {}): Linter.Config[] {
-  const { overrides = {} } = options;
+  const { overrides = {} } = options
 
-  const files = [GLOB_SRC];
+  const files = [GLOB_SRC]
 
   return defineConfig([
     {
-      name: "stylistic/rules",
+      name: 'stylistic/rules',
       files,
       extends: [
         stylisticPlugin.configs.customize({
@@ -38,18 +38,18 @@ export function stylistic(options: StylisticOptions = {}): Linter.Config[] {
           semi: false, // Minimal: TypeScript doesn't need semicolons
 
           // === Quote Strategy ===
-          quotes: "single", // Aesthetic: Single quotes in JS, lighter
-          quoteProps: "consistent-as-needed", // Minimal: Quote only when needed, but be consistent
+          quotes: 'single', // Aesthetic: Single quotes in JS, lighter
+          quoteProps: 'consistent-as-needed', // Minimal: Quote only when needed, but be consistent
 
           // === Comma Strategy ===
-          commaDangle: "always-multiline", // Consistent: Trailing commas in multiline
+          commaDangle: 'always-multiline', // Consistent: Trailing commas in multiline
 
           // === Parentheses Strategy ===
           arrowParens: true, // Consistent: Always parens for arrow functions
           blockSpacing: true, // Aesthetic: Spacing in single-line blocks { return true }
 
           // === Block Style ===
-          braceStyle: "1tbs", // Consistent: Mainstream One True Brace Style
+          braceStyle: '1tbs', // Consistent: Mainstream One True Brace Style
 
           // === JSX Support ===
           jsx: true, // Enable JSX-related rules
@@ -57,5 +57,5 @@ export function stylistic(options: StylisticOptions = {}): Linter.Config[] {
       ],
       rules: overrides,
     },
-  ]);
+  ])
 }
