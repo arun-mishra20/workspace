@@ -122,17 +122,19 @@ export class ExpensesService {
   }
 
   /**
-     * Start a reprocess job — re-parse & re-categorize all stored emails
+     * Start a reprocess job — re-parse & re-categorize stored emails
      * without fetching from Gmail. Returns a job ID for polling.
+     *
+     * @param forceProcessAll - If true, reprocess ALL emails. If false (default), only process unprocessed emails.
      */
-  async startReprocessJob(params: { userId: string }): Promise<{ jobId: string }> {
+  async startReprocessJob(params: { userId: string, forceProcessAll?: boolean }): Promise<{ jobId: string }> {
     const job = await this.syncJobRepository.create({
       userId: params.userId,
       category: EXPENSE_CATEGORY,
       query: '__reprocess__',
     })
 
-    this.runReprocessJob(job.id, params.userId).catch(async (error) => {
+    this.runReprocessJob(job.id, params.userId, params.forceProcessAll ?? false).catch(async (error) => {
       this.logger.error(
         `Reprocess job ${job.id} failed unexpectedly outside try-catch`,
         error,
@@ -152,23 +154,29 @@ export class ExpensesService {
   }
 
   /**
-     * Internal: re-parse all stored raw_emails for a user and upsert transactions.
+     * Internal: re-parse stored raw_emails for a user and upsert transactions.
      * Skips Gmail entirely — works purely from stored email data.
+     *
+     * @param forceProcessAll - If true, process all emails. If false, only process unprocessed emails.
      */
-  private async runReprocessJob(jobId: string, userId: string): Promise<void> {
+  private async runReprocessJob(jobId: string, userId: string, forceProcessAll: boolean): Promise<void> {
     try {
       await this.syncJobRepository.update(jobId, {
         status: 'processing',
         startedAt: new Date(),
       })
 
-      const allEmails = await this.rawEmailRepository.listAllByUser(userId, EXPENSE_CATEGORY)
+      const allEmails = forceProcessAll
+        ? await this.rawEmailRepository.listAllByUser(userId, EXPENSE_CATEGORY)
+        : await this.rawEmailRepository.listUnprocessedByUser(userId, EXPENSE_CATEGORY)
 
       await this.syncJobRepository.update(jobId, {
         totalEmails: allEmails.length,
       })
 
-      this.logger.log(`Reprocess job ${jobId}: re-parsing ${allEmails.length} stored emails`)
+      this.logger.log(
+        `Reprocess job ${jobId}: re-parsing ${allEmails.length} ${forceProcessAll ? '' : 'unprocessed '}stored emails`,
+      )
 
       let totalTransactions = 0
       let totalStatements = 0
@@ -285,10 +293,15 @@ export class ExpensesService {
         `Post-sync processing: waiting for job ${jobId} to complete... (current status: ${job.status}, elapsed: ${Math.floor((Date.now() - startTime) / 1000)}s)`,
       )
 
-      const allEmails = await this.rawEmailRepository.listAllByUser(userId, EXPENSE_CATEGORY)
+      // Only process new emails that haven't been processed yet
+      const allEmails = await this.rawEmailRepository.listUnprocessedByUser(userId, EXPENSE_CATEGORY)
 
       let totalTransactions = 0
       let totalStatements = 0
+
+      this.logger.log(
+        `Post-sync processing for job ${jobId}: found ${allEmails.length} unprocessed emails`,
+      )
 
       for (const email of allEmails) {
         try {

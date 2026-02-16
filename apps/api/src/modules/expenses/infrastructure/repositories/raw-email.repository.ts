@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { rawEmailsTable } from '@workspace/database'
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { rawEmailsTable, transactionsTable } from '@workspace/database'
+import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 
 import { DB_TOKEN } from '@/shared/infrastructure/db/db.port'
 
@@ -164,6 +164,29 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
       .orderBy(desc(rawEmailsTable.receivedAt))
 
     this.logger.debug(`Found ${records.length} total emails for user ${userId}, category: ${category}`)
+    return records.map((record) => this.toDomain(record))
+  }
+
+  async listUnprocessedByUser(userId: string, category?: string): Promise<RawEmail[]> {
+    this.logger.debug(`Listing UNPROCESSED emails for user ${userId}, category: ${category}`)
+
+    const conditions = [eq(rawEmailsTable.userId, userId)]
+    if (category) {
+      conditions.push(eq(rawEmailsTable.category, category))
+    }
+
+    // Find emails that don't have any transactions created from them
+    const records = await this.db
+      .select(this.selectFields())
+      .from(rawEmailsTable)
+      .leftJoin(
+        transactionsTable,
+        eq(rawEmailsTable.id, transactionsTable.sourceEmailId),
+      )
+      .where(and(...conditions, isNull(transactionsTable.id)))
+      .orderBy(desc(rawEmailsTable.receivedAt))
+
+    this.logger.debug(`Found ${records.length} unprocessed emails for user ${userId}`)
     return records.map((record) => this.toDomain(record))
   }
 

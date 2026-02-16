@@ -195,119 +195,136 @@ const emailColumns: ColumnDef<RawEmail>[] = [
 const buildExpenseColumns = (
   onEdit: (transaction: Transaction) => void,
 ): ColumnDef<Transaction>[] => [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected()}
-        indeterminate={
-          table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-        className="translate-y-0.5"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-        className="translate-y-0.5"
-        onClick={(e) => e.stopPropagation()}
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "transactionDate",
-    header: "Date",
-    cell: ({ row }) => formatDate(row.original.transactionDate),
-  },
-  {
-    accessorKey: "merchant",
-    header: "Merchant",
-    cell: ({ row }) => (
-      <div className="font-medium text-foreground">{row.original.merchant}</div>
-    ),
-  },
-  {
-    accessorKey: "amount",
-    header: "Amount",
-    cell: ({ row }) => (
-      <div
-        className={
-          row.original.transactionType === "debited"
-            ? "font-medium text-red-600"
-            : "font-medium text-emerald-600"
-        }
-      >
-        {formatAmount(row.original)}
-      </div>
-    ),
-  },
-  {
-    accessorKey: "category",
-    header: "Category",
-    cell: ({ row }) => {
-      const meta = getCategoryMeta(row.original.category);
-      return (
-        <Badge
-          variant="secondary"
-          className="capitalize"
-          style={{
-            borderColor: meta?.color,
-            color: meta?.color,
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          indeterminate={
+            table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+          className="translate-y-0.5"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+          className="translate-y-0.5"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "transactionDate",
+      header: "Date",
+      cell: ({ row }) => formatDate(row.original.transactionDate),
+    },
+    {
+      accessorKey: "merchant",
+      header: "Merchant",
+      cell: ({ row }) => (
+        <div className="flex gap-2 items-center max-w-72">
+          <div className="font-medium text-foreground">{row.original.merchant}
+          </div>
+          <Badge className="ml-2 text-[10px] p-0.5 px-2 h-fit max-w-30">
+            <p className="truncate">
+              {row.original.cardName ?? row.original.vpa ?? row.original.merchantRaw ?? "Unknown source"}
+            </p>
+          </Badge>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "amount",
+      header: "Amount",
+      cell: ({ row }) => (
+        <div
+          className={
+            row.original.transactionType === "debited"
+              ? "font-medium text-red-600"
+              : "font-medium text-emerald-600"
+          }
+        >
+          {formatAmount(row.original)}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "category",
+      header: "Category",
+      cell: ({ row }) => {
+        const meta = getCategoryMeta(row.original.category);
+        return (
+          <Badge
+            variant="secondary"
+            className="capitalize"
+            style={{
+              borderColor: meta?.color,
+              color: meta?.color,
+            }}
+          >
+            <span
+              className="inline-block size-2 rounded-full mr-1.5"
+              style={{ backgroundColor: meta?.color ?? "#95A5A6" }}
+            />
+            {meta?.label ?? row.original.category.replace(/_/g, " ")}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "transactionMode",
+      header: "Mode",
+      cell: ({ row }) => (
+        <span className="capitalize">
+          {row.original.transactionMode.replace(/_/g, " ")}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "confidence",
+      header: "Confidence",
+      cell: ({ row }) => (
+        <span className="capitalize">
+          {row.original.confidence}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "requiresReview",
+      header: "Review",
+      cell: ({ row }) =>
+        row.original.requiresReview ? (
+          <Badge variant="outline">Required</Badge>
+        ) : (
+          <Badge variant="secondary">Done</Badge>
+        ),
+    },
+    {
+      id: "actions",
+      header: "",
+      cell: ({ row }) => (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(row.original);
           }}
         >
-          <span
-            className="inline-block size-2 rounded-full mr-1.5"
-            style={{ backgroundColor: meta?.color ?? "#95A5A6" }}
-          />
-          {meta?.label ?? row.original.category.replace(/_/g, " ")}
-        </Badge>
-      );
-    },
-  },
-  {
-    accessorKey: "transactionMode",
-    header: "Mode",
-    cell: ({ row }) => (
-      <span className="capitalize">
-        {row.original.transactionMode.replace(/_/g, " ")}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "requiresReview",
-    header: "Review",
-    cell: ({ row }) =>
-      row.original.requiresReview ? (
-        <Badge variant="outline">Required</Badge>
-      ) : (
-        <Badge variant="secondary">Done</Badge>
+          <Pencil className="size-3.5" />
+          <span className="sr-only">Edit transaction</span>
+        </Button>
       ),
-  },
-  {
-    id: "actions",
-    header: "",
-    cell: ({ row }) => (
-      <Button
-        variant="ghost"
-        size="icon"
-        className="size-8"
-        onClick={(e) => {
-          e.stopPropagation();
-          onEdit(row.original);
-        }}
-      >
-        <Pencil className="size-3.5" />
-        <span className="sr-only">Edit transaction</span>
-      </Button>
-    ),
-  },
-];
+    },
+  ];
 
 function AnimatedNumber({ value }: { value: number }) {
   const mv = useMotionValue(0);
@@ -632,8 +649,8 @@ const ExpenseEmailsPage = () => {
               )}
               <span className="relative z-10">
                 {job?.query === "__reprocess__" &&
-                job?.status === "processing" &&
-                job.totalEmails ? (
+                  job?.status === "processing" &&
+                  job.totalEmails ? (
                   <>
                     Reprocessing (<AnimatedNumber value={job.processedEmails} />{" "}
                     / {job.totalEmails})
@@ -648,7 +665,7 @@ const ExpenseEmailsPage = () => {
             </Button>
 
             {statusQuery.data?.connected ? (
-              <Badge variant="outline" className="flex gap-0 items-center">
+              <Badge className="flex gap-0 items-center">
                 <Dot className="text-teal-500 size-6" />
                 Connected
                 {statusQuery.data.email ? ` • ${statusQuery.data.email}` : ""}
@@ -768,15 +785,15 @@ const ExpenseEmailsPage = () => {
                   </p>
                 ) : null}
                 {!isExpensesLoading &&
-                !isExpensesError &&
-                expenseTable.getRowModel().rows.length === 0 ? (
+                  !isExpensesError &&
+                  expenseTable.getRowModel().rows.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     No expenses found yet.
                   </p>
                 ) : null}
                 {!isExpensesLoading &&
-                !isExpensesError &&
-                expenseTable.getRowModel().rows.length > 0 ? (
+                  !isExpensesError &&
+                  expenseTable.getRowModel().rows.length > 0 ? (
                   <div className="space-y-4">
                     <Table>
                       <TableHeader>
@@ -787,9 +804,9 @@ const ExpenseEmailsPage = () => {
                                 {header.isPlaceholder
                                   ? null
                                   : flexRender(
-                                      header.column.columnDef.header,
-                                      header.getContext(),
-                                    )}
+                                    header.column.columnDef.header,
+                                    header.getContext(),
+                                  )}
                               </TableHead>
                             ))}
                           </TableRow>
@@ -866,15 +883,15 @@ const ExpenseEmailsPage = () => {
                   </p>
                 ) : null}
                 {!isEmailsLoading &&
-                !isEmailsError &&
-                emailTable.getRowModel().rows.length === 0 ? (
+                  !isEmailsError &&
+                  emailTable.getRowModel().rows.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     No expense emails found yet.
                   </p>
                 ) : null}
                 {!isEmailsLoading &&
-                !isEmailsError &&
-                emailTable.getRowModel().rows.length > 0 ? (
+                  !isEmailsError &&
+                  emailTable.getRowModel().rows.length > 0 ? (
                   <div className="space-y-4">
                     <Table>
                       <TableHeader>
@@ -885,9 +902,9 @@ const ExpenseEmailsPage = () => {
                                 {header.isPlaceholder
                                   ? null
                                   : flexRender(
-                                      header.column.columnDef.header,
-                                      header.getContext(),
-                                    )}
+                                    header.column.columnDef.header,
+                                    header.getContext(),
+                                  )}
                               </TableHead>
                             ))}
                           </TableRow>
