@@ -12,8 +12,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 完整健康检查
-         * @description 检查数据库、内存和磁盘健康状态，用于生产环境监控
+         * Full health check
+         * @description Checks database, memory, and disk health for production monitoring
          */
         get: operations["HealthController_check"];
         put?: never;
@@ -32,8 +32,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 就绪检查
-         * @description 检查应用是否准备好接收流量（仅检查数据库连接）
+         * Readiness check
+         * @description Checks if app is ready to receive traffic (database only)
          */
         get: operations["HealthController_ready"];
         put?: never;
@@ -52,8 +52,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 存活检查
-         * @description 检查应用是否存活（轻量级检查）
+         * Liveness check
+         * @description Checks if app is alive (lightweight check)
          */
         get: operations["HealthController_live"];
         put?: never;
@@ -71,10 +71,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取所有 todos */
+        /** Get all todos */
         get: operations["TodoController_findAll"];
         put?: never;
-        /** 创建新 todo */
+        /** Create new todo */
         post: operations["TodoController_create"];
         delete?: never;
         options?: never;
@@ -89,138 +89,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 根据 ID 获取 todo */
+        /** Get todo by ID */
         get: operations["TodoController_findById"];
         put?: never;
         post?: never;
-        /** 删除 todo */
+        /** Delete todo */
         delete: operations["TodoController_delete"];
         options?: never;
         head?: never;
-        /** 更新 todo */
+        /** Update todo */
         patch: operations["TodoController_update"];
-        trace?: never;
-    };
-    "/api/articles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取所有文章列表 */
-        get: operations["ArticleController_findAll"];
-        put?: never;
-        /** 创建草稿文章 */
-        post: operations["ArticleController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/articles/{id}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** 发布文章 */
-        patch: operations["ArticleController_publish"];
-        trace?: never;
-    };
-    "/api/articles/{id}/archive": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** 归档文章 */
-        patch: operations["ArticleController_archive"];
-        trace?: never;
-    };
-    "/api/articles/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 根据 ID 获取文章详情 */
-        get: operations["ArticleController_findById"];
-        /** 更新文章内容（仅草稿状态可编辑） */
-        put: operations["ArticleController_update"];
-        post?: never;
-        /** 删除文章 */
-        delete: operations["ArticleController_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/articles/{id}/tags": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 为文章添加标签 */
-        post: operations["ArticleController_addTag"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/articles/{id}/tags/{tag}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** 移除文章标签 */
-        delete: operations["ArticleController_removeTag"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/articles/slug/{slug}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 根据 Slug 获取文章 */
-        get: operations["ArticleController_findBySlug"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/auth/register": {
@@ -232,7 +110,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 用户注册 */
+        /** User registration */
         post: operations["AuthController_register"];
         delete?: never;
         options?: never;
@@ -249,7 +127,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 用户登录 */
+        /** User login */
         post: operations["AuthController_login"];
         delete?: never;
         options?: never;
@@ -267,8 +145,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 刷新访问令牌
-         * @description 使用 Refresh Token 获取新的 Access Token（同时轮换 Refresh Token）
+         * Refresh access token
+         * @description Use Refresh Token to get new Access Token (rotates Refresh Token)
          */
         post: operations["AuthController_refreshToken"];
         delete?: never;
@@ -284,7 +162,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取当前会话信息 */
+        /** Get current session info */
         get: operations["AuthController_getSession"];
         put?: never;
         post?: never;
@@ -301,7 +179,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取会话列表 */
+        /** List sessions */
         get: operations["AuthController_listSessions"];
         put?: never;
         post?: never;
@@ -320,7 +198,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 用户登出（单设备） */
+        /** User logout (single device) */
         post: operations["AuthController_logout"];
         delete?: never;
         options?: never;
@@ -337,7 +215,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 撤销指定会话 */
+        /** Revoke specific session */
         post: operations["AuthController_revokeSession"];
         delete?: never;
         options?: never;
@@ -354,7 +232,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 撤销所有会话 */
+        /** Revoke all sessions */
         post: operations["AuthController_revokeSessions"];
         delete?: never;
         options?: never;
@@ -371,7 +249,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 用户注册 (v2) */
+        /** User registration (v2) */
         post: operations["AuthV2Controller_register"];
         delete?: never;
         options?: never;
@@ -388,7 +266,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 用户登录 (v2) */
+        /** User login (v2) */
         post: operations["AuthV2Controller_login"];
         delete?: never;
         options?: never;
@@ -404,8 +282,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 获取当前会话信息 (v2)
-         * @description 返回当前会话和用户信息
+         * Get current session info (v2)
+         * @description Returns current session and user info
          */
         get: operations["AuthV2Controller_getSession"];
         put?: never;
@@ -426,8 +304,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 刷新访问令牌 (v2)
-         * @description 使用 Refresh Token 获取新的 Access Token
+         * Refresh access token (v2)
+         * @description Use Refresh Token to get new Access Token
          */
         post: operations["AuthV2Controller_refreshToken"];
         delete?: never;
@@ -436,54 +314,643 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/users": {
+    "/api/expenses/sync": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 获取用户列表 */
-        get: operations["UserController_findAll"];
+        /** List recent sync jobs */
+        get: operations["ExpensesController_listSyncJobs"];
         put?: never;
-        /** 创建用户 */
-        post: operations["UserController_create"];
+        /** Start async expense email sync job */
+        post: operations["ExpensesController_syncExpenses"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/users/{id}": {
+    "/api/expenses/reprocess": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 获取用户详情 */
-        get: operations["UserController_findById"];
+        get?: never;
         put?: never;
-        post?: never;
-        /** 删除用户 */
-        delete: operations["UserController_delete"];
+        /** Re-parse all stored emails without fetching from Gmail */
+        post: operations["ExpensesController_reprocessEmails"];
+        delete?: never;
         options?: never;
         head?: never;
-        /** 更新用户 */
-        patch: operations["UserController_update"];
+        patch?: never;
         trace?: never;
     };
-    "/api/dashboard/statistics": {
+    "/api/expenses/sync/{jobId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 获取仪表盘统计数据 */
-        get: operations["DashboardController_getStatistics"];
+        /** Get sync job status */
+        get: operations["ExpensesController_getSyncJobStatus"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/emails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List expense-related emails */
+        get: operations["ExpensesController_listExpenseEmails"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List derived expense transactions */
+        get: operations["ExpensesController_listExpenses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/transactions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single transaction */
+        get: operations["ExpensesController_getTransaction"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update / correct a transaction */
+        patch: operations["ExpensesController_updateTransaction"];
+        trace?: never;
+    };
+    "/api/expenses/transactions/bulk-categorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Bulk categorize transactions by merchant
+         * @description Updates the category and subcategory for ALL transactions matching the given merchant name.
+         */
+        patch: operations["ExpensesController_bulkCategorizeByMerchant"];
+        trace?: never;
+    };
+    "/api/expenses/transactions/bulk-update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Bulk update transactions by IDs
+         * @description Updates category, subcategory, mode, or review status for a set of transaction IDs.
+         */
+        patch: operations["ExpensesController_bulkUpdateTransactions"];
+        trace?: never;
+    };
+    "/api/expenses/merchants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get distinct merchants with category info
+         * @description Returns a list of unique merchants for the user with their most common category assignment and transaction count.
+         */
+        get: operations["ExpensesController_getDistinctMerchants"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/emails/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single expense email (raw) */
+        get: operations["ExpensesController_getExpenseEmail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Spending summary for a period */
+        get: operations["ExpensesController_getAnalyticsSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/by-category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Spending grouped by category */
+        get: operations["ExpensesController_getByCategory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/by-mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Spending grouped by payment mode */
+        get: operations["ExpensesController_getByMode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/top-merchants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Top merchants by spend */
+        get: operations["ExpensesController_getTopMerchants"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/daily": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Daily spending breakdown */
+        get: operations["ExpensesController_getDailySpending"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/monthly-trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Monthly trend (last N months) */
+        get: operations["ExpensesController_getMonthlyTrend"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/by-card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Spending grouped by credit card */
+        get: operations["ExpensesController_getByCard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/day-of-week": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Spending by day of week */
+        get: operations["ExpensesController_getDayOfWeekSpending"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/category-trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Category spending trend over months */
+        get: operations["ExpensesController_getCategoryTrend"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/period-comparison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compare current vs previous period */
+        get: operations["ExpensesController_getPeriodComparison"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/cumulative": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cumulative spending over time */
+        get: operations["ExpensesController_getCumulativeSpend"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/savings-rate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Monthly savings rate (income vs expenses) */
+        get: operations["ExpensesController_getSavingsRate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/card-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Per-card category breakdown */
+        get: operations["ExpensesController_getCardCategories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/top-vpas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Top UPI VPA payees */
+        get: operations["ExpensesController_getTopVpas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/velocity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Spending velocity (rolling average ₹/day) */
+        get: operations["ExpensesController_getSpendingVelocity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/milestone-etas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Milestone completion ETAs for all cards */
+        get: operations["ExpensesController_getMilestoneEtas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/largest-transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Largest transactions in period */
+        get: operations["ExpensesController_getLargestTransactions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/bus-spending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bus spending analytics and patterns */
+        get: operations["ExpensesController_getBusAnalytics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/analytics/investment-patterns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Investment analytics across stocks, mutual funds, and gold */
+        get: operations["ExpensesController_getInvestmentAnalytics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/gmail/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Start Gmail OAuth flow */
+        get: operations["ExpensesController_connectGmail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/gmail/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Gmail connection status */
+        get: operations["ExpensesController_gmailStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/google/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Gmail OAuth callback (public) */
+        get: operations["GmailOAuthController_gmailCallback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/gmail/disconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Disconnect Gmail */
+        delete: operations["GmailDisconnectController_disconnect"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/holdings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all holdings for current user */
+        get: operations["HoldingsController_getHoldings"];
+        put?: never;
+        /** Create new holding */
+        post: operations["HoldingsController_createHolding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/holdings/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get portfolio summary */
+        get: operations["HoldingsController_getPortfolioSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/holdings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get holding by ID */
+        get: operations["HoldingsController_getHolding"];
+        /** Update holding */
+        put: operations["HoldingsController_updateHolding"];
+        post?: never;
+        /** Delete holding */
+        delete: operations["HoldingsController_deleteHolding"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/holdings/import/groww": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import holdings from Groww JSON */
+        post: operations["HoldingsController_importFromGroww"];
         delete?: never;
         options?: never;
         head?: never;
@@ -497,184 +964,97 @@ export interface components {
         TodoResponseDto: {
             /** @description Todo ID */
             id: string;
-            /** @description 标题 */
+            /** @description Title */
             title: string;
-            /** @description 描述 */
+            /** @description Description */
             description: string | null;
-            /** @description 是否完成 */
+            /** @description Completed status */
             isCompleted: boolean;
             /**
              * Format: date-time
-             * @description 创建时间
+             * @description Created at
              */
             createdAt: string;
             /**
              * Format: date-time
-             * @description 更新时间
+             * @description Updated at
              */
             updatedAt: string;
         };
         CreateTodoDto: {
-            /**
-             * @description Todo 标题
-             * @example 完成项目文档
-             */
+            /** @description Todo title */
             title: string;
             /**
-             * @description Todo 描述（可选）
-             * @example 编写 API 文档和架构说明
+             * @description Todo description (optional)
+             * @example Write API docs and architecture guide
              */
             description?: string;
             /**
-             * @description 是否已完成（可选，默认 false）
+             * @description Completed status (optional, defaults to false)
              * @example false
              */
             isCompleted?: boolean;
         };
         UpdateTodoDto: {
             /**
-             * @description Todo 标题
-             * @example 完成项目文档
+             * @description Todo title
+             * @example Complete project documentation
              */
             title?: string;
             /**
-             * @description Todo 描述
-             * @example 编写 API 文档和架构说明
+             * @description Todo description
+             * @example Write API docs and architecture guide
              */
             description?: string;
             /**
-             * @description 是否已完成
+             * @description Completed status
              * @example true
              */
             isCompleted?: boolean;
         };
-        CreateArticleDto: {
-            /**
-             * @description 文章标题
-             * @example 深入理解依赖倒置原则
-             */
-            title: string;
-            /**
-             * @description 文章内容
-             * @example 这是一篇关于依赖倒置原则的深度文章...
-             */
-            content: string;
-        };
-        ArticleResponseDto: {
-            /**
-             * @description 文章 ID
-             * @example 550e8400-e29b-41d4-a716-446655440000
-             */
-            id: string;
-            /**
-             * @description 标题
-             * @example 深入理解依赖倒置原则
-             */
-            title: string;
-            /**
-             * @description 内容
-             * @example 这是一篇关于依赖倒置原则的深度文章...
-             */
-            content: string;
-            /**
-             * @description URL 友好的 Slug
-             * @example shen-ru-li-jie-yi-lai-dao-zhi-yuan-ze
-             */
-            slug: string;
-            /**
-             * @description 状态
-             * @example draft
-             */
-            status: Record<string, never>;
-            /**
-             * @description 标签列表
-             * @example [
-             *       "DDD",
-             *       "Architecture"
-             *     ]
-             */
-            tags: string[];
-            /**
-             * Format: date-time
-             * @description 创建时间
-             * @example 2025-01-15T10:00:00.000Z
-             */
-            createdAt: string;
-            /**
-             * Format: date-time
-             * @description 更新时间
-             * @example 2025-01-15T12:30:00.000Z
-             */
-            updatedAt: string;
-            /**
-             * Format: date-time
-             * @description 发布时间
-             * @example 2025-01-15T14:00:00.000Z
-             */
-            publishedAt: string | null;
-        };
-        UpdateArticleDto: {
-            /**
-             * @description 文章标题
-             * @example 深入理解依赖倒置原则（修订版）
-             */
-            title: string;
-            /**
-             * @description 文章内容
-             * @example 这是修订后的内容...
-             */
-            content: string;
-        };
-        AddTagDto: {
-            /**
-             * @description 标签名称
-             * @example DDD
-             */
-            tag: string;
-        };
         RegisterDto: {
             /**
              * Format: email
-             * @description 邮箱地址
+             * @description Email address
              * @example user@example.com
              */
             email: string;
             /**
-             * @description 用户名（3-30个字符，只能包含字母、数字、下划线和连字符）
+             * @description Username (3-30 characters, letters, numbers, underscore and hyphen only)
              * @example john_doe
              */
             name: string;
             /**
-             * @description 密码（至少8个字符，必须包含字母和数字）
+             * @description Password (at least 8 characters, must contain letters and numbers)
              * @example Pass123456
              */
             password: string;
         };
         UserInfo: {
-            /** @description 用户ID */
+            /** @description User ID */
             id: string;
-            /** @description 用户邮箱 */
+            /** @description User email */
             email: string;
-            /** @description 用户角色 */
+            /** @description User role */
             role: string | null;
         };
         LoginResponseDto: {
-            /** @description Access Token，用于身份验证 */
+            /** @description Access Token for authentication */
             accessToken: string;
-            /** @description Refresh Token，用于刷新 Access Token */
+            /** @description Refresh Token for refreshing Access Token */
             refreshToken: string;
-            /** @description 用户基本信息 */
+            /** @description User basic info */
             user: components["schemas"]["UserInfo"];
         };
         LoginDto: {
             /**
              * Format: email
-             * @description 邮箱地址
+             * @description Email address
              * @example user@example.com
              */
             email: string;
             /**
-             * @description 密码
+             * @description Password
              * @example Pass123456
              */
             password: string;
@@ -682,68 +1062,68 @@ export interface components {
         RefreshTokenDto: {
             /**
              * Format: uuid
-             * @description 登录时返回的 Refresh Token
+             * @description Refresh Token returned from login
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             refreshToken: string;
         };
         RefreshTokenResponseDto: {
-            /** @description Access Token，用于身份验证 */
+            /** @description Access Token for authentication */
             accessToken: string;
-            /** @description Refresh Token，用于刷新 Access Token */
+            /** @description Refresh Token for refreshing Access Token */
             refreshToken: string;
-            /** @description 用户基本信息 */
+            /** @description User basic info */
             user: components["schemas"]["UserInfo"];
         };
         SessionUserDto: {
-            /** @description 用户ID */
+            /** @description User ID */
             id: string;
-            /** @description 用户邮箱 */
+            /** @description User email */
             email: string;
-            /** @description 用户角色 */
+            /** @description User role */
             role: string | null;
         };
         SessionInfoDto: {
-            /** @description 会话ID */
+            /** @description Session ID */
             id: string;
             /**
              * Format: date-time
-             * @description 过期时间
+             * @description Expiration time
              */
             expiresAt: string;
-            /** @description IP地址 */
+            /** @description IP address */
             ipAddress: string | null;
-            /** @description 用户代理 */
+            /** @description User agent */
             userAgent: string | null;
         };
         SessionResponseDto: {
-            /** @description 用户信息 */
+            /** @description User info */
             user: components["schemas"]["SessionUserDto"];
-            /** @description 会话信息 */
+            /** @description Session info */
             session: components["schemas"]["SessionInfoDto"];
         };
         SessionItemDto: {
-            /** @description 会话ID */
+            /** @description Session ID */
             id: string;
             /**
              * Format: date-time
-             * @description 创建时间
+             * @description Creation time
              */
             createdAt: string;
             /**
              * Format: date-time
-             * @description 过期时间
+             * @description Expiration time
              */
             expiresAt: string;
-            /** @description IP地址 */
+            /** @description IP address */
             ipAddress: string | null;
-            /** @description 用户代理 */
+            /** @description User agent */
             userAgent: string | null;
-            /** @description 是否为当前会话 */
+            /** @description Is current session */
             isCurrent: boolean;
         };
         SessionsListResponseDto: {
-            /** @description 会话列表 */
+            /** @description Sessions list */
             sessions: components["schemas"]["SessionItemDto"][];
         };
         LogoutDto: {
@@ -751,245 +1131,152 @@ export interface components {
             refreshToken: string;
         };
         LogoutResponseDto: {
-            /** @description 是否成功 */
+            /** @description Success status */
             success: boolean;
-            /** @description 消息 */
+            /** @description Message */
             message: string;
         };
         RevokeSessionDto: {
             /**
              * Format: uuid
-             * @description 要撤销的会话ID
+             * @description Session ID to revoke
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             sessionId: string;
         };
         RevokeSessionResponseDto: {
-            /** @description 是否成功 */
+            /** @description Success status */
             success: boolean;
-            /** @description 消息 */
+            /** @description Message */
             message: string;
         };
         LogoutAllResponseDto: {
-            /** @description 撤销的会话数量 */
+            /** @description Number of revoked sessions */
             revokedCount: number;
-            /** @description 消息 */
+            /** @description Message */
             message: string;
         };
-        UserResponseDto: {
+        SyncExpensesDto: {
             /**
-             * @description 用户 ID
-             * @example 550e8400-e29b-41d4-a716-446655440000
+             * @description Gmail search query
+             * @example subject:(statement OR receipt) newer_than:30d
              */
-            id: string;
-            /**
-             * @description 用户名
-             * @example John Doe
-             */
-            name: string;
-            /**
-             * @description 显示名称
-             * @example John Doe
-             */
-            displayName: string | null;
-            /**
-             * @description 邮箱
-             * @example john@example.com
-             */
-            email: string;
-            /**
-             * @description 邮箱是否已验证
-             * @example true
-             */
-            emailVerified: boolean;
-            /**
-             * @description 头像 URL
-             * @example https://example.com/avatar.png
-             */
-            image: string | null;
-            /**
-             * @description 角色
-             * @example admin
-             */
-            role: string | null;
-            /**
-             * @description 是否被封禁
-             * @example false
-             */
-            banned: boolean;
-            /**
-             * @description 封禁原因
-             * @example 违规操作
-             */
-            banReason: string | null;
-            /**
-             * Format: date-time
-             * @description 创建时间
-             * @example 2024-01-01T00:00:00.000Z
-             */
-            createdAt: string;
-            /**
-             * Format: date-time
-             * @description 更新时间
-             * @example 2024-01-01T00:00:00.000Z
-             */
-            updatedAt: string;
+            query?: string;
+            /** @description Provider cursor for incremental sync */
+            after?: string;
         };
-        UserListResponseDto: {
-            /** @description 用户列表 */
-            data: components["schemas"]["UserResponseDto"][];
-            /**
-             * @description 总数
-             * @example 100
-             */
-            total: number;
-            /**
-             * @description 当前页码
-             * @example 1
-             */
-            page: number;
-            /**
-             * @description 每页数量
-             * @example 20
-             */
-            pageSize: number;
-            /**
-             * @description 总页数
-             * @example 5
-             */
-            totalPages: number;
+        CategoryMetadataDto: {
+            /** @description Category icon name */
+            icon: string;
+            /** @description Category color hex */
+            color: string;
+            /** @description Parent category */
+            parent: Record<string, never> | null;
         };
-        CreateUserDto: {
-            /**
-             * @description 用户名（可选）
-             * @example John
-             */
-            name?: string;
-            /**
-             * @description 显示名称（可选）
-             * @example John Doe
-             */
-            displayName?: string;
-            /**
-             * Format: email
-             * @description 邮箱
-             * @example john@example.com
-             */
-            email: string;
-            /**
-             * @description 密码
-             * @example password123
-             */
-            password: string;
-            /**
-             * @description 角色（可选）
-             * @example USER
-             */
-            role?: string;
+        BulkCategorizeDto: {
+            /** @description Merchant name to match */
+            merchant: string;
+            /** @description New category to assign */
+            category: string;
+            /** @description New subcategory to assign */
+            subcategory: string;
+            /** @description Category metadata (icon, color, parent) */
+            categoryMetadata?: components["schemas"]["CategoryMetadataDto"];
         };
-        UpdateUserDto: {
-            /**
-             * @description 用户名
-             * @example John
-             */
-            name?: string;
-            /**
-             * @description 显示名称
-             * @example John Doe
-             */
-            displayName?: string;
-            /**
-             * @description 角色
-             * @example USER
-             */
-            role?: string;
-            /**
-             * @description 是否封禁
-             * @example false
-             */
-            banned?: boolean;
-            /**
-             * @description 封禁原因
-             * @example 违规操作
-             */
-            banReason?: string;
+        BulkUpdateFieldsDto: {
+            /** @description Category to assign */
+            category?: string;
+            /** @description Subcategory to assign */
+            subcategory?: string;
+            /** @description Transaction mode */
+            transactionMode?: Record<string, never>;
+            /** @description Whether transactions still need review */
+            requiresReview?: boolean;
         };
-        StatisticsDto: {
+        BulkUpdateTransactionsDto: {
+            /** @description Transaction IDs to update */
+            ids: string[];
+            /** @description Fields to set on all selected transactions */
+            data: components["schemas"]["BulkUpdateFieldsDto"];
+        };
+        UpdateTransactionDto: {
+            /** @description Corrected merchant name */
+            merchant?: string;
+            /** @description Corrected category */
+            category?: string;
+            /** @description Corrected subcategory */
+            subcategory?: string;
             /**
-             * @description 总用户数
-             * @example 100
+             * @description Transaction type
+             * @enum {string}
              */
-            totalUsers: number;
+            transactionType?: "debited" | "credited";
             /**
-             * @description 活跃用户数
-             * @example 80
+             * @description Transaction mode
+             * @enum {string}
              */
-            activeUsers: number;
-            /**
-             * @description 管理员数量
-             * @example 5
-             */
-            adminUsers: number;
-            /**
-             * @description 今日新增用户数
-             * @example 10
-             */
-            newUsersToday: number;
+            transactionMode?: "upi" | "credit_card" | "neft" | "imps" | "rtgs";
+            /** @description Corrected amount */
+            amount?: number;
+            /** @description Currency code (e.g. INR) */
+            currency?: string;
+            /** @description Whether this transaction still needs review */
+            requiresReview?: boolean;
         };
         ProblemDetailsDto: {
             /**
-             * @description 问题类型 URI，应可解引用到人类可读文档
+             * @description Problem type URI (should dereference to human-readable docs)
              * @example https://api.example.com/errors/validation-failed
              */
             type: string;
             /**
-             * @description 简短的人类可读摘要
-             * @example 请求验证失败
+             * @description Short, human-readable summary
+             * @example Request validation failed
              */
             title: string;
             /**
-             * @description HTTP 状态码
+             * @description HTTP status code
              * @example 422
              */
             status: number;
             /**
-             * @description 针对此次问题实例的详细说明
-             * @example 提交的数据未通过业务规则验证
+             * @description Detailed explanation specific to this occurrence
+             * @example Submitted data failed business rule validation
              */
             detail?: string;
             /**
-             * @description 问题发生的 URI 引用
+             * @description URI reference where problem occurred
              * @example /api/users
              */
             instance?: string;
             /**
-             * @description 请求追踪 ID
+             * @description Request tracking ID
              * @example req_xyz789
              */
             request_id?: string;
             /**
-             * @description 关联 ID（业务事务追踪）
+             * @description Correlation ID (business transaction tracking)
              * @example corr_shop_session_abc123
              */
             correlation_id?: string;
             /**
-             * @description 分布式追踪 ID（W3C Trace Context）
+             * @description Distributed trace ID (W3C Trace Context)
              * @example 4bf92f3577b34da6a3ce929d0e0e4736
              */
             trace_id?: string;
             /**
-             * @description 错误发生时间（ISO 8601格式）
+             * @description Error timestamp (ISO 8601 format)
              * @example 2024-11-03T10:30:00Z
              */
             timestamp?: string;
             /**
-             * @description 字段级错误数组（验证错误时）
+             * @description Field-level errors (for validation errors)
              * @example [
              *       {
              *         "field": "email",
              *         "pointer": "/email",
              *         "code": "INVALID_FORMAT",
-             *         "message": "邮箱格式不正确",
+             *         "message": "Invalid email format",
              *         "expected_format": "user@domain.com"
              *       }
              *     ]
@@ -1121,7 +1408,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -1248,7 +1535,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -1375,7 +1662,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -1395,7 +1682,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 成功返回 todos 列表 */
+            /** @description Returns todos list */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1404,7 +1691,7 @@ export interface operations {
                     "application/json": components["schemas"]["TodoResponseDto"][];
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -1428,7 +1715,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 成功创建 todo */
+            /** @description Todo created */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -1437,14 +1724,14 @@ export interface operations {
                     "application/json": components["schemas"]["TodoResponseDto"];
                 };
             };
-            /** @description 验证失败 */
+            /** @description Validation failed */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -1466,7 +1753,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 成功返回 todo */
+            /** @description Returns todo */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1475,14 +1762,14 @@ export interface operations {
                     "application/json": components["schemas"]["TodoResponseDto"];
                 };
             };
-            /** @description Todo 不存在 */
+            /** @description Todo not found */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -1504,21 +1791,21 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 成功删除 todo */
+            /** @description Todo deleted */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Todo 不存在 */
+            /** @description Todo not found */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -1544,7 +1831,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 成功更新 todo */
+            /** @description Todo updated */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1553,438 +1840,21 @@ export interface operations {
                     "application/json": components["schemas"]["TodoResponseDto"];
                 };
             };
-            /** @description Todo 不存在 */
+            /** @description Todo not found */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description 验证失败 */
+            /** @description Validation failed */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    ArticleController_findAll: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 查询成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ArticleResponseDto"][];
-                };
-            };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    ArticleController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateArticleDto"];
-            };
-        };
-        responses: {
-            /** @description 创建成功 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ArticleResponseDto"];
-                };
-            };
-            /** @description 请求参数错误 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    ArticleController_publish: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 文章 ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 发布成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ArticleResponseDto"];
-                };
-            };
-            /** @description 业务规则错误（如内容不足 50 字） */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 文章不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    ArticleController_archive: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 文章 ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 归档成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ArticleResponseDto"];
-                };
-            };
-            /** @description 业务规则错误（如文章未发布） */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 文章不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    ArticleController_findById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 文章 ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 查询成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ArticleResponseDto"];
-                };
-            };
-            /** @description 文章不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    ArticleController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 文章 ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateArticleDto"];
-            };
-        };
-        responses: {
-            /** @description 更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ArticleResponseDto"];
-                };
-            };
-            /** @description 业务规则错误（如文章已发布） */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 文章不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    ArticleController_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 文章 ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 删除成功 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 文章不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    ArticleController_addTag: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 文章 ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AddTagDto"];
-            };
-        };
-        responses: {
-            /** @description 添加成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ArticleResponseDto"];
-                };
-            };
-            /** @description 业务规则错误（如超过标签数量限制） */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 文章不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    ArticleController_removeTag: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 文章 ID */
-                id: string;
-                /** @description 标签名称 */
-                tag: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 移除成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ArticleResponseDto"];
-                };
-            };
-            /** @description 文章不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    ArticleController_findBySlug: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 文章 Slug */
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 查询成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ArticleResponseDto"];
-                };
-            };
-            /** @description 文章不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2016,7 +1886,7 @@ export interface operations {
                     "application/json": components["schemas"]["LoginResponseDto"];
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2048,7 +1918,7 @@ export interface operations {
                     "application/json": components["schemas"]["LoginResponseDto"];
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2080,7 +1950,7 @@ export interface operations {
                     "application/json": components["schemas"]["RefreshTokenResponseDto"];
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2108,7 +1978,7 @@ export interface operations {
                     "application/json": components["schemas"]["SessionResponseDto"];
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2136,7 +2006,7 @@ export interface operations {
                     "application/json": components["schemas"]["SessionsListResponseDto"];
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2168,7 +2038,7 @@ export interface operations {
                     "application/json": components["schemas"]["LogoutResponseDto"];
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2200,7 +2070,7 @@ export interface operations {
                     "application/json": components["schemas"]["RevokeSessionResponseDto"];
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2228,7 +2098,7 @@ export interface operations {
                     "application/json": components["schemas"]["LogoutAllResponseDto"];
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2260,7 +2130,7 @@ export interface operations {
                     "application/json": components["schemas"]["LoginResponseDto"];
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2292,7 +2162,7 @@ export interface operations {
                     "application/json": components["schemas"]["LoginResponseDto"];
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2320,7 +2190,7 @@ export interface operations {
                     "application/json": components["schemas"]["SessionResponseDto"];
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2352,7 +2222,7 @@ export interface operations {
                     "application/json": components["schemas"]["RefreshTokenResponseDto"];
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2363,18 +2233,129 @@ export interface operations {
             };
         };
     };
-    UserController_findAll: {
+    ExpensesController_listSyncJobs: {
+        parameters: {
+            query: {
+                limit: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Returns list of recent sync jobs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_syncExpenses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncExpensesDto"];
+            };
+        };
+        responses: {
+            /** @description Sync job started, returns job ID for status polling */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_reprocessEmails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reprocess job started, returns job ID for status polling */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getSyncJobStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The sync job ID */
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Returns sync job status and progress */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_listExpenseEmails: {
         parameters: {
             query?: {
-                /** @description 搜索关键词（匹配名称或邮箱） */
-                search?: string;
-                /** @description 按角色筛选 */
-                role?: string;
-                /** @description 按封禁状态筛选 */
-                banned?: boolean;
-                /** @description 页码（从1开始） */
+                /** @description Page number (starts from 1) */
                 page?: number;
-                /** @description 每页数量 */
+                /** @description Items per page */
                 page_size?: number;
             };
             header?: never;
@@ -2383,15 +2364,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Returns paginated expense email list */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["UserListResponseDto"];
-                };
+                content?: never;
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2402,7 +2382,115 @@ export interface operations {
             };
         };
     };
-    UserController_create: {
+    ExpensesController_listExpenses: {
+        parameters: {
+            query?: {
+                /** @description Filter by category slug */
+                category?: string;
+                /** @description Filter by transaction mode */
+                mode?: "upi" | "credit_card" | "neft" | "imps" | "rtgs";
+                /** @description Filter by review state ('true' = needs review, 'false' = reviewed) */
+                review?: string;
+                /** @description Start date (inclusive) ISO-8601 */
+                date_from?: string;
+                /** @description End date (inclusive) ISO-8601 */
+                date_to?: string;
+                /** @description Search merchant name (case-insensitive contains) */
+                search?: string;
+                /** @description Page number (starts from 1) */
+                page?: number;
+                /** @description Items per page */
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Returns paginated expense transactions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Transaction ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Returns the transaction */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_updateTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Transaction ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTransactionDto"];
+            };
+        };
+        responses: {
+            /** @description Returns the updated transaction */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_bulkCategorizeByMerchant: {
         parameters: {
             query?: never;
             header?: never;
@@ -2411,26 +2499,774 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateUserDto"];
+                "application/json": components["schemas"]["BulkCategorizeDto"];
             };
         };
+        responses: {
+            /** @description Returns the merchant, new category, subcategory, and count of updated rows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_bulkUpdateTransactions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkUpdateTransactionsDto"];
+            };
+        };
+        responses: {
+            /** @description Returns the count of updated transactions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getDistinctMerchants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Returns list of merchants with category info */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getExpenseEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Raw email ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Returns the raw email payload (html/text/headers) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getAnalyticsSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getByCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getByMode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getTopMerchants: {
+        parameters: {
+            query: {
+                limit: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getDailySpending: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getMonthlyTrend: {
+        parameters: {
+            query: {
+                months: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getByCard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getDayOfWeekSpending: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getCategoryTrend: {
+        parameters: {
+            query: {
+                months: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getPeriodComparison: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getCumulativeSpend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getSavingsRate: {
+        parameters: {
+            query: {
+                months: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getCardCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getTopVpas: {
+        parameters: {
+            query: {
+                limit: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getSpendingVelocity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getMilestoneEtas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getLargestTransactions: {
+        parameters: {
+            query: {
+                limit: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getBusAnalytics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Returns bus spending summary, routes, frequency, and trends */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_getInvestmentAnalytics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Returns investment summary, asset allocation, platform breakdown, SIP detection, and trends */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_connectGmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Returns OAuth URL */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    ExpensesController_gmailStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Returns Gmail connection status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    GmailOAuthController_gmailCallback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redirects back to web app */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    GmailDisconnectController_disconnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Disconnected Gmail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    HoldingsController_getHoldings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    HoldingsController_createHolding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["UserResponseDto"];
-                };
-            };
-            /** @description 邮箱已被使用 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
                 content?: never;
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
@@ -2441,121 +3277,7 @@ export interface operations {
             };
         };
     };
-    UserController_findById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserResponseDto"];
-                };
-            };
-            /** @description 用户不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    UserController_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 删除成功 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 用户不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    UserController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateUserDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserResponseDto"];
-                };
-            };
-            /** @description 用户不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
-                };
-            };
-        };
-    };
-    DashboardController_getStatistics: {
+    HoldingsController_getPortfolioSummary: {
         parameters: {
             query?: never;
             header?: never;
@@ -2568,11 +3290,119 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["StatisticsDto"];
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
                 };
             };
-            /** @description 错误响应（包括 400/401/403/404/422/429/500 等） */
+        };
+    };
+    HoldingsController_getHolding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    HoldingsController_updateHolding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    HoldingsController_deleteHolding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailsDto"];
+                };
+            };
+        };
+    };
+    HoldingsController_importFromGroww: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error response (400/401/403/404/422/429/500 etc.) */
             default: {
                 headers: {
                     [name: string]: unknown;
