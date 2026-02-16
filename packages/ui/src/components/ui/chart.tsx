@@ -8,6 +8,7 @@ import type {
 } from 'recharts/types/component/DefaultTooltipContent'
 
 import { cn } from '@workspace/ui/lib/utils'
+import { ScrollArea } from './scroll-area'
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: '', dark: '.dark' } as const
@@ -16,8 +17,8 @@ export type ChartConfig = Record<string, {
   label?: React.ReactNode
   icon?: React.ComponentType
 } & (
-  | { color?: string, theme?: never }
-  | { color?: never, theme: Record<keyof typeof THEMES, string> }
+    | { color?: string, theme?: never }
+    | { color?: never, theme: Record<keyof typeof THEMES, string> }
   )>
 
 interface ChartContextProps {
@@ -39,7 +40,7 @@ function useChart() {
 const ChartContainer = ({ ref, id, className, children, config, ...props }: React.ComponentProps<'div'> & {
   config: ChartConfig
   children: React.ComponentProps<
-      typeof RechartsPrimitive.ResponsiveContainer
+    typeof RechartsPrimitive.ResponsiveContainer
   >['children']
 } & { ref?: React.RefObject<HTMLDivElement | null> }) => {
   const uniqueId = React.useId()
@@ -83,13 +84,13 @@ const ChartStyle = ({ id, config }: { id: string, config: ChartConfig }) => {
             ([theme, prefix]) => `
 ${prefix} [data-chart=${id}] {
 ${colorConfig
-      .map(([key, itemConfig]) => {
-        const color
-          = itemConfig.theme?.[theme as keyof typeof itemConfig.theme]
-            || itemConfig.color
-        return color ? `  --color-${key}: ${color};` : null
-      })
-      .join('\n')}
+                .map(([key, itemConfig]) => {
+                  const color
+                    = itemConfig.theme?.[theme as keyof typeof itemConfig.theme]
+                    || itemConfig.color
+                  return color ? `  --color-${key}: ${color};` : null
+                })
+                .join('\n')}
 }
 `,
           )
@@ -195,56 +196,56 @@ const ChartTooltipContent = (
             >
               {formatter && item?.value !== undefined && item.name
                 ? (
-                    formatter(item.value, item.name, item, index, item.payload)
-                  )
+                  formatter(item.value, item.name, item, index, item.payload)
+                )
                 : (
-                    <>
-                      {itemConfig?.icon
-                        ? (
-                            <itemConfig.icon />
-                          )
-                        : (
-                            !hideIndicator && (
-                              <div
-                                className={cn(
-                                  'shrink-0 rounded-[2px] border-border bg-(--color-bg)',
-                                  {
-                                    'h-2.5 w-2.5': indicator === 'dot',
-                                    'w-1': indicator === 'line',
-                                    'w-0 border-[1.5px] border-dashed bg-transparent':
-                                indicator === 'dashed',
-                                    'my-0.5': nestLabel && indicator === 'dashed',
-                                  },
-                                )}
-                                style={
-                                  {
-                                    '--color-bg': indicatorColor,
-                                    '--color-border': indicatorColor,
-                                  } as React.CSSProperties
-                                }
-                              />
-                            )
-                          )}
-                      <div
-                        className={cn(
-                          'flex flex-1 justify-between leading-none',
-                          nestLabel ? 'items-end' : 'items-center',
-                        )}
-                      >
-                        <div className="grid gap-1.5">
-                          {nestLabel ? tooltipLabel : null}
-                          <span className="text-muted-foreground">
-                            {itemConfig?.label || item.name}
-                          </span>
-                        </div>
-                        {item.value && (
-                          <span className="font-mono font-medium tabular-nums text-foreground">
-                            {item.value.toLocaleString()}
-                          </span>
-                        )}
+                  <>
+                    {itemConfig?.icon
+                      ? (
+                        <itemConfig.icon />
+                      )
+                      : (
+                        !hideIndicator && (
+                          <div
+                            className={cn(
+                              'shrink-0 rounded-[2px] border-border bg-(--color-bg)',
+                              {
+                                'h-2.5 w-2.5': indicator === 'dot',
+                                'w-1': indicator === 'line',
+                                'w-0 border-[1.5px] border-dashed bg-transparent':
+                                  indicator === 'dashed',
+                                'my-0.5': nestLabel && indicator === 'dashed',
+                              },
+                            )}
+                            style={
+                              {
+                                '--color-bg': indicatorColor,
+                                '--color-border': indicatorColor,
+                              } as React.CSSProperties
+                            }
+                          />
+                        )
+                      )}
+                    <div
+                      className={cn(
+                        'flex flex-1 justify-between leading-none',
+                        nestLabel ? 'items-end' : 'items-center',
+                      )}
+                    >
+                      <div className="grid gap-1.5">
+                        {nestLabel ? tooltipLabel : null}
+                        <span className="text-muted-foreground">
+                          {itemConfig?.label || item.name}
+                        </span>
                       </div>
-                    </>
-                  )}
+                      {item.value && (
+                        <span className="font-mono font-medium tabular-nums text-foreground">
+                          {item.value.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  </>
+                )}
             </div>
           )
         })}
@@ -271,30 +272,31 @@ const ChartLegendContent = (
   }
 
   return (
-    <div
-      ref={ref}
-      className={cn(
-        'flex flex-wrap items-center justify-center gap-x-4 gap-y-1 max-h-24 overflow-auto',
-        verticalAlign === 'top' ? 'pb-3' : 'pt-3',
-        className,
-      )}
-    >
-      {payload.map((item) => {
-        const key = `${nameKey || item.dataKey || 'value'}`
-        const itemConfig = getPayloadConfigFromPayload(config, item, key)
+    <ScrollArea>
+      <div
+        ref={ref}
+        className={cn(
+          'flex flex-wrap items-center justify-center gap-x-4 gap-y-1 max-h-24',
+          verticalAlign === 'top' ? 'pb-3' : 'pt-3',
+          className,
+        )}
+      >
+        {payload.map((item) => {
+          const key = `${nameKey || item.dataKey || 'value'}`
+          const itemConfig = getPayloadConfigFromPayload(config, item, key)
 
-        return (
-          <div
-            key={item.value}
-            className={cn(
-              'flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground',
-            )}
-          >
-            {itemConfig?.icon && !hideIcon
-              ? (
+          return (
+            <div
+              key={item.value}
+              className={cn(
+                'flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground',
+              )}
+            >
+              {itemConfig?.icon && !hideIcon
+                ? (
                   <itemConfig.icon />
                 )
-              : (
+                : (
                   <div
                     className="size-2 shrink-0 rounded-[2px]"
                     style={{
@@ -302,11 +304,13 @@ const ChartLegendContent = (
                     }}
                   />
                 )}
-            {itemConfig?.label}
-          </div>
-        )
-      })}
-    </div>
+              {itemConfig?.label}
+            </div>
+          )
+        })}
+      </div>
+    </ScrollArea>
+
   )
 }
 ChartLegendContent.displayName = 'ChartLegend'

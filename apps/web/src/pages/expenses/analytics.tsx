@@ -1661,32 +1661,32 @@ function PeriodComparisonSection({
 }) {
   const metrics = data
     ? [
-        {
-          label: "Total Spent",
-          current: data.currentPeriod.totalSpent,
-          change: data.changes.spentChange,
-          invert: true, // negative change is good
-        },
-        {
-          label: "Total Received",
-          current: data.currentPeriod.totalReceived,
-          change: data.changes.receivedChange,
-          invert: false,
-        },
-        {
-          label: "Transaction Count",
-          current: data.currentPeriod.transactionCount,
-          change: data.changes.countChange,
-          invert: false,
-          isCurrency: false,
-        },
-        {
-          label: "Avg Transaction",
-          current: data.currentPeriod.avgTransaction,
-          change: data.changes.avgChange,
-          invert: true,
-        },
-      ]
+      {
+        label: "Total Spent",
+        current: data.currentPeriod.totalSpent,
+        change: data.changes.spentChange,
+        invert: true, // negative change is good
+      },
+      {
+        label: "Total Received",
+        current: data.currentPeriod.totalReceived,
+        change: data.changes.receivedChange,
+        invert: false,
+      },
+      {
+        label: "Transaction Count",
+        current: data.currentPeriod.transactionCount,
+        change: data.changes.countChange,
+        invert: false,
+        isCurrency: false,
+      },
+      {
+        label: "Avg Transaction",
+        current: data.currentPeriod.avgTransaction,
+        change: data.changes.avgChange,
+        invert: true,
+      },
+    ]
     : [];
 
   return (

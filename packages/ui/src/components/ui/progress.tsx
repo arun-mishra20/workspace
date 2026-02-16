@@ -8,6 +8,7 @@ import { cn } from '@workspace/ui/lib/utils'
 const Progress = ({ ref, className, value, ...props }: React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> & { ref?: React.RefObject<React.ElementRef<typeof ProgressPrimitive.Root> | null> }) => (
   <ProgressPrimitive.Root
     ref={ref}
+    data-slot="progress"
     className={cn(
       'relative h-2 w-full overflow-hidden rounded-full bg-primary/20',
       className,
@@ -15,6 +16,7 @@ const Progress = ({ ref, className, value, ...props }: React.ComponentPropsWitho
     {...props}
   >
     <ProgressPrimitive.Indicator
+      data-slot="progress-indicator"
       className="size-full flex-1 bg-primary transition-all"
       style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
     />

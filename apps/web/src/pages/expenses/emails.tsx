@@ -232,7 +232,9 @@ const buildExpenseColumns = (
         <div className="flex gap-2 items-center max-w-72">
           <div className="font-medium text-foreground">{row.original.merchant}
           </div>
-          <Badge className="ml-2 text-[10px] p-0.5 px-2 h-fit max-w-30">
+          <Badge className="ml-2 text-[10px] p-0.5 px-2 h-fit max-w-30"
+            variant={"outline"}
+          >
             <p className="truncate">
               {row.original.cardName ?? row.original.vpa ?? row.original.merchantRaw ?? "Unknown source"}
             </p>
@@ -665,7 +667,9 @@ const ExpenseEmailsPage = () => {
             </Button>
 
             {statusQuery.data?.connected ? (
-              <Badge className="flex gap-0 items-center">
+              <Badge className="flex gap-0 items-center"
+                variant={"outline"}
+              >
                 <Dot className="text-teal-500 size-6" />
                 Connected
                 {statusQuery.data.email ? ` • ${statusQuery.data.email}` : ""}
