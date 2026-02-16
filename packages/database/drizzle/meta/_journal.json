@@ -22,6 +22,13 @@
       "when": 1770824529313,
       "tag": "0002_add_holdings_table",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771248409846,
+      "tag": "0003_amusing_frank_castle",
+      "breakpoints": true
     }
   ]
 }

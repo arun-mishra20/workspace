@@ -34,6 +34,7 @@ export const rawEmailsTable = pgTable(
     bodyText: text('body_text').notNull(),
     bodyHtml: text('body_html'),
     rawHeaders: jsonb('raw_headers').notNull().$type<Record<string, string>>(),
+    category: text('category').notNull().default('expenses'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -48,6 +49,7 @@ export const rawEmailsTable = pgTable(
       table.provider,
       table.providerMessageId,
     ),
+    index('raw_emails_user_category_idx').on(table.userId, table.category),
   ],
 )
 
@@ -164,6 +166,7 @@ export const syncJobsTable = pgTable('sync_jobs', {
     .notNull()
     .references(() => usersTable.id, { onDelete: 'cascade' }),
   status: text('status').notNull().$type<SyncJobStatus>().default('pending'),
+  category: text('category').notNull().default('expenses'),
   query: text('query'),
   totalEmails: numeric('total_emails', { precision: 10, scale: 0 }),
   processedEmails: numeric('processed_emails', {

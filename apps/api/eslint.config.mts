@@ -71,4 +71,27 @@ export default [
       ],
     },
   },
+  // Allow expenses module to depend on auth module (for OAuth and identity management)
+  {
+    files: ['src/modules/expenses/**/*.ts'],
+    rules: {
+      'boundaries/element-types': [
+        'error',
+        {
+          default: 'disallow',
+          rules: [
+            {
+              from: ['module'],
+              allow: [
+                'app',
+                'shared-kernel',
+                ['module', { moduleName: 'expenses' }],
+                ['module', { moduleName: 'auth' }],
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]
