@@ -3,7 +3,7 @@ import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
 import { Command as CommandPrimitive } from 'cmdk'
 import * as React from 'react'
 
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent } from './dialog'
 import { cn } from '@workspace/ui/lib/utils'
 
 const Command = ({ ref, className, ...props }: React.ComponentPropsWithoutRef<typeof CommandPrimitive> & { ref?: React.RefObject<React.ElementRef<typeof CommandPrimitive> | null> }) => (
@@ -18,7 +18,7 @@ const Command = ({ ref, className, ...props }: React.ComponentPropsWithoutRef<ty
 )
 Command.displayName = CommandPrimitive.displayName
 
-interface CommandDialogProps extends DialogProps {}
+interface CommandDialogProps extends DialogProps { }
 
 const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
   return (

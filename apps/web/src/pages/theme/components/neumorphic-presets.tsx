@@ -678,7 +678,7 @@ export function NeumorphicPresets({ activeMode }: NeumorphicPresetsProps) {
                             variant={"outline"}
                             key={preset.name}
                             onClick={() => handlePresetClick(preset)}
-                            className="group relative flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-muted transition"
+                            className="group relative flex flex-col items-center gap-2 p-4 pt-6 rounded-lg hover:bg-muted transition"
                             title={preset.name}
                         >
                             <div

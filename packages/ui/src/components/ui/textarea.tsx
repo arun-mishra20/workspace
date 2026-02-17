@@ -2,9 +2,9 @@ import * as React from 'react'
 
 import { cn } from '@workspace/ui/lib/utils'
 
-export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
+export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> { }
 
-const Textarea = ({ ref, className, ...props }: TextareaProps & { ref?: React.RefObject<HTMLTextAreaElement | null> }) => {
+const Textarea = ({ className, ...props }: TextareaProps) => {
   return (
     <textarea
       data-slot="textarea"
@@ -12,7 +12,6 @@ const Textarea = ({ ref, className, ...props }: TextareaProps & { ref?: React.Re
         'flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
-      ref={ref}
       {...props}
     />
   )
