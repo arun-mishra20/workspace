@@ -27,6 +27,8 @@ export const alertVariants = cva(
 const Alert = ({ ref, className, variant, ...props }: React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants> & { ref?: React.RefObject<HTMLDivElement | null> }) => (
   <div
     ref={ref}
+    data-slot="alert"
+    data-variant={variant ?? "default"}
     role="alert"
     className={cn(alertVariants({ variant }), className)}
     {...props}

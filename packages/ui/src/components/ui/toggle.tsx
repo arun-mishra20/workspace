@@ -32,6 +32,7 @@ const Toggle = ({ ref, className, variant, size, ...props }: React.ComponentProp
   & VariantProps<typeof toggleVariants> & { ref?: React.RefObject<React.ElementRef<typeof TogglePrimitive.Root> | null> }) => (
   <TogglePrimitive.Root
     ref={ref}
+    data-slot="toggle"
     className={cn(toggleVariants({ variant, size, className }))}
     {...props}
   />

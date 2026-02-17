@@ -8,6 +8,7 @@ const Separator = (
 ) => (
   <SeparatorPrimitive.Root
     ref={ref}
+    data-slot="separator"
     decorative={decorative}
     orientation={orientation}
     className={cn(

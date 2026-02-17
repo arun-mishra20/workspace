@@ -13,6 +13,7 @@ const PopoverContent = ({ ref, className, align = 'center', sideOffset = 4, ...p
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
+      data-slot="popover-content"
       align={align}
       sideOffset={sideOffset}
       className={cn(

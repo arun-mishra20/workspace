@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react'
 import { Label } from '@workspace/ui/components/ui/label'
 import { Switch } from '@workspace/ui/components/ui/switch'
+import { Slider } from '@workspace/ui/components/ui/slider'
 import { useThemeCustomization } from '@/themes/context'
 import { Badge } from '@workspace/ui/components/ui/badge'
 
@@ -27,519 +28,540 @@ const NEUMORPHIC_VARIABLES = [
     '--neu-surface-raised',
 ]
 
+// Standard shadow overrides that applyPresetToTheme also sets and must be cleaned up
+const NEUMORPHIC_SHADOW_OVERRIDES = [
+    '--shadow',
+    '--shadow-sm',
+    '--shadow-md',
+    '--shadow-2xl',
+    '--shadow-xs',
+    '--shadow-lg',
+    '--shadow-xl',
+    '--shadow-2xs',
+]
+
+// All variables set by neumorphic preset toggling
+const ALL_NEUMORPHIC_OVERRIDES = [...NEUMORPHIC_VARIABLES, ...NEUMORPHIC_SHADOW_OVERRIDES]
+
 const NEUMORPHIC_PRESETS = [
     {
-        name: "Pearl",
+        name: 'Pearl',
         colors: {
-            background: "hsl(220, 16%, 94%)",
-            shadowLight: "hsl(220, 20%, 99%)",
-            shadowDark: "hsl(220, 12%, 82%)",
+            background: 'hsl(220, 16%, 94%)',
+            shadowLight: 'hsl(220, 20%, 99%)',
+            shadowDark: 'hsl(220, 12%, 82%)',
         },
     },
     {
-        name: "Cloud",
+        name: 'Cloud',
         colors: {
-            background: "hsl(210, 20%, 90%)",
-            shadowLight: "hsl(210, 25%, 97%)",
-            shadowDark: "hsl(210, 18%, 76%)",
+            background: 'hsl(210, 20%, 90%)',
+            shadowLight: 'hsl(210, 25%, 97%)',
+            shadowDark: 'hsl(210, 18%, 76%)',
         },
     },
     {
-        name: "Stone",
+        name: 'Stone',
         colors: {
-            background: "hsl(215, 12%, 85%)",
-            shadowLight: "hsl(215, 15%, 94%)",
-            shadowDark: "hsl(215, 10%, 68%)",
+            background: 'hsl(215, 12%, 85%)',
+            shadowLight: 'hsl(215, 15%, 94%)',
+            shadowDark: 'hsl(215, 10%, 68%)',
         },
     },
 
     // Dark Neutrals - Better contrast for depth
     {
-        name: "Slate",
+        name: 'Slate',
         colors: {
-            background: "hsl(215, 16%, 26%)",
-            shadowLight: "hsl(215, 18%, 36%)",
-            shadowDark: "hsl(215, 20%, 16%)",
+            background: 'hsl(215, 16%, 26%)',
+            shadowLight: 'hsl(215, 18%, 36%)',
+            shadowDark: 'hsl(215, 20%, 16%)',
         },
     },
     {
-        name: "Charcoal",
+        name: 'Charcoal',
         colors: {
-            background: "hsl(220, 14%, 18%)",
-            shadowLight: "hsl(220, 16%, 28%)",
-            shadowDark: "hsl(220, 18%, 10%)",
+            background: 'hsl(220, 14%, 18%)',
+            shadowLight: 'hsl(220, 16%, 28%)',
+            shadowDark: 'hsl(220, 18%, 10%)',
         },
     },
     {
-        name: "Midnight",
+        name: 'Midnight',
         colors: {
-            background: "hsl(230, 22%, 22%)",
-            shadowLight: "hsl(230, 24%, 32%)",
-            shadowDark: "hsl(230, 26%, 12%)",
+            background: 'hsl(230, 22%, 22%)',
+            shadowLight: 'hsl(230, 24%, 32%)',
+            shadowDark: 'hsl(230, 26%, 12%)',
         },
     },
 
     // Pastel Warm Tones - Softer, more sophisticated
     {
-        name: "Rose",
+        name: 'Rose',
         colors: {
-            background: "hsl(350, 45%, 94%)",
-            shadowLight: "hsl(350, 50%, 98%)",
-            shadowDark: "hsl(350, 38%, 82%)",
+            background: 'hsl(350, 45%, 94%)',
+            shadowLight: 'hsl(350, 50%, 98%)',
+            shadowDark: 'hsl(350, 38%, 82%)',
         },
     },
     {
-        name: "Blush",
+        name: 'Blush',
         colors: {
-            background: "hsl(340, 42%, 93%)",
-            shadowLight: "hsl(340, 48%, 98%)",
-            shadowDark: "hsl(340, 35%, 80%)",
+            background: 'hsl(340, 42%, 93%)',
+            shadowLight: 'hsl(340, 48%, 98%)',
+            shadowDark: 'hsl(340, 35%, 80%)',
         },
     },
     {
-        name: "Peach",
+        name: 'Peach',
         colors: {
-            background: "hsl(25, 55%, 93%)",
-            shadowLight: "hsl(25, 60%, 98%)",
-            shadowDark: "hsl(25, 48%, 80%)",
+            background: 'hsl(25, 55%, 93%)',
+            shadowLight: 'hsl(25, 60%, 98%)',
+            shadowDark: 'hsl(25, 48%, 80%)',
         },
     },
     {
-        name: "Coral",
+        name: 'Coral',
         colors: {
-            background: "hsl(15, 52%, 92%)",
-            shadowLight: "hsl(15, 58%, 97%)",
-            shadowDark: "hsl(15, 45%, 78%)",
+            background: 'hsl(15, 52%, 92%)',
+            shadowLight: 'hsl(15, 58%, 97%)',
+            shadowDark: 'hsl(15, 45%, 78%)',
         },
     },
     {
-        name: "Apricot",
+        name: 'Apricot',
         colors: {
-            background: "hsl(35, 50%, 92%)",
-            shadowLight: "hsl(35, 55%, 97%)",
-            shadowDark: "hsl(35, 43%, 78%)",
+            background: 'hsl(35, 50%, 92%)',
+            shadowLight: 'hsl(35, 55%, 97%)',
+            shadowDark: 'hsl(35, 43%, 78%)',
         },
     },
 
     // Pastel Cool Tones - More vibrant yet soft
     {
-        name: "Mint",
+        name: 'Mint',
         colors: {
-            background: "hsl(150, 45%, 91%)",
-            shadowLight: "hsl(150, 50%, 97%)",
-            shadowDark: "hsl(150, 38%, 77%)",
+            background: 'hsl(150, 45%, 91%)',
+            shadowLight: 'hsl(150, 50%, 97%)',
+            shadowDark: 'hsl(150, 38%, 77%)',
         },
     },
     {
-        name: "Sage",
+        name: 'Sage',
         colors: {
-            background: "hsl(130, 35%, 90%)",
-            shadowLight: "hsl(130, 40%, 96%)",
-            shadowDark: "hsl(130, 30%, 76%)",
+            background: 'hsl(130, 35%, 90%)',
+            shadowLight: 'hsl(130, 40%, 96%)',
+            shadowDark: 'hsl(130, 30%, 76%)',
         },
     },
     {
-        name: "Sky",
+        name: 'Sky',
         colors: {
-            background: "hsl(205, 50%, 91%)",
-            shadowLight: "hsl(205, 55%, 97%)",
-            shadowDark: "hsl(205, 43%, 77%)",
+            background: 'hsl(205, 50%, 91%)',
+            shadowLight: 'hsl(205, 55%, 97%)',
+            shadowDark: 'hsl(205, 43%, 77%)',
         },
     },
     {
-        name: "Sapphire",
+        name: 'Sapphire',
         colors: {
-            background: "hsl(210, 48%, 92%)",
-            shadowLight: "hsl(210, 54%, 97%)",
-            shadowDark: "hsl(210, 40%, 78%)",
+            background: 'hsl(210, 48%, 92%)',
+            shadowLight: 'hsl(210, 54%, 97%)',
+            shadowDark: 'hsl(210, 40%, 78%)',
         },
     },
     {
-        name: "Periwinkle",
+        name: 'Periwinkle',
         colors: {
-            background: "hsl(220, 45%, 92%)",
-            shadowLight: "hsl(220, 50%, 97%)",
-            shadowDark: "hsl(220, 38%, 78%)",
+            background: 'hsl(220, 45%, 92%)',
+            shadowLight: 'hsl(220, 50%, 97%)',
+            shadowDark: 'hsl(220, 38%, 78%)',
         },
     },
 
     // Pastel Purple Spectrum - Enhanced variety
     {
-        name: "Lavender",
+        name: 'Lavender',
         colors: {
-            background: "hsl(260, 40%, 93%)",
-            shadowLight: "hsl(260, 45%, 98%)",
-            shadowDark: "hsl(260, 33%, 80%)",
+            background: 'hsl(260, 40%, 93%)',
+            shadowLight: 'hsl(260, 45%, 98%)',
+            shadowDark: 'hsl(260, 33%, 80%)',
         },
     },
     {
-        name: "Lilac",
+        name: 'Lilac',
         colors: {
-            background: "hsl(270, 38%, 92%)",
-            shadowLight: "hsl(270, 43%, 97%)",
-            shadowDark: "hsl(270, 32%, 78%)",
+            background: 'hsl(270, 38%, 92%)',
+            shadowLight: 'hsl(270, 43%, 97%)',
+            shadowDark: 'hsl(270, 32%, 78%)',
         },
     },
     {
-        name: "Violet",
+        name: 'Violet',
         colors: {
-            background: "hsl(280, 42%, 93%)",
-            shadowLight: "hsl(280, 48%, 98%)",
-            shadowDark: "hsl(280, 35%, 80%)",
+            background: 'hsl(280, 42%, 93%)',
+            shadowLight: 'hsl(280, 48%, 98%)',
+            shadowDark: 'hsl(280, 35%, 80%)',
         },
     },
     {
-        name: "Orchid",
+        name: 'Orchid',
         colors: {
-            background: "hsl(290, 40%, 92%)",
-            shadowLight: "hsl(290, 45%, 97%)",
-            shadowDark: "hsl(290, 33%, 78%)",
+            background: 'hsl(290, 40%, 92%)',
+            shadowLight: 'hsl(290, 45%, 97%)',
+            shadowDark: 'hsl(290, 33%, 78%)',
         },
     },
 
     // Bonus Pastels - Unique options
     {
-        name: "Lemon",
+        name: 'Lemon',
         colors: {
-            background: "hsl(55, 48%, 92%)",
-            shadowLight: "hsl(55, 54%, 97%)",
-            shadowDark: "hsl(55, 40%, 78%)",
+            background: 'hsl(55, 48%, 92%)',
+            shadowLight: 'hsl(55, 54%, 97%)',
+            shadowDark: 'hsl(55, 40%, 78%)',
         },
     },
     {
-        name: "Pistachio",
+        name: 'Pistachio',
         colors: {
-            background: "hsl(85, 40%, 90%)",
-            shadowLight: "hsl(85, 45%, 96%)",
-            shadowDark: "hsl(85, 33%, 76%)",
+            background: 'hsl(85, 40%, 90%)',
+            shadowLight: 'hsl(85, 45%, 96%)',
+            shadowDark: 'hsl(85, 33%, 76%)',
         },
     },
     {
-        name: "Aqua",
+        name: 'Aqua',
         colors: {
-            background: "hsl(180, 45%, 90%)",
-            shadowLight: "hsl(180, 50%, 96%)",
-            shadowDark: "hsl(180, 38%, 76%)",
+            background: 'hsl(180, 45%, 90%)',
+            shadowLight: 'hsl(180, 50%, 96%)',
+            shadowDark: 'hsl(180, 38%, 76%)',
         },
     },
 
     {
-        name: "Graphite",
+        name: 'Graphite',
         colors: {
-            background: "hsl(210, 10%, 20%)",
-            shadowLight: "hsl(210, 12%, 30%)",
-            shadowDark: "hsl(210, 14%, 12%)",
+            background: 'hsl(210, 10%, 20%)',
+            shadowLight: 'hsl(210, 12%, 30%)',
+            shadowDark: 'hsl(210, 14%, 12%)',
         },
     },
     {
-        name: "Ink",
+        name: 'Ink',
         colors: {
-            background: "hsl(225, 18%, 16%)",
-            shadowLight: "hsl(225, 20%, 26%)",
-            shadowDark: "hsl(225, 22%, 8%)",
+            background: 'hsl(225, 18%, 16%)',
+            shadowLight: 'hsl(225, 20%, 26%)',
+            shadowDark: 'hsl(225, 22%, 8%)',
         },
     },
     {
-        name: "Storm",
+        name: 'Storm',
         colors: {
-            background: "hsl(200, 12%, 24%)",
-            shadowLight: "hsl(200, 14%, 34%)",
-            shadowDark: "hsl(200, 16%, 14%)",
+            background: 'hsl(200, 12%, 24%)',
+            shadowLight: 'hsl(200, 14%, 34%)',
+            shadowDark: 'hsl(200, 16%, 14%)',
         },
     },
 
     // Dark Powdery Warm Tones - Muted and sophisticated
     {
-        name: "Dusty Rose",
+        name: 'Dusty Rose',
         colors: {
-            background: "hsl(350, 20%, 28%)",
-            shadowLight: "hsl(350, 22%, 38%)",
-            shadowDark: "hsl(350, 24%, 18%)",
+            background: 'hsl(350, 20%, 28%)',
+            shadowLight: 'hsl(350, 22%, 38%)',
+            shadowDark: 'hsl(350, 24%, 18%)',
         },
     },
     {
-        name: "Mulberry",
+        name: 'Mulberry',
         colors: {
-            background: "hsl(340, 18%, 26%)",
-            shadowLight: "hsl(340, 20%, 36%)",
-            shadowDark: "hsl(340, 22%, 16%)",
+            background: 'hsl(340, 18%, 26%)',
+            shadowLight: 'hsl(340, 20%, 36%)',
+            shadowDark: 'hsl(340, 22%, 16%)',
         },
     },
     {
-        name: "Terracotta",
+        name: 'Terracotta',
         colors: {
-            background: "hsl(15, 22%, 25%)",
-            shadowLight: "hsl(15, 24%, 35%)",
-            shadowDark: "hsl(15, 26%, 15%)",
+            background: 'hsl(15, 22%, 25%)',
+            shadowLight: 'hsl(15, 24%, 35%)',
+            shadowDark: 'hsl(15, 26%, 15%)',
         },
     },
     {
-        name: "Rust",
+        name: 'Rust',
         colors: {
-            background: "hsl(25, 24%, 24%)",
-            shadowLight: "hsl(25, 26%, 34%)",
-            shadowDark: "hsl(25, 28%, 14%)",
+            background: 'hsl(25, 24%, 24%)',
+            shadowLight: 'hsl(25, 26%, 34%)',
+            shadowDark: 'hsl(25, 28%, 14%)',
         },
     },
     {
-        name: "Clay",
+        name: 'Clay',
         colors: {
-            background: "hsl(30, 20%, 27%)",
-            shadowLight: "hsl(30, 22%, 37%)",
-            shadowDark: "hsl(30, 24%, 17%)",
+            background: 'hsl(30, 20%, 27%)',
+            shadowLight: 'hsl(30, 22%, 37%)',
+            shadowDark: 'hsl(30, 24%, 17%)',
         },
     },
 
     // Dark Powdery Cool Tones - Moody and elegant
     {
-        name: "Moss",
+        name: 'Moss',
         colors: {
-            background: "hsl(130, 16%, 24%)",
-            shadowLight: "hsl(130, 18%, 34%)",
-            shadowDark: "hsl(130, 20%, 14%)",
+            background: 'hsl(130, 16%, 24%)',
+            shadowLight: 'hsl(130, 18%, 34%)',
+            shadowDark: 'hsl(130, 20%, 14%)',
         },
     },
     {
-        name: "Forest",
+        name: 'Forest',
         colors: {
-            background: "hsl(150, 18%, 22%)",
-            shadowLight: "hsl(150, 20%, 32%)",
-            shadowDark: "hsl(150, 22%, 12%)",
+            background: 'hsl(150, 18%, 22%)',
+            shadowLight: 'hsl(150, 20%, 32%)',
+            shadowDark: 'hsl(150, 22%, 12%)',
         },
     },
     {
-        name: "Teal",
+        name: 'Teal',
         colors: {
-            background: "hsl(180, 20%, 25%)",
-            shadowLight: "hsl(180, 22%, 35%)",
-            shadowDark: "hsl(180, 24%, 15%)",
+            background: 'hsl(180, 20%, 25%)',
+            shadowLight: 'hsl(180, 22%, 35%)',
+            shadowDark: 'hsl(180, 24%, 15%)',
         },
     },
     {
-        name: "Ocean",
+        name: 'Ocean',
         colors: {
-            background: "hsl(200, 24%, 23%)",
-            shadowLight: "hsl(200, 26%, 33%)",
-            shadowDark: "hsl(200, 28%, 13%)",
+            background: 'hsl(200, 24%, 23%)',
+            shadowLight: 'hsl(200, 26%, 33%)',
+            shadowDark: 'hsl(200, 28%, 13%)',
         },
     },
     {
-        name: "Denim",
+        name: 'Denim',
         colors: {
-            background: "hsl(210, 22%, 26%)",
-            shadowLight: "hsl(210, 24%, 36%)",
-            shadowDark: "hsl(210, 26%, 16%)",
+            background: 'hsl(210, 22%, 26%)',
+            shadowLight: 'hsl(210, 24%, 36%)',
+            shadowDark: 'hsl(210, 26%, 16%)',
         },
     },
     {
-        name: "Steel",
+        name: 'Steel',
         colors: {
-            background: "hsl(205, 14%, 28%)",
-            shadowLight: "hsl(205, 16%, 38%)",
-            shadowDark: "hsl(205, 18%, 18%)",
+            background: 'hsl(205, 14%, 28%)',
+            shadowLight: 'hsl(205, 16%, 38%)',
+            shadowDark: 'hsl(205, 18%, 18%)',
         },
     },
     {
-        name: "Plum",
+        name: 'Plum',
         colors: {
-            background: "hsl(280, 20%, 25%)",
-            shadowLight: "hsl(280, 22%, 35%)",
-            shadowDark: "hsl(280, 24%, 15%)",
+            background: 'hsl(280, 20%, 25%)',
+            shadowLight: 'hsl(280, 22%, 35%)',
+            shadowDark: 'hsl(280, 24%, 15%)',
         },
     },
     {
-        name: "Eggplant",
+        name: 'Eggplant',
         colors: {
-            background: "hsl(270, 22%, 23%)",
-            shadowLight: "hsl(270, 24%, 33%)",
-            shadowDark: "hsl(270, 26%, 13%)",
+            background: 'hsl(270, 22%, 23%)',
+            shadowLight: 'hsl(270, 24%, 33%)',
+            shadowDark: 'hsl(270, 26%, 13%)',
         },
     },
     {
-        name: "Mauve",
+        name: 'Mauve',
         colors: {
-            background: "hsl(300, 18%, 27%)",
-            shadowLight: "hsl(300, 20%, 37%)",
-            shadowDark: "hsl(300, 22%, 17%)",
+            background: 'hsl(300, 18%, 27%)',
+            shadowLight: 'hsl(300, 20%, 37%)',
+            shadowDark: 'hsl(300, 22%, 17%)',
         },
     },
     {
-        name: "Grape",
+        name: 'Grape',
         colors: {
-            background: "hsl(260, 24%, 24%)",
-            shadowLight: "hsl(260, 26%, 34%)",
-            shadowDark: "hsl(260, 28%, 14%)",
+            background: 'hsl(260, 24%, 24%)',
+            shadowLight: 'hsl(260, 26%, 34%)',
+            shadowDark: 'hsl(260, 28%, 14%)',
         },
     },
     {
-        name: "Velvet",
+        name: 'Velvet',
         colors: {
-            background: "hsl(290, 20%, 26%)",
-            shadowLight: "hsl(290, 22%, 36%)",
-            shadowDark: "hsl(290, 24%, 16%)",
+            background: 'hsl(290, 20%, 26%)',
+            shadowLight: 'hsl(290, 22%, 36%)',
+            shadowDark: 'hsl(290, 24%, 16%)',
         },
     },
 
     // Pastel Warm Tones - Softer, more sophisticated
     {
-        name: "Rose",
+        name: 'Rose',
         colors: {
-            background: "hsl(350, 45%, 94%)",
-            shadowLight: "hsl(350, 50%, 98%)",
-            shadowDark: "hsl(350, 38%, 82%)",
+            background: 'hsl(350, 45%, 94%)',
+            shadowLight: 'hsl(350, 50%, 98%)',
+            shadowDark: 'hsl(350, 38%, 82%)',
         },
     },
     {
-        name: "Blush",
+        name: 'Blush',
         colors: {
-            background: "hsl(340, 42%, 93%)",
-            shadowLight: "hsl(340, 48%, 98%)",
-            shadowDark: "hsl(340, 35%, 80%)",
+            background: 'hsl(340, 42%, 93%)',
+            shadowLight: 'hsl(340, 48%, 98%)',
+            shadowDark: 'hsl(340, 35%, 80%)',
         },
     },
     {
-        name: "Peach",
+        name: 'Peach',
         colors: {
-            background: "hsl(25, 55%, 93%)",
-            shadowLight: "hsl(25, 60%, 98%)",
-            shadowDark: "hsl(25, 48%, 80%)",
+            background: 'hsl(25, 55%, 93%)',
+            shadowLight: 'hsl(25, 60%, 98%)',
+            shadowDark: 'hsl(25, 48%, 80%)',
         },
     },
     {
-        name: "Coral",
+        name: 'Coral',
         colors: {
-            background: "hsl(15, 52%, 92%)",
-            shadowLight: "hsl(15, 58%, 97%)",
-            shadowDark: "hsl(15, 45%, 78%)",
+            background: 'hsl(15, 52%, 92%)',
+            shadowLight: 'hsl(15, 58%, 97%)',
+            shadowDark: 'hsl(15, 45%, 78%)',
         },
     },
     {
-        name: "Apricot",
+        name: 'Apricot',
         colors: {
-            background: "hsl(35, 50%, 92%)",
-            shadowLight: "hsl(35, 55%, 97%)",
-            shadowDark: "hsl(35, 43%, 78%)",
+            background: 'hsl(35, 50%, 92%)',
+            shadowLight: 'hsl(35, 55%, 97%)',
+            shadowDark: 'hsl(35, 43%, 78%)',
         },
     },
 
     // Pastel Cool Tones - More vibrant yet soft
     {
-        name: "Mint",
+        name: 'Mint',
         colors: {
-            background: "hsl(150, 45%, 91%)",
-            shadowLight: "hsl(150, 50%, 97%)",
-            shadowDark: "hsl(150, 38%, 77%)",
+            background: 'hsl(150, 45%, 91%)',
+            shadowLight: 'hsl(150, 50%, 97%)',
+            shadowDark: 'hsl(150, 38%, 77%)',
         },
     },
     {
-        name: "Sage",
+        name: 'Sage',
         colors: {
-            background: "hsl(130, 35%, 90%)",
-            shadowLight: "hsl(130, 40%, 96%)",
-            shadowDark: "hsl(130, 30%, 76%)",
+            background: 'hsl(130, 35%, 90%)',
+            shadowLight: 'hsl(130, 40%, 96%)',
+            shadowDark: 'hsl(130, 30%, 76%)',
         },
     },
     {
-        name: "Sky",
+        name: 'Sky',
         colors: {
-            background: "hsl(205, 50%, 91%)",
-            shadowLight: "hsl(205, 55%, 97%)",
-            shadowDark: "hsl(205, 43%, 77%)",
+            background: 'hsl(205, 50%, 91%)',
+            shadowLight: 'hsl(205, 55%, 97%)',
+            shadowDark: 'hsl(205, 43%, 77%)',
         },
     },
     {
-        name: "Sapphire",
+        name: 'Sapphire',
         colors: {
-            background: "hsl(210, 48%, 92%)",
-            shadowLight: "hsl(210, 54%, 97%)",
-            shadowDark: "hsl(210, 40%, 78%)",
+            background: 'hsl(210, 48%, 92%)',
+            shadowLight: 'hsl(210, 54%, 97%)',
+            shadowDark: 'hsl(210, 40%, 78%)',
         },
     },
     {
-        name: "Periwinkle",
+        name: 'Periwinkle',
         colors: {
-            background: "hsl(220, 45%, 92%)",
-            shadowLight: "hsl(220, 50%, 97%)",
-            shadowDark: "hsl(220, 38%, 78%)",
+            background: 'hsl(220, 45%, 92%)',
+            shadowLight: 'hsl(220, 50%, 97%)',
+            shadowDark: 'hsl(220, 38%, 78%)',
         },
     },
 
     // Pastel Purple Spectrum - Enhanced variety
     {
-        name: "Lavender",
+        name: 'Lavender',
         colors: {
-            background: "hsl(260, 40%, 93%)",
-            shadowLight: "hsl(260, 45%, 98%)",
-            shadowDark: "hsl(260, 33%, 80%)",
+            background: 'hsl(260, 40%, 93%)',
+            shadowLight: 'hsl(260, 45%, 98%)',
+            shadowDark: 'hsl(260, 33%, 80%)',
         },
     },
     {
-        name: "Lilac",
+        name: 'Lilac',
         colors: {
-            background: "hsl(270, 38%, 92%)",
-            shadowLight: "hsl(270, 43%, 97%)",
-            shadowDark: "hsl(270, 32%, 78%)",
+            background: 'hsl(270, 38%, 92%)',
+            shadowLight: 'hsl(270, 43%, 97%)',
+            shadowDark: 'hsl(270, 32%, 78%)',
         },
     },
     {
-        name: "Violet",
+        name: 'Violet',
         colors: {
-            background: "hsl(280, 42%, 93%)",
-            shadowLight: "hsl(280, 48%, 98%)",
-            shadowDark: "hsl(280, 35%, 80%)",
+            background: 'hsl(280, 42%, 93%)',
+            shadowLight: 'hsl(280, 48%, 98%)',
+            shadowDark: 'hsl(280, 35%, 80%)',
         },
     },
     {
-        name: "Orchid",
+        name: 'Orchid',
         colors: {
-            background: "hsl(290, 40%, 92%)",
-            shadowLight: "hsl(290, 45%, 97%)",
-            shadowDark: "hsl(290, 33%, 78%)",
+            background: 'hsl(290, 40%, 92%)',
+            shadowLight: 'hsl(290, 45%, 97%)',
+            shadowDark: 'hsl(290, 33%, 78%)',
         },
     },
 
     // Bonus Pastels - Unique options
     {
-        name: "Lemon",
+        name: 'Lemon',
         colors: {
-            background: "hsl(55, 48%, 92%)",
-            shadowLight: "hsl(55, 54%, 97%)",
-            shadowDark: "hsl(55, 40%, 78%)",
+            background: 'hsl(55, 48%, 92%)',
+            shadowLight: 'hsl(55, 54%, 97%)',
+            shadowDark: 'hsl(55, 40%, 78%)',
         },
     },
     {
-        name: "Pistachio",
+        name: 'Pistachio',
         colors: {
-            background: "hsl(85, 40%, 90%)",
-            shadowLight: "hsl(85, 45%, 96%)",
-            shadowDark: "hsl(85, 33%, 76%)",
+            background: 'hsl(85, 40%, 90%)',
+            shadowLight: 'hsl(85, 45%, 96%)',
+            shadowDark: 'hsl(85, 33%, 76%)',
         },
     },
     {
-        name: "Aqua",
+        name: 'Aqua',
         colors: {
-            background: "hsl(180, 45%, 90%)",
-            shadowLight: "hsl(180, 50%, 96%)",
-            shadowDark: "hsl(180, 38%, 76%)",
+            background: 'hsl(180, 45%, 90%)',
+            shadowLight: 'hsl(180, 50%, 96%)',
+            shadowDark: 'hsl(180, 38%, 76%)',
         },
     },
-];
+]
 
-export default NEUMORPHIC_PRESETS;
+export default NEUMORPHIC_PRESETS
 /**
- * Generate box-shadow based on convex/inset toggle states
+ * Generate box-shadow based on convex/inset toggle states and depth/blur multipliers
  */
 function getBoxShadow(
     preset: typeof NEUMORPHIC_PRESETS[number],
     isConvex: boolean,
     isInset: boolean,
+    depthMultiplier = 1,
+    blurMultiplier = 1,
 ): string {
     const { shadowLight, shadowDark } = preset.colors
     const insetPrefix = isInset ? 'inset ' : ''
+    const dist = Math.round(8 * depthMultiplier)
+    const blur = Math.round(16 * blurMultiplier)
 
     // Convex (raised) uses light top-left, dark bottom-right
     // Concave (sunken) reverses this
-    return isConvex ? `${insetPrefix}-8px -8px 16px ${shadowLight}, ${insetPrefix}8px 8px 16px ${shadowDark}` : `${insetPrefix}8px 8px 16px ${shadowLight}, ${insetPrefix}-8px -8px 16px ${shadowDark}`
+    return isConvex
+        ? `${insetPrefix}-${dist}px -${dist}px ${blur}px ${shadowLight}, ${insetPrefix}${dist}px ${dist}px ${blur}px ${shadowDark}`
+        : `${insetPrefix}${dist}px ${dist}px ${blur}px ${shadowLight}, ${insetPrefix}-${dist}px -${dist}px ${blur}px ${shadowDark}`
 }
 
 /**
@@ -551,13 +573,21 @@ function applyPresetToTheme(
     isConvex: boolean,
     isInset: boolean,
     setOverride: (mode: 'light' | 'dark', variable: string, value: string) => void,
+    depthMultiplier = 1,
+    blurMultiplier = 1,
 ) {
     const { background, shadowLight, shadowDark } = preset.colors
     const insetPrefix = isInset ? 'inset ' : ''
 
+    // Scale distance and blur by multipliers
+    const d = (v: number) => Math.round(v * depthMultiplier)
+    const b = (v: number) => Math.round(v * blurMultiplier)
+
     // Helper to generate shadow strings
     const getShadow = (xLight: number, yLight: number, blurLight: number, xDark: number, yDark: number, blurDark: number) => {
-        return isConvex ? `${insetPrefix}${xLight}px ${yLight}px ${blurLight}px ${shadowLight}, ${insetPrefix}${xDark}px ${yDark}px ${blurDark}px ${shadowDark}` : `${insetPrefix}${xDark}px ${yDark}px ${blurDark}px ${shadowLight}, ${insetPrefix}${xLight}px ${yLight}px ${blurLight}px ${shadowDark}`
+        return isConvex
+            ? `${insetPrefix}${d(xLight)}px ${d(yLight)}px ${b(blurLight)}px ${shadowLight}, ${insetPrefix}${d(xDark)}px ${d(yDark)}px ${b(blurDark)}px ${shadowDark}`
+            : `${insetPrefix}${d(xDark)}px ${d(yDark)}px ${b(blurDark)}px ${shadowLight}, ${insetPrefix}${d(xLight)}px ${d(yLight)}px ${b(blurLight)}px ${shadowDark}`
     }
 
     // Apply background colors
@@ -587,7 +617,9 @@ function applyPresetToTheme(
 
     // Inset shadows (when not using inset toggle, these remain inset by nature)
     const insetShadow = (xLight: number, yLight: number, blurLight: number, xDark: number, yDark: number, blurDark: number) => {
-        return isConvex ? `inset ${xDark}px ${yDark}px ${blurDark}px ${shadowDark}, inset ${xLight}px ${yLight}px ${blurLight}px ${shadowLight}` : `inset ${xLight}px ${yLight}px ${blurLight}px ${shadowDark}, inset ${xDark}px ${yDark}px ${blurDark}px ${shadowLight}`
+        return isConvex
+            ? `inset ${d(xDark)}px ${d(yDark)}px ${b(blurDark)}px ${shadowDark}, inset ${d(xLight)}px ${d(yLight)}px ${b(blurLight)}px ${shadowLight}`
+            : `inset ${d(xLight)}px ${d(yLight)}px ${b(blurLight)}px ${shadowDark}, inset ${d(xDark)}px ${d(yDark)}px ${b(blurDark)}px ${shadowLight}`
     }
 
     setOverride(mode, '--neu-shadow-inset', insetShadow(-6, -6, 10, 6, 6, 10))
@@ -604,66 +636,69 @@ interface NeumorphicPresetsProps {
 }
 
 export function NeumorphicPresets({ activeMode }: NeumorphicPresetsProps) {
-    const { setOverride, overrides, currentPreset } = useThemeCustomization()
+    const { setOverride, overrides, currentPreset, removeOverrides } = useThemeCustomization()
     const [selectedPreset, setSelectedPreset] = useState<typeof NEUMORPHIC_PRESETS[number] | null>(null)
     const [isConvex, setIsConvex] = useState(true) // true = raised/convex, false = sunken/concave
     const [isInset, setIsInset] = useState(true) // true = inner shadow, false = outer shadow
+    const [shadowDepth, setShadowDepth] = useState(1) // 0.5x–2x distance multiplier
+    const [blurIntensity, setBlurIntensity] = useState(1) // 0.5x–2x blur multiplier
 
     // Cleanup neumorphic-specific overrides when switching away from neumorphism preset
     useEffect(() => {
         if (currentPreset !== 'neumorphism') {
-            // Remove neumorphic-specific variables from overrides
-            const hasNeumorphicOverrides = ['light', 'dark'].some((mode) =>
-                NEUMORPHIC_VARIABLES.some((variable) => overrides[mode as 'light' | 'dark'][variable])
+            const hasNeumorphicOverrides = (['light', 'dark'] as const).some((mode) =>
+                ALL_NEUMORPHIC_OVERRIDES.some((variable) => overrides[mode][variable]),
             )
 
             if (hasNeumorphicOverrides) {
-                // Clear neumorphic variables by setting them to empty string
-                // This will cause them to fall back to preset defaults
-                NEUMORPHIC_VARIABLES.forEach((variable) => {
-                    const lightOverride = overrides.light[variable]
-                    const darkOverride = overrides.dark[variable]
-
-                    if (lightOverride) {
-                        // Note: We can't remove overrides, but setting to empty or removing from storage
-                        // will happen via theme context cleanup
-                    }
-                    if (darkOverride) {
-                        // Same for dark mode
-                    }
-                })
-
-                // Reset selection state
+                removeOverrides('light', ALL_NEUMORPHIC_OVERRIDES)
+                removeOverrides('dark', ALL_NEUMORPHIC_OVERRIDES)
                 setSelectedPreset(null)
             }
         }
-    }, [currentPreset, overrides])
+    }, [currentPreset, overrides, removeOverrides])
 
     const handlePresetClick = (preset: typeof NEUMORPHIC_PRESETS[number]) => {
         setSelectedPreset(preset)
-        applyPresetToTheme(preset, activeMode, isConvex, isInset, setOverride)
+        applyPresetToTheme(preset, activeMode, isConvex, isInset, setOverride, shadowDepth, blurIntensity)
     }
 
     const handleConvexChange = (checked: boolean) => {
         setIsConvex(checked)
         if (selectedPreset) {
-            applyPresetToTheme(selectedPreset, activeMode, checked, isInset, setOverride)
+            applyPresetToTheme(selectedPreset, activeMode, checked, isInset, setOverride, shadowDepth, blurIntensity)
         }
     }
 
     const handleInsetChange = (checked: boolean) => {
         setIsInset(checked)
         if (selectedPreset) {
-            applyPresetToTheme(selectedPreset, activeMode, isConvex, checked, setOverride)
+            applyPresetToTheme(selectedPreset, activeMode, isConvex, checked, setOverride, shadowDepth, blurIntensity)
+        }
+    }
+
+    const handleShadowDepthChange = (value: number[]) => {
+        const depth = value[0]
+        setShadowDepth(depth)
+        if (selectedPreset) {
+            applyPresetToTheme(selectedPreset, activeMode, isConvex, isInset, setOverride, depth, blurIntensity)
+        }
+    }
+
+    const handleBlurIntensityChange = (value: number[]) => {
+        const blur = value[0]
+        setBlurIntensity(blur)
+        if (selectedPreset) {
+            applyPresetToTheme(selectedPreset, activeMode, isConvex, isInset, setOverride, shadowDepth, blur)
         }
     }
 
     // Re-apply preset when activeMode changes
     useEffect(() => {
         if (selectedPreset) {
-            applyPresetToTheme(selectedPreset, activeMode, isConvex, isInset, setOverride)
+            applyPresetToTheme(selectedPreset, activeMode, isConvex, isInset, setOverride, shadowDepth, blurIntensity)
         }
-    }, [activeMode, selectedPreset, isConvex, isInset, setOverride])
+    }, [activeMode, selectedPreset, isConvex, isInset, setOverride, shadowDepth, blurIntensity])
 
     return (
         <div className="space-y-4">
@@ -675,7 +710,7 @@ export function NeumorphicPresets({ activeMode }: NeumorphicPresetsProps) {
                 <div className="grid grid-cols-3 gap-2">
                     {NEUMORPHIC_PRESETS.map((preset) => (
                         <Badge
-                            variant={"outline"}
+                            variant="outline"
                             key={preset.name}
                             onClick={() => handlePresetClick(preset)}
                             className="group relative flex flex-col items-center gap-2 p-4 pt-6 rounded-lg hover:bg-muted transition"
@@ -728,6 +763,49 @@ export function NeumorphicPresets({ activeMode }: NeumorphicPresetsProps) {
                 </div>
             </div>
 
+            {/* Shadow Depth & Blur Intensity Sliders */}
+            <div className="space-y-4">
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Shadow Depth</Label>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                            {shadowDepth.toFixed(1)}
+                            x
+                        </span>
+                    </div>
+                    <Slider
+                        min={0.2}
+                        max={2.5}
+                        step={0.1}
+                        value={[shadowDepth]}
+                        onValueChange={handleShadowDepthChange}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Controls shadow distance from the surface
+                    </p>
+                </div>
+
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Blur Intensity</Label>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                            {blurIntensity.toFixed(1)}
+                            x
+                        </span>
+                    </div>
+                    <Slider
+                        min={0.2}
+                        max={2.5}
+                        step={0.1}
+                        value={[blurIntensity]}
+                        onValueChange={handleBlurIntensityChange}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Controls shadow blur radius / softness
+                    </p>
+                </div>
+            </div>
+
             {/* Live Preview */}
             <div>
                 <Label className="text-xs text-muted-foreground mb-2 block">
@@ -742,6 +820,8 @@ export function NeumorphicPresets({ activeMode }: NeumorphicPresetsProps) {
                                 selectedPreset ?? NEUMORPHIC_PRESETS[0],
                                 isConvex,
                                 isInset,
+                                shadowDepth,
+                                blurIntensity,
                             ),
                         }}
                     />

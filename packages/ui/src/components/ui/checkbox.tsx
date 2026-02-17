@@ -9,6 +9,7 @@ const Checkbox = ({ ref, className, indeterminate, ...props }: React.ComponentPr
 } & { ref?: React.RefObject<React.ElementRef<typeof CheckboxPrimitive.Root> | null> }) => (
   <CheckboxPrimitive.Root
     ref={ref}
+    data-slot="checkbox"
     className={cn(
       'peer h-4 w-4 shrink-0 rounded-sm border border-primary shadow-sm focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground',
       className,
@@ -21,11 +22,11 @@ const Checkbox = ({ ref, className, indeterminate, ...props }: React.ComponentPr
     >
       {indeterminate
         ? (
-            <MinusIcon className="size-4" />
-          )
+          <MinusIcon className="size-4" />
+        )
         : (
-            <CheckIcon className="size-4" />
-          )}
+          <CheckIcon className="size-4" />
+        )}
     </CheckboxPrimitive.Indicator>
   </CheckboxPrimitive.Root>
 )

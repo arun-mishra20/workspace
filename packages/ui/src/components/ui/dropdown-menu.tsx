@@ -58,6 +58,7 @@ const DropdownMenuContent = ({ ref, className, sideOffset = 4, ...props }: React
   <DropdownMenuPrimitive.Portal>
     <DropdownMenuPrimitive.Content
       ref={ref}
+      data-slot="dropdown-menu-content"
       sideOffset={sideOffset}
       className={cn(
         'z-50 min-w-32 overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md',
@@ -75,6 +76,8 @@ const DropdownMenuItem = ({ ref, className, inset, ...props }: React.ComponentPr
 } & { ref?: React.RefObject<React.ElementRef<typeof DropdownMenuPrimitive.Item> | null> }) => (
   <DropdownMenuPrimitive.Item
     ref={ref}
+    data-slot="dropdown-menu-item"
+
     className={cn(
       'relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden transition-colors focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0',
       inset && 'pl-8',

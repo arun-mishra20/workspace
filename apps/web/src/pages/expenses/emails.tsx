@@ -87,6 +87,7 @@ import {
 } from "@/components/filters";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Separator } from "@workspace/ui/components/ui/separator";
+import { Skeleton } from "@workspace/ui/components/ui/skeleton";
 
 const TRANSACTION_TYPES = ["debited", "credited"] as const;
 const TRANSACTION_MODES = [
@@ -779,9 +780,11 @@ const ExpenseEmailsPage = () => {
 
               <TabsContent value="expense" className="mt-0">
                 {isExpensesLoading ? (
-                  <p className="text-sm text-muted-foreground">
-                    Loading expenses…
-                  </p>
+                  <div className="space-y-3 pt-2">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Skeleton key={i} className="h-12 w-full" />
+                    ))}
+                  </div>
                 ) : null}
                 {isExpensesError ? (
                   <p className="text-sm text-destructive">
@@ -877,9 +880,11 @@ const ExpenseEmailsPage = () => {
 
               <TabsContent value="emails" className="mt-0">
                 {isEmailsLoading ? (
-                  <p className="text-sm text-muted-foreground">
-                    Loading expense emails…
-                  </p>
+                  <div className="space-y-3 pt-2">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Skeleton key={i} className="h-12 w-full" />
+                    ))}
+                  </div>
                 ) : null}
                 {isEmailsError ? (
                   <p className="text-sm text-destructive">

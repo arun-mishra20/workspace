@@ -6,6 +6,7 @@ const Table = ({ ref, className, ...props }: React.HTMLAttributes<HTMLTableEleme
   <div className="relative w-full overflow-auto">
     <table
       ref={ref}
+      data-slot="table"
       className={cn('w-full caption-bottom text-sm', className)}
       {...props}
     />
@@ -14,7 +15,9 @@ const Table = ({ ref, className, ...props }: React.HTMLAttributes<HTMLTableEleme
 Table.displayName = 'Table'
 
 const TableHeader = ({ ref, className, ...props }: React.HTMLAttributes<HTMLTableSectionElement> & { ref?: React.RefObject<HTMLTableSectionElement | null> }) => (
-  <thead ref={ref} className={cn('[&_tr]:border-b', className)} {...props} />
+  <thead ref={ref}
+    data-slot="table-header"
+    className={cn('[&_tr]:border-b', className)} {...props} />
 )
 TableHeader.displayName = 'TableHeader'
 
@@ -42,6 +45,7 @@ TableFooter.displayName = 'TableFooter'
 const TableRow = ({ ref, className, ...props }: React.HTMLAttributes<HTMLTableRowElement> & { ref?: React.RefObject<HTMLTableRowElement | null> }) => (
   <tr
     ref={ref}
+    data-slot="table-row"
     className={cn(
       'border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted',
       className,
@@ -66,6 +70,7 @@ TableHead.displayName = 'TableHead'
 const TableCell = ({ ref, className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement> & { ref?: React.RefObject<HTMLTableCellElement | null> }) => (
   <td
     ref={ref}
+    data-slot="table-cell"
     className={cn(
       'p-2 align-middle [&:has([role=checkbox])]:pr-0 *:[[role=checkbox]]:translate-y-[2px]',
       className,

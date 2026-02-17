@@ -6,6 +6,7 @@ import { cn } from '@workspace/ui/lib/utils'
 const Avatar = ({ ref, className, ...props }: React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root> & { ref?: React.RefObject<React.ElementRef<typeof AvatarPrimitive.Root> | null> }) => (
   <AvatarPrimitive.Root
     ref={ref}
+    data-slot="avatar"
     className={cn(
       'relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full',
       className,
@@ -27,6 +28,7 @@ AvatarImage.displayName = AvatarPrimitive.Image.displayName
 const AvatarFallback = ({ ref, className, ...props }: React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback> & { ref?: React.RefObject<React.ElementRef<typeof AvatarPrimitive.Fallback> | null> }) => (
   <AvatarPrimitive.Fallback
     ref={ref}
+    data-slot="avatar-fallback"
     className={cn(
       'flex h-full w-full items-center justify-center rounded-full bg-muted',
       className,
