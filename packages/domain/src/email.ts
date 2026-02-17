@@ -12,6 +12,7 @@ export const RawEmailSchema = z.object({
   bodyText: z.string(),
   bodyHtml: z.string().optional(),
   rawHeaders: z.record(z.string(), z.string()),
+  category: z.string().default("expenses"),
 });
 
 export type RawEmail = z.infer<typeof RawEmailSchema>;

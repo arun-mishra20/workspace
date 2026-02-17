@@ -8,6 +8,7 @@ import {
   rawEmailsTable,
   statementsTable,
   transactionsTable,
+  merchantCategoryRulesTable,
 } from './schemas/index.js'
 
 /**
@@ -29,6 +30,8 @@ export const usersRelations = relations(usersTable, ({ one, many }) => ({
   statements: many(statementsTable),
   // 1:N with transactions
   transactions: many(transactionsTable),
+  // 1:N with merchant_category_rules
+  merchantCategoryRules: many(merchantCategoryRulesTable),
 }))
 
 /**
@@ -67,53 +70,76 @@ export const sessionsRelations = relations(sessionsTable, ({ one }) => ({
 /**
  * Raw Emails table relations
  */
-export const rawEmailsRelations = relations(rawEmailsTable, ({ one, many }) => ({
-  // N:1 with users
-  user: one(usersTable, {
-    fields: [rawEmailsTable.userId],
-    references: [usersTable.id],
+export const rawEmailsRelations = relations(
+  rawEmailsTable,
+  ({ one, many }) => ({
+    // N:1 with users
+    user: one(usersTable, {
+      fields: [rawEmailsTable.userId],
+      references: [usersTable.id],
+    }),
+    // 1:N with transactions
+    transactions: many(transactionsTable),
+    // 1:N with statements
+    statements: many(statementsTable),
   }),
-  // 1:N with transactions
-  transactions: many(transactionsTable),
-  // 1:N with statements
-  statements: many(statementsTable),
-}))
+)
 
 /**
  * Statements table relations
  */
-export const statementsRelations = relations(statementsTable, ({ one, many }) => ({
-  // N:1 with users
-  user: one(usersTable, {
-    fields: [statementsTable.userId],
-    references: [usersTable.id],
+export const statementsRelations = relations(
+  statementsTable,
+  ({ one, many }) => ({
+    // N:1 with users
+    user: one(usersTable, {
+      fields: [statementsTable.userId],
+      references: [usersTable.id],
+    }),
+    // N:1 with raw_emails
+    sourceEmail: one(rawEmailsTable, {
+      fields: [statementsTable.sourceEmailId],
+      references: [rawEmailsTable.id],
+    }),
+    // 1:N with transactions
+    transactions: many(transactionsTable),
   }),
-  // N:1 with raw_emails
-  sourceEmail: one(rawEmailsTable, {
-    fields: [statementsTable.sourceEmailId],
-    references: [rawEmailsTable.id],
-  }),
-  // 1:N with transactions
-  transactions: many(transactionsTable),
-}))
+)
 
 /**
  * Transactions table relations
  */
-export const transactionsRelations = relations(transactionsTable, ({ one }) => ({
-  // N:1 with users
-  user: one(usersTable, {
-    fields: [transactionsTable.userId],
-    references: [usersTable.id],
+export const transactionsRelations = relations(
+  transactionsTable,
+  ({ one }) => ({
+    // N:1 with users
+    user: one(usersTable, {
+      fields: [transactionsTable.userId],
+      references: [usersTable.id],
+    }),
+    // N:1 with raw_emails
+    sourceEmail: one(rawEmailsTable, {
+      fields: [transactionsTable.sourceEmailId],
+      references: [rawEmailsTable.id],
+    }),
+    // N:1 with statements
+    statement: one(statementsTable, {
+      fields: [transactionsTable.statementId],
+      references: [statementsTable.id],
+    }),
   }),
-  // N:1 with raw_emails
-  sourceEmail: one(rawEmailsTable, {
-    fields: [transactionsTable.sourceEmailId],
-    references: [rawEmailsTable.id],
+)
+
+/**
+ * Merchant category rules table relations
+ */
+export const merchantCategoryRulesRelations = relations(
+  merchantCategoryRulesTable,
+  ({ one }) => ({
+    // N:1 with users
+    user: one(usersTable, {
+      fields: [merchantCategoryRulesTable.userId],
+      references: [usersTable.id],
+    }),
   }),
-  // N:1 with statements
-  statement: one(statementsTable, {
-    fields: [transactionsTable.statementId],
-    references: [statementsTable.id],
-  }),
-}))
+)

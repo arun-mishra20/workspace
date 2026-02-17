@@ -210,6 +210,22 @@ export const CATEGORY_OPTIONS = [
     color: "#95A5A6",
     parent: null,
   },
+  // Trips
+  {
+    value: "trips",
+    label: "Trips",
+    icon: "plane",
+    color: "#9B59B6",
+    parent: "expenses",
+  },
+  // gift-cards
+  {
+    value: "gift_cards",
+    label: "Gift Cards",
+    icon: "gift",
+    color: "#F39C12",
+    parent: "expenses",
+  },
   // investments
   {
     value: "investments",

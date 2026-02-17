@@ -13,7 +13,7 @@ import {
     UseGuards,
     NotFoundException,
 } from "@nestjs/common";
-import { ApiOperation, ApiResponse, ApiTags, ApiParam } from "@nestjs/swagger";
+import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiQuery } from "@nestjs/swagger";
 import { SkipThrottle } from "@nestjs/throttler";
 
 import { JwtAuthGuard } from "@/modules/auth/presentation/guards/jwt-auth.guard";
@@ -63,7 +63,14 @@ export class ExpensesController {
     @UseGuards(JwtAuthGuard)
     @HttpCode(HttpStatus.ACCEPTED)
     @ApiOperation({
-        summary: "Re-parse all stored emails without fetching from Gmail",
+        summary: "Re-parse stored emails without fetching from Gmail",
+        description: "By default, only processes unprocessed emails. Use forceProcessAll=true to reprocess all emails.",
+    })
+    @ApiQuery({
+        name: "forceProcessAll",
+        required: false,
+        type: Boolean,
+        description: "If true, reprocess all emails. If false or omitted, only process unprocessed emails.",
     })
     @ApiResponse({
         status: 202,
@@ -71,13 +78,15 @@ export class ExpensesController {
     })
     async reprocessEmails(
         @Request() req: FastifyRequest & { user: { id: string } },
+        @Query("forceProcessAll") forceProcessAll?: string,
     ): Promise<{ jobId: string; message: string }> {
         const { jobId } = await this.expensesService.startReprocessJob({
             userId: req.user.id,
+            forceProcessAll: forceProcessAll === "true",
         });
         return {
             jobId,
-            message: "Reprocess job started. Poll /expenses/sync/:jobId for status.",
+            message: `Reprocess job started (${forceProcessAll === "true" ? "all emails" : "unprocessed emails only"}). Poll /expenses/sync/:jobId for status.`,
         };
     }
 

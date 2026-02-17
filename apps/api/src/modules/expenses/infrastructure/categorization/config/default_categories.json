@@ -179,6 +179,24 @@
             "icon": "more-horizontal",
             "color": "#95A5A6",
             "parent": null
+        },
+        "trips": {
+            "name": "Trips",
+            "icon": "plane",
+            "color": "#9B59B6",
+            "parent": "expenses"
+        },
+        "gift_cards": {
+            "name": "Gift Cards",
+            "icon": "gift",
+            "color": "#F39C12",
+            "parent": "expenses"
+        },
+        "investments": {
+            "name": "Investments",
+            "icon": "chart-line",
+            "color": "#2C3E50",
+            "parent": "finance"
         }
     }
 }
