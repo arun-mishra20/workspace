@@ -1,13 +1,13 @@
-import { Inject, Injectable } from "@nestjs/common";
-import { accountsTable } from "@workspace/database";
-import { eq, and } from "drizzle-orm";
+import { Inject, Injectable } from '@nestjs/common'
+import { accountsTable } from '@workspace/database'
+import { eq, and } from 'drizzle-orm'
 
-import { AuthIdentityDto } from "@/modules/auth/application/dtos/auth-identity.dto";
-import { DB_TOKEN } from "@/shared/infrastructure/db/db.port";
+import { AuthIdentityDto } from '@/modules/auth/application/dtos/auth-identity.dto'
+import { DB_TOKEN } from '@/shared/infrastructure/db/db.port'
 
-import type { AuthProvider } from "@/modules/auth/application/constants/auth-provider";
-import type { AuthIdentityRepository } from "@/modules/auth/application/ports/auth-identity.repository.port";
-import type { DrizzleDb } from "@/shared/infrastructure/db/db.port";
+import type { AuthProvider } from '@/modules/auth/application/constants/auth-provider'
+import type { AuthIdentityRepository } from '@/modules/auth/application/ports/auth-identity.repository.port'
+import type { DrizzleDb } from '@/shared/infrastructure/db/db.port'
 
 /**
  * Drizzle AuthIdentity Repository implementation
@@ -18,148 +18,148 @@ import type { DrizzleDb } from "@/shared/infrastructure/db/db.port";
  */
 @Injectable()
 export class AuthIdentityRepositoryImpl implements AuthIdentityRepository {
-    constructor(
-        @Inject(DB_TOKEN)
-        private readonly db: DrizzleDb,
-    ) {}
+  constructor(
+    @Inject(DB_TOKEN)
+    private readonly db: DrizzleDb,
+  ) {}
 
-    async save(identity: AuthIdentityDto): Promise<void> {
-        const data = {
-            id: identity.id,
-            userId: identity.userId,
-            providerId: identity.providerId,
-            accountId: identity.accountId,
-            password: identity.password,
-            accessToken: identity.accessToken,
-            refreshToken: identity.refreshToken,
-            accessTokenExpiresAt: identity.accessTokenExpiresAt,
-            refreshTokenExpiresAt: identity.refreshTokenExpiresAt,
-            scope: identity.scope,
-            updatedAt: identity.updatedAt,
-        };
-
-        const existing = await this.findById(identity.id);
-
-        await (existing
-            ? this.db.update(accountsTable).set(data).where(eq(accountsTable.id, identity.id))
-            : this.db.insert(accountsTable).values({
-                  ...data,
-                  createdAt: identity.createdAt,
-              }));
+  async save(identity: AuthIdentityDto): Promise<void> {
+    const data = {
+      id: identity.id,
+      userId: identity.userId,
+      providerId: identity.providerId,
+      accountId: identity.accountId,
+      password: identity.password,
+      accessToken: identity.accessToken,
+      refreshToken: identity.refreshToken,
+      accessTokenExpiresAt: identity.accessTokenExpiresAt,
+      refreshTokenExpiresAt: identity.refreshTokenExpiresAt,
+      scope: identity.scope,
+      updatedAt: identity.updatedAt,
     }
 
-    async findById(id: string): Promise<AuthIdentityDto | null> {
-        const result = await this.db
-            .select()
-            .from(accountsTable)
-            .where(eq(accountsTable.id, id))
-            .limit(1);
+    const existing = await this.findById(identity.id)
 
-        if (result.length === 0) {
-            return null;
-        }
+    await (existing
+      ? this.db.update(accountsTable).set(data).where(eq(accountsTable.id, identity.id))
+      : this.db.insert(accountsTable).values({
+          ...data,
+          createdAt: identity.createdAt,
+        }))
+  }
 
-        return this.toDto(result[0]!);
+  async findById(id: string): Promise<AuthIdentityDto | null> {
+    const result = await this.db
+      .select()
+      .from(accountsTable)
+      .where(eq(accountsTable.id, id))
+      .limit(1)
+
+    if (result.length === 0) {
+      return null
     }
 
-    async findByUserId(userId: string): Promise<AuthIdentityDto[]> {
-        const results = await this.db
-            .select()
-            .from(accountsTable)
-            .where(eq(accountsTable.userId, userId));
+    return this.toDto(result[0]!)
+  }
 
-        return results.map((record) => this.toDto(record));
+  async findByUserId(userId: string): Promise<AuthIdentityDto[]> {
+    const results = await this.db
+      .select()
+      .from(accountsTable)
+      .where(eq(accountsTable.userId, userId))
+
+    return results.map((record) => this.toDto(record))
+  }
+
+  async findByUserIdAndProvider(
+    userId: string,
+    provider: AuthProvider,
+  ): Promise<AuthIdentityDto | null> {
+    const result = await this.db
+      .select()
+      .from(accountsTable)
+      .where(and(eq(accountsTable.userId, userId), eq(accountsTable.providerId, provider)))
+      .limit(1)
+
+    if (result.length === 0) {
+      return null
     }
 
-    async findByUserIdAndProvider(
-        userId: string,
-        provider: AuthProvider,
-    ): Promise<AuthIdentityDto | null> {
-        const result = await this.db
-            .select()
-            .from(accountsTable)
-            .where(and(eq(accountsTable.userId, userId), eq(accountsTable.providerId, provider)))
-            .limit(1);
+    return this.toDto(result[0]!)
+  }
 
-        if (result.length === 0) {
-            return null;
-        }
+  async findByProviderAndIdentifier(
+    provider: AuthProvider,
+    accountId: string,
+  ): Promise<AuthIdentityDto | null> {
+    const result = await this.db
+      .select()
+      .from(accountsTable)
+      .where(
+        and(
+          eq(accountsTable.providerId, provider),
+          eq(accountsTable.accountId, accountId.toLowerCase()),
+        ),
+      )
+      .limit(1)
 
-        return this.toDto(result[0]!);
+    if (result.length === 0) {
+      return null
     }
 
-    async findByProviderAndIdentifier(
-        provider: AuthProvider,
-        accountId: string,
-    ): Promise<AuthIdentityDto | null> {
-        const result = await this.db
-            .select()
-            .from(accountsTable)
-            .where(
-                and(
-                    eq(accountsTable.providerId, provider),
-                    eq(accountsTable.accountId, accountId.toLowerCase()),
-                ),
-            )
-            .limit(1);
+    return this.toDto(result[0]!)
+  }
 
-        if (result.length === 0) {
-            return null;
-        }
+  async findByIdentifier(accountId: string): Promise<AuthIdentityDto | null> {
+    const result = await this.db
+      .select()
+      .from(accountsTable)
+      .where(eq(accountsTable.accountId, accountId.toLowerCase()))
+      .limit(1)
 
-        return this.toDto(result[0]!);
+    if (result.length === 0) {
+      return null
     }
 
-    async findByIdentifier(accountId: string): Promise<AuthIdentityDto | null> {
-        const result = await this.db
-            .select()
-            .from(accountsTable)
-            .where(eq(accountsTable.accountId, accountId.toLowerCase()))
-            .limit(1);
+    return this.toDto(result[0]!)
+  }
 
-        if (result.length === 0) {
-            return null;
-        }
+  async existsByIdentifier(accountId: string): Promise<boolean> {
+    const result = await this.db
+      .select({ id: accountsTable.id })
+      .from(accountsTable)
+      .where(eq(accountsTable.accountId, accountId.toLowerCase()))
+      .limit(1)
 
-        return this.toDto(result[0]!);
-    }
+    return result.length > 0
+  }
 
-    async existsByIdentifier(accountId: string): Promise<boolean> {
-        const result = await this.db
-            .select({ id: accountsTable.id })
-            .from(accountsTable)
-            .where(eq(accountsTable.accountId, accountId.toLowerCase()))
-            .limit(1);
+  async delete(id: string): Promise<boolean> {
+    const result = await this.db.delete(accountsTable).where(eq(accountsTable.id, id))
 
-        return result.length > 0;
-    }
+    return (result.rowCount ?? 0) > 0
+  }
 
-    async delete(id: string): Promise<boolean> {
-        const result = await this.db.delete(accountsTable).where(eq(accountsTable.id, id));
+  async deleteByUserId(userId: string): Promise<number> {
+    const result = await this.db.delete(accountsTable).where(eq(accountsTable.userId, userId))
 
-        return (result.rowCount ?? 0) > 0;
-    }
+    return result.rowCount ?? 0
+  }
 
-    async deleteByUserId(userId: string): Promise<number> {
-        const result = await this.db.delete(accountsTable).where(eq(accountsTable.userId, userId));
-
-        return result.rowCount ?? 0;
-    }
-
-    private toDto(record: typeof accountsTable.$inferSelect): AuthIdentityDto {
-        return new AuthIdentityDto({
-            id: record.id,
-            userId: record.userId,
-            providerId: record.providerId as AuthProvider,
-            accountId: record.accountId,
-            password: record.password,
-            accessToken: record.accessToken,
-            refreshToken: record.refreshToken,
-            accessTokenExpiresAt: record.accessTokenExpiresAt,
-            refreshTokenExpiresAt: record.refreshTokenExpiresAt,
-            scope: record.scope,
-            createdAt: record.createdAt,
-            updatedAt: record.updatedAt,
-        });
-    }
+  private toDto(record: typeof accountsTable.$inferSelect): AuthIdentityDto {
+    return new AuthIdentityDto({
+      id: record.id,
+      userId: record.userId,
+      providerId: record.providerId as AuthProvider,
+      accountId: record.accountId,
+      password: record.password,
+      accessToken: record.accessToken,
+      refreshToken: record.refreshToken,
+      accessTokenExpiresAt: record.accessTokenExpiresAt,
+      refreshTokenExpiresAt: record.refreshTokenExpiresAt,
+      scope: record.scope,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    })
+  }
 }

@@ -29,6 +29,13 @@
       "when": 1771248409846,
       "tag": "0003_amusing_frank_castle",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772006400000,
+      "tag": "0004_transactions_perf_indexes",
+      "breakpoints": true
     }
   ]
 }

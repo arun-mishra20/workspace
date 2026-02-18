@@ -1,4 +1,4 @@
-import { OffsetPaginationDto } from "@/shared/infrastructure/dtos/offset-pagination.dto";
+import { OffsetPaginationDto } from '@/shared/infrastructure/dtos/offset-pagination.dto'
 
 /**
  * List Expense Emails DTO

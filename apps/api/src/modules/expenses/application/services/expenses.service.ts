@@ -69,9 +69,13 @@ const EXPENSE_QUERY_TERMS = 'subject:(statement OR receipt OR purchase OR transa
 
 @Injectable()
 export class ExpensesService {
+  private static readonly ANALYTICS_CACHE_TTL_MS = 60_000
+  private static readonly EMAIL_PROCESS_BATCH_SIZE = 20
+
   private readonly logger = new Logger(ExpensesService.name)
   private readonly transactionCategorizer = TransactionCategorizer.getInstance()
   private readonly cardResolver = CardResolver.getInstance()
+  private readonly analyticsCache = new Map<string, { expiresAt: number, value: unknown }>()
 
   constructor(
     @Inject(EMAIL_PARSERS)
@@ -88,6 +92,35 @@ export class ExpensesService {
     private readonly merchantRuleRepository: MerchantCategoryRuleRepository,
     private readonly emailSyncService: EmailSyncService,
   ) {}
+
+  private getCachedOrCompute<T>(key: string, compute: () => Promise<T>): Promise<T> {
+    const existing = this.analyticsCache.get(key)
+    const now = Date.now()
+    if (existing && existing.expiresAt > now) {
+      return Promise.resolve(existing.value as T)
+    }
+
+    return compute().then((value) => {
+      this.analyticsCache.set(key, {
+        value,
+        expiresAt: now + ExpensesService.ANALYTICS_CACHE_TTL_MS,
+      })
+      return value
+    })
+  }
+
+  private cacheKey(userId: string, method: string, params: Record<string, unknown>): string {
+    return `${userId}:${method}:${JSON.stringify(params)}`
+  }
+
+  private invalidateUserAnalyticsCache(userId: string): void {
+    const prefix = `${userId}:`
+    for (const key of this.analyticsCache.keys()) {
+      if (key.startsWith(prefix)) {
+        this.analyticsCache.delete(key)
+      }
+    }
+  }
 
   /**
      * Start an async sync job
@@ -166,74 +199,63 @@ export class ExpensesService {
         startedAt: new Date(),
       })
 
-      const allEmails = forceProcessAll
-        ? await this.rawEmailRepository.listAllByUser(userId, EXPENSE_CATEGORY)
-        : await this.rawEmailRepository.listUnprocessedByUser(userId, EXPENSE_CATEGORY)
-
-      await this.syncJobRepository.update(jobId, {
-        totalEmails: allEmails.length,
-      })
-
-      this.logger.log(
-        `Reprocess job ${jobId}: re-parsing ${allEmails.length} ${forceProcessAll ? '' : 'unprocessed '}stored emails`,
-      )
-
       let totalTransactions = 0
       let totalStatements = 0
+      let totalEmails = 0
+      let offset = 0
 
-      // Load user's merchant category rules once for the entire reprocess
       const userRules = await this.buildUserCategorizationRules(userId)
 
-      for (const email of allEmails) {
-        try {
-          const parser = this.findParser(email)
-          if (!parser) {
-            this.logger.debug(
-              `Reprocess job ${jobId}: no parser found for email ${email.id} (from=${email.from}, subject=${email.subject.slice(0, 60)})`,
-            )
-            await this.syncJobRepository.incrementProgress(jobId, 'processedEmails')
-            continue
-          }
+      while (true) {
+        const emails = forceProcessAll
+          ? await this.rawEmailRepository.listAllByUser(userId, EXPENSE_CATEGORY, {
+              limit: ExpensesService.EMAIL_PROCESS_BATCH_SIZE,
+              offset,
+            })
+          : await this.rawEmailRepository.listUnprocessedByUser(userId, EXPENSE_CATEGORY, {
+              limit: ExpensesService.EMAIL_PROCESS_BATCH_SIZE,
+            })
 
-          const parsedTransactions = parser.parseTransactions(email)
+        if (emails.length === 0) {
+          break
+        }
 
-          if (parsedTransactions.length === 0) {
-            this.logger.debug(
-              `Reprocess job ${jobId}: parser returned 0 txns for email ${email.id} (subject=${email.subject.slice(0, 60)}, bodyLen=${email.bodyText.length}, htmlLen=${email.bodyHtml?.length ?? 0}, snippet=${email.snippet.slice(0, 60)})`,
-            )
-          }
+        totalEmails += emails.length
 
-          const transactions = this.categorizeTransactions(parsedTransactions, userRules)
+        const batchResults = await Promise.all(
+          emails.map((email) => this.processEmailForReprocess(jobId, email, userRules)),
+        )
 
-          if (transactions.length > 0) {
-            await this.transactionRepository.upsertMany(transactions)
-            totalTransactions += transactions.length
-            await this.syncJobRepository.incrementProgress(
-              jobId,
-              'transactions',
-              transactions.length,
-            )
-          }
+        const batchTransactions = batchResults.reduce(
+          (sum, result) => sum + result.transactions,
+          0,
+        )
+        const batchStatements = batchResults.reduce(
+          (sum, result) => sum + result.statements,
+          0,
+        )
 
-          const statement = parser.parseStatement(email)
-          if (statement) {
-            await this.statementRepository.upsert(statement)
-            totalStatements++
-            await this.syncJobRepository.incrementProgress(jobId, 'statements')
-          }
+        totalTransactions += batchTransactions
+        totalStatements += batchStatements
 
-          await this.syncJobRepository.incrementProgress(jobId, 'processedEmails')
-        } catch (emailError) {
-          const errMsg
-            = emailError instanceof Error
-              ? `${emailError.message}\n${emailError.stack}`
-              : String(emailError)
-          this.logger.warn(
-            `Reprocess job ${jobId}: failed to process email ${email.id} (subject=${email.subject.slice(0, 60)}, bodyLen=${email.bodyText.length}, htmlLen=${email.bodyHtml?.length ?? 0}): ${errMsg}`,
-          )
-          await this.syncJobRepository.incrementProgress(jobId, 'processedEmails')
+        await this.syncJobRepository.incrementProgress(jobId, 'processedEmails', emails.length)
+        if (batchTransactions > 0) {
+          await this.syncJobRepository.incrementProgress(jobId, 'transactions', batchTransactions)
+        }
+        if (batchStatements > 0) {
+          await this.syncJobRepository.incrementProgress(jobId, 'statements', batchStatements)
+        }
+
+        if (forceProcessAll) {
+          offset += emails.length
         }
       }
+
+      await this.syncJobRepository.update(jobId, {
+        totalEmails,
+      })
+
+      this.invalidateUserAnalyticsCache(userId)
 
       await this.syncJobRepository.update(jobId, {
         status: 'completed',
@@ -241,7 +263,7 @@ export class ExpensesService {
       })
 
       this.logger.log(
-        `Reprocess job ${jobId} completed: ${totalTransactions} transactions, ${totalStatements} statements from ${allEmails.length} emails`,
+        `Reprocess job ${jobId} completed: ${totalTransactions} transactions, ${totalStatements} statements from ${totalEmails} emails`,
       )
     } catch (error) {
       this.logger.error(`Reprocess job ${jobId} failed`, error)
@@ -294,48 +316,102 @@ export class ExpensesService {
       )
 
       // Only process new emails that haven't been processed yet
-      const allEmails = await this.rawEmailRepository.listUnprocessedByUser(userId, EXPENSE_CATEGORY)
-
       let totalTransactions = 0
       let totalStatements = 0
+      let processedEmails = 0
 
       this.logger.log(
-        `Post-sync processing for job ${jobId}: found ${allEmails.length} unprocessed emails`,
+        `Post-sync processing for job ${jobId}: processing unprocessed emails in batches`,
       )
 
-      for (const email of allEmails) {
-        try {
-          const parser = this.findParser(email)
-          if (!parser) {
-            this.logger.debug(
-              `Post-sync processing: no parser found for email ${email.id} (from=${email.from}, subject=${email.subject.slice(0, 60)})`,
-            )
-            continue
-          }
-          const parsedTransactions = parser.parseTransactions(email)
-          const transactions = this.categorizeTransactions(parsedTransactions)
+      const userRules = await this.buildUserCategorizationRules(userId)
 
-          if (transactions.length > 0) {
-            await this.transactionRepository.upsertMany(transactions)
-            totalTransactions += transactions.length
-            await this.syncJobRepository.incrementProgress(
-              jobId,
-              'transactions',
-              transactions.length,
-            )
-          }
+      while (true) {
+        const chunk = await this.rawEmailRepository.listUnprocessedByUser(userId, EXPENSE_CATEGORY, {
+          limit: ExpensesService.EMAIL_PROCESS_BATCH_SIZE,
+        })
 
-          const statement = parser.parseStatement(email)
-          if (statement) {
-            await this.statementRepository.upsert(statement)
-            totalStatements++
-            await this.syncJobRepository.incrementProgress(jobId, 'statements')
-          }
-        } catch (emailError) {
-          this.logger.warn(`Post-sync processing: failed to process email ${email.id} (subject=${email.subject.slice(0, 60)})`, emailError)
+        if (chunk.length === 0) {
+          break
         }
-        this.logger.log(`Post-sync processing for job ${jobId} completed: ${totalTransactions} transactions, ${totalStatements} statements processed from synced emails`)
+
+        const chunkResults = await Promise.all(
+          chunk.map((email) => this.processEmailForReprocess(jobId, email, userRules)),
+        )
+
+        const chunkTransactions = chunkResults.reduce(
+          (sum, result) => sum + result.transactions,
+          0,
+        )
+        const chunkStatements = chunkResults.reduce(
+          (sum, result) => sum + result.statements,
+          0,
+        )
+
+        totalTransactions += chunkTransactions
+        totalStatements += chunkStatements
+        processedEmails += chunk.length
+
+        await this.syncJobRepository.incrementProgress(jobId, 'processedEmails', chunk.length)
+        if (chunkTransactions > 0) {
+          await this.syncJobRepository.incrementProgress(jobId, 'transactions', chunkTransactions)
+        }
+        if (chunkStatements > 0) {
+          await this.syncJobRepository.incrementProgress(jobId, 'statements', chunkStatements)
+        }
       }
+
+      this.invalidateUserAnalyticsCache(userId)
+      this.logger.log(`Post-sync processing for job ${jobId} completed: ${totalTransactions} transactions, ${totalStatements} statements processed from ${processedEmails} synced emails`)
+    }
+  }
+
+  private async processEmailForReprocess(
+    jobId: string,
+    email: RawEmail,
+    userRules?: UserCategorizationRules,
+  ): Promise<{ transactions: number, statements: number }> {
+    try {
+      const parser = this.findParser(email)
+      if (!parser) {
+        this.logger.debug(
+          `Reprocess job ${jobId}: no parser found for email ${email.id} (from=${email.from}, subject=${email.subject.slice(0, 60)})`,
+        )
+        return { transactions: 0, statements: 0 }
+      }
+
+      const parsedTransactions = parser.parseTransactions(email)
+
+      if (parsedTransactions.length === 0) {
+        this.logger.debug(
+          `Reprocess job ${jobId}: parser returned 0 txns for email ${email.id} (subject=${email.subject.slice(0, 60)}, bodyLen=${email.bodyText.length}, htmlLen=${email.bodyHtml?.length ?? 0}, snippet=${email.snippet.slice(0, 60)})`,
+        )
+      }
+
+      const transactions = this.categorizeTransactions(parsedTransactions, userRules)
+
+      if (transactions.length > 0) {
+        await this.transactionRepository.upsertMany(transactions)
+      }
+
+      const statement = parser.parseStatement(email)
+      if (statement) {
+        await this.statementRepository.upsert(statement)
+      }
+
+      return {
+        transactions: transactions.length,
+        statements: statement ? 1 : 0,
+      }
+    } catch (emailError) {
+      const errMsg
+        = emailError instanceof Error
+          ? `${emailError.message}\n${emailError.stack}`
+          : String(emailError)
+      this.logger.warn(
+        `Reprocess job ${jobId}: failed to process email ${email.id} (subject=${email.subject.slice(0, 60)}, bodyLen=${email.bodyText.length}, htmlLen=${email.bodyHtml?.length ?? 0}): ${errMsg}`,
+      )
+      return { transactions: 0, statements: 0 }
     }
   }
 
@@ -377,7 +453,9 @@ export class ExpensesService {
     id: string
     data: UpdateTransactionInput
   }): Promise<Transaction> {
-    return this.transactionRepository.updateById(params)
+    const updated = await this.transactionRepository.updateById(params)
+    this.invalidateUserAnalyticsCache(params.userId)
+    return updated
   }
 
   /**
@@ -408,6 +486,8 @@ export class ExpensesService {
       categoryMetadata: params.categoryMetadata,
     })
 
+    this.invalidateUserAnalyticsCache(params.userId)
+
     return {
       merchant: params.merchant,
       category: params.category,
@@ -430,6 +510,7 @@ export class ExpensesService {
     }
   }): Promise<{ updatedCount: number }> {
     const updatedCount = await this.transactionRepository.bulkUpdateByIds(params)
+    this.invalidateUserAnalyticsCache(params.userId)
     return { updatedCount }
   }
 
@@ -466,7 +547,10 @@ export class ExpensesService {
 
   async getSpendingSummary(userId: string, period: AnalyticsPeriod): Promise<SpendingSummary> {
     const range = this.computeDateRange(period)
-    return this.transactionRepository.getSpendingSummary({ userId, range })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getSpendingSummary', { period }),
+      () => this.transactionRepository.getSpendingSummary({ userId, range }),
+    )
   }
 
   async getSpendingByCategory(
@@ -474,7 +558,10 @@ export class ExpensesService {
     period: AnalyticsPeriod,
   ): Promise<SpendingByCategoryItem[]> {
     const range = this.computeDateRange(period)
-    return this.transactionRepository.getSpendingByCategory({ userId, range })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getSpendingByCategory', { period }),
+      () => this.transactionRepository.getSpendingByCategory({ userId, range }),
+    )
   }
 
   async getSpendingByMode(
@@ -482,7 +569,10 @@ export class ExpensesService {
     period: AnalyticsPeriod,
   ): Promise<SpendingByModeItem[]> {
     const range = this.computeDateRange(period)
-    return this.transactionRepository.getSpendingByMode({ userId, range })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getSpendingByMode', { period }),
+      () => this.transactionRepository.getSpendingByMode({ userId, range }),
+    )
   }
 
   async getTopMerchants(
@@ -491,48 +581,67 @@ export class ExpensesService {
     limit = 10,
   ): Promise<SpendingByMerchantItem[]> {
     const range = this.computeDateRange(period)
-    return this.transactionRepository.getTopMerchants({ userId, range, limit })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getTopMerchants', { period, limit }),
+      () => this.transactionRepository.getTopMerchants({ userId, range, limit }),
+    )
   }
 
   async getDailySpending(userId: string, period: AnalyticsPeriod): Promise<DailySpendingItem[]> {
     const range = this.computeDateRange(period)
-    return this.transactionRepository.getDailySpending({ userId, range })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getDailySpending', { period }),
+      () => this.transactionRepository.getDailySpending({ userId, range }),
+    )
   }
 
   async getMonthlyTrend(userId: string, months = 12): Promise<MonthlyTrendItem[]> {
-    return this.transactionRepository.getMonthlyTrend({ userId, months })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getMonthlyTrend', { months }),
+      () => this.transactionRepository.getMonthlyTrend({ userId, months }),
+    )
   }
 
   async getSpendingByCard(
     userId: string,
     period: AnalyticsPeriod,
   ): Promise<SpendingByCardItem[]> {
-    const range = this.computeDateRange(period)
-    const rows = await this.transactionRepository.getSpendingByCard({ userId, range })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getSpendingByCard', { period }),
+      async () => {
+        const range = this.computeDateRange(period)
+        const rows = await this.transactionRepository.getSpendingByCard({ userId, range })
 
-    // Enrich with card config metadata + milestone progress
-    const enrichedCards = await Promise.all(
-      rows.map(async (row) => {
-        const resolved = this.cardResolver.resolve(row.cardLast4)
-        const milestones = resolved?.milestones
-          ? await this.computeMilestoneProgress(
-              userId,
-              row.cardLast4,
-              resolved.milestones,
-            )
-          : []
+        const milestonesByCard = new Map<
+          string,
+          NonNullable<ReturnType<CardResolver['resolve']>>['milestones']
+        >()
 
-        return {
-          ...row,
-          cardName: resolved?.cardName ?? row.cardName,
-          bank: resolved?.bank ?? row.bank,
-          icon: resolved?.icon ?? row.icon,
-          milestones: milestones.length > 0 ? milestones : undefined,
+        for (const row of rows) {
+          const resolved = this.cardResolver.resolve(row.cardLast4)
+          if (resolved?.milestones) {
+            milestonesByCard.set(row.cardLast4, resolved.milestones)
+          }
         }
-      }),
-    )
 
-    return enrichedCards
+        const spendIndex = await this.buildMilestoneSpendIndex(userId, milestonesByCard)
+
+        return rows.map((row) => {
+          const resolved = this.cardResolver.resolve(row.cardLast4)
+          const milestones = resolved?.milestones
+            ? this.computeMilestoneProgress(row.cardLast4, resolved.milestones, spendIndex)
+            : []
+
+          return {
+            ...row,
+            cardName: resolved?.cardName ?? row.cardName,
+            bank: resolved?.bank ?? row.bank,
+            icon: resolved?.icon ?? row.icon,
+            milestones: milestones.length > 0 ? milestones : undefined,
+          }
+        })
+      },
+    )
   }
 
   // ── Extended Analytics ──
@@ -545,53 +654,63 @@ export class ExpensesService {
     period: AnalyticsPeriod,
   ): Promise<DayOfWeekSpendingItem[]> {
     const range = this.computeDateRange(period)
-    return this.transactionRepository.getDayOfWeekSpending({ userId, range })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getDayOfWeekSpending', { period }),
+      () => this.transactionRepository.getDayOfWeekSpending({ userId, range }),
+    )
   }
 
   async getCategoryTrend(userId: string, months = 6): Promise<CategoryTrendItem[]> {
-    return this.transactionRepository.getCategoryTrend({ userId, months })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getCategoryTrend', { months }),
+      () => this.transactionRepository.getCategoryTrend({ userId, months }),
+    )
   }
 
   async getPeriodComparison(userId: string, period: AnalyticsPeriod): Promise<PeriodComparison> {
-    const currentRange = this.computeDateRange(period)
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getPeriodComparison', { period }),
+      async () => {
+        const currentRange = this.computeDateRange(period)
 
-    // Compute previous period range (same duration, shifted back)
-    const durationMs = currentRange.end.getTime() - currentRange.start.getTime()
-    const previousRange = {
-      start: new Date(currentRange.start.getTime() - durationMs),
-      end: new Date(currentRange.start),
-    }
+        const durationMs = currentRange.end.getTime() - currentRange.start.getTime()
+        const previousRange = {
+          start: new Date(currentRange.start.getTime() - durationMs),
+          end: new Date(currentRange.start),
+        }
 
-    const [current, previous] = await Promise.all([
-      this.transactionRepository.getPeriodTotals({ userId, range: currentRange }),
-      this.transactionRepository.getPeriodTotals({ userId, range: previousRange }),
-    ])
+        const [current, previous] = await Promise.all([
+          this.transactionRepository.getPeriodTotals({ userId, range: currentRange }),
+          this.transactionRepository.getPeriodTotals({ userId, range: previousRange }),
+        ])
 
-    const currentAvg
-      = current.transactionCount > 0 ? current.totalSpent / current.transactionCount : 0
-    const previousAvg
-      = previous.transactionCount > 0 ? previous.totalSpent / previous.transactionCount : 0
+        const currentAvg
+          = current.transactionCount > 0 ? current.totalSpent / current.transactionCount : 0
+        const previousAvg
+          = previous.transactionCount > 0 ? previous.totalSpent / previous.transactionCount : 0
 
-    return {
-      currentPeriod: {
-        totalSpent: current.totalSpent,
-        totalReceived: current.totalReceived,
-        transactionCount: current.transactionCount,
-        avgTransaction: currentAvg,
+        return {
+          currentPeriod: {
+            totalSpent: current.totalSpent,
+            totalReceived: current.totalReceived,
+            transactionCount: current.transactionCount,
+            avgTransaction: currentAvg,
+          },
+          previousPeriod: {
+            totalSpent: previous.totalSpent,
+            totalReceived: previous.totalReceived,
+            transactionCount: previous.transactionCount,
+            avgTransaction: previousAvg,
+          },
+          changes: {
+            spentChange: this.pctChange(current.totalSpent, previous.totalSpent),
+            receivedChange: this.pctChange(current.totalReceived, previous.totalReceived),
+            countChange: this.pctChange(current.transactionCount, previous.transactionCount),
+            avgChange: this.pctChange(currentAvg, previousAvg),
+          },
+        }
       },
-      previousPeriod: {
-        totalSpent: previous.totalSpent,
-        totalReceived: previous.totalReceived,
-        transactionCount: previous.transactionCount,
-        avgTransaction: previousAvg,
-      },
-      changes: {
-        spentChange: this.pctChange(current.totalSpent, previous.totalSpent),
-        receivedChange: this.pctChange(current.totalReceived, previous.totalReceived),
-        countChange: this.pctChange(current.transactionCount, previous.transactionCount),
-        avgChange: this.pctChange(currentAvg, previousAvg),
-      },
-    }
+    )
   }
 
   async getCumulativeSpend(
@@ -599,11 +718,17 @@ export class ExpensesService {
     period: AnalyticsPeriod,
   ): Promise<CumulativeSpendItem[]> {
     const range = this.computeDateRange(period)
-    return this.transactionRepository.getCumulativeSpend({ userId, range })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getCumulativeSpend', { period }),
+      () => this.transactionRepository.getCumulativeSpend({ userId, range }),
+    )
   }
 
   async getSavingsRate(userId: string, months = 12): Promise<SavingsRateItem[]> {
-    return this.transactionRepository.getSavingsRate({ userId, months })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getSavingsRate', { months }),
+      () => this.transactionRepository.getSavingsRate({ userId, months }),
+    )
   }
 
   async getCardCategoryBreakdown(
@@ -611,12 +736,18 @@ export class ExpensesService {
     period: AnalyticsPeriod,
   ): Promise<CardCategoryItem[]> {
     const range = this.computeDateRange(period)
-    return this.transactionRepository.getCardCategoryBreakdown({ userId, range })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getCardCategoryBreakdown', { period }),
+      () => this.transactionRepository.getCardCategoryBreakdown({ userId, range }),
+    )
   }
 
   async getTopVpas(userId: string, period: AnalyticsPeriod, limit = 10): Promise<TopVpaItem[]> {
     const range = this.computeDateRange(period)
-    return this.transactionRepository.getTopVpas({ userId, range, limit })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getTopVpas', { period, limit }),
+      () => this.transactionRepository.getTopVpas({ userId, range, limit }),
+    )
   }
 
   async getSpendingVelocity(
@@ -624,73 +755,91 @@ export class ExpensesService {
     period: AnalyticsPeriod,
   ): Promise<SpendingVelocityItem[]> {
     const range = this.computeDateRange(period)
-    return this.transactionRepository.getSpendingVelocity({ userId, range })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getSpendingVelocity', { period }),
+      () => this.transactionRepository.getSpendingVelocity({ userId, range }),
+    )
   }
 
   async getMilestoneEtas(userId: string): Promise<MilestoneEta[]> {
-    const allCards = this.cardResolver.getAllCards()
-    const results: MilestoneEta[] = []
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getMilestoneEtas', {}),
+      async () => {
+        const allCards = this.cardResolver.getAllCards()
+        const results: MilestoneEta[] = []
+        const milestonesByCard = new Map<
+          string,
+          NonNullable<ReturnType<CardResolver['resolve']>>['milestones']
+        >()
 
-    for (const [cardLast4, card] of allCards.entries()) {
-      if (!card.milestones || Object.keys(card.milestones).length === 0) continue
-
-      for (const [id, milestone] of Object.entries(card.milestones)) {
-        const duration = milestone.durations[0] ?? 'yearly'
-        const { start, end } = this.computeMilestoneDateRange(
-          duration,
-          milestone.milestone_start_date,
-          milestone.milestone_end_date,
-        )
-
-        const currentSpend = await this.transactionRepository.getCardSpendForRange({
-          userId,
-          cardLast4,
-          range: { start, end },
-        })
-
-        const percentage = Math.min(100, (currentSpend / milestone.amount) * 100)
-        const remaining = Math.max(0, milestone.amount - currentSpend)
-
-        // Calculate daily rate and ETA
-        const elapsedMs = Date.now() - start.getTime()
-        const elapsedDays = Math.max(1, elapsedMs / (1000 * 60 * 60 * 24))
-        const dailyRate = currentSpend / elapsedDays
-
-        let daysRemaining: number | null = null
-        let estimatedCompletionDate: string | null = null
-        const periodEndStr = end.toISOString().split('T')[0]!
-
-        if (dailyRate > 0 && remaining > 0) {
-          daysRemaining = Math.ceil(remaining / dailyRate)
-          const eta = new Date()
-          eta.setDate(eta.getDate() + daysRemaining)
-          estimatedCompletionDate = eta.toISOString().split('T')[0]!
-        } else if (remaining <= 0) {
-          daysRemaining = 0
+        for (const [cardLast4, card] of allCards.entries()) {
+          if (card.milestones && Object.keys(card.milestones).length > 0) {
+            milestonesByCard.set(cardLast4, card.milestones)
+          }
         }
 
-        const onTrack
-          = remaining <= 0
-            || (estimatedCompletionDate != null && estimatedCompletionDate <= periodEndStr)
+        const spendIndex = await this.buildMilestoneSpendIndex(userId, milestonesByCard)
 
-        results.push({
-          id,
-          cardLast4,
-          cardName: card.cardName,
-          description: milestone.description,
-          targetAmount: milestone.amount,
-          currentSpend,
-          percentage: Math.round(percentage * 100) / 100,
-          dailyRate: Math.round(dailyRate * 100) / 100,
-          daysRemaining,
-          estimatedCompletionDate,
-          periodEnd: periodEndStr,
-          onTrack,
-        })
-      }
-    }
+        for (const [cardLast4, card] of allCards.entries()) {
+          if (!card.milestones || Object.keys(card.milestones).length === 0) continue
 
-    return results
+          for (const [id, milestone] of Object.entries(card.milestones)) {
+            const duration = milestone.durations[0] ?? 'yearly'
+            const { start, end } = this.computeMilestoneDateRange(
+              duration,
+              milestone.milestone_start_date,
+              milestone.milestone_end_date,
+            )
+
+            const currentSpend = this.sumCardSpendInRange(
+              spendIndex.get(cardLast4) ?? [],
+              start,
+              end,
+            )
+            const percentage = Math.min(100, (currentSpend / milestone.amount) * 100)
+            const remaining = Math.max(0, milestone.amount - currentSpend)
+
+            const elapsedMs = Date.now() - start.getTime()
+            const elapsedDays = Math.max(1, elapsedMs / (1000 * 60 * 60 * 24))
+            const dailyRate = currentSpend / elapsedDays
+
+            let daysRemaining: number | null = null
+            let estimatedCompletionDate: string | null = null
+            const periodEndStr = end.toISOString().split('T')[0]!
+
+            if (dailyRate > 0 && remaining > 0) {
+              daysRemaining = Math.ceil(remaining / dailyRate)
+              const eta = new Date()
+              eta.setDate(eta.getDate() + daysRemaining)
+              estimatedCompletionDate = eta.toISOString().split('T')[0]!
+            } else if (remaining <= 0) {
+              daysRemaining = 0
+            }
+
+            const onTrack
+              = remaining <= 0
+                || (estimatedCompletionDate != null && estimatedCompletionDate <= periodEndStr)
+
+            results.push({
+              id,
+              cardLast4,
+              cardName: card.cardName,
+              description: milestone.description,
+              targetAmount: milestone.amount,
+              currentSpend,
+              percentage: Math.round(percentage * 100) / 100,
+              dailyRate: Math.round(dailyRate * 100) / 100,
+              daysRemaining,
+              estimatedCompletionDate,
+              periodEnd: periodEndStr,
+              onTrack,
+            })
+          }
+        }
+
+        return results
+      },
+    )
   }
 
   async getLargestTransactions(
@@ -699,19 +848,28 @@ export class ExpensesService {
     limit = 10,
   ): Promise<LargestTransactionItem[]> {
     const range = this.computeDateRange(period)
-    return this.transactionRepository.getLargestTransactions({ userId, range, limit })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getLargestTransactions', { period, limit }),
+      () => this.transactionRepository.getLargestTransactions({ userId, range, limit }),
+    )
   }
 
   // ── Pattern Analytics ──
 
   async getBusAnalytics(userId: string, period: AnalyticsPeriod) {
     const range = this.computeDateRange(period)
-    return this.transactionRepository.getBusAnalytics({ userId, range })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getBusAnalytics', { period }),
+      () => this.transactionRepository.getBusAnalytics({ userId, range }),
+    )
   }
 
   async getInvestmentAnalytics(userId: string, period: AnalyticsPeriod) {
     const range = this.computeDateRange(period)
-    return this.transactionRepository.getInvestmentAnalytics({ userId, range })
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getInvestmentAnalytics', { period }),
+      () => this.transactionRepository.getInvestmentAnalytics({ userId, range }),
+    )
   }
 
   /**
@@ -720,11 +878,11 @@ export class ExpensesService {
      * (quarterly = current calendar quarter, yearly = custom dates or calendar year),
      * queries actual spend in that range, and calculates progress.
      */
-  private async computeMilestoneProgress(
-    userId: string,
+  private computeMilestoneProgress(
     cardLast4: string,
     milestones: NonNullable<ReturnType<CardResolver['resolve']>>['milestones'],
-  ): Promise<MilestoneProgress[]> {
+    spendIndex: Map<string, { transactionDate: Date, amount: number }[]>,
+  ): MilestoneProgress[] {
     const entries = Object.entries(milestones)
     if (entries.length === 0) return []
 
@@ -738,11 +896,11 @@ export class ExpensesService {
         milestone.milestone_end_date,
       )
 
-      const currentSpend = await this.transactionRepository.getCardSpendForRange({
-        userId,
-        cardLast4,
-        range: { start, end },
-      })
+      const currentSpend = this.sumCardSpendInRange(
+        spendIndex.get(cardLast4) ?? [],
+        start,
+        end,
+      )
 
       const percentage = Math.min(100, (currentSpend / milestone.amount) * 100)
       const remaining = Math.max(0, milestone.amount - currentSpend)
@@ -762,6 +920,74 @@ export class ExpensesService {
     }
 
     return results
+  }
+
+  private async buildMilestoneSpendIndex(
+    userId: string,
+    milestonesByCard: Map<string, NonNullable<ReturnType<CardResolver['resolve']>>['milestones']>,
+  ): Promise<Map<string, { transactionDate: Date, amount: number }[]>> {
+    if (milestonesByCard.size === 0) {
+      return new Map()
+    }
+
+    let minStart: Date | null = null
+    let maxEnd: Date | null = null
+
+    for (const milestones of milestonesByCard.values()) {
+      for (const milestone of Object.values(milestones)) {
+        const duration = milestone.durations[0] ?? 'yearly'
+        const { start, end } = this.computeMilestoneDateRange(
+          duration,
+          milestone.milestone_start_date,
+          milestone.milestone_end_date,
+        )
+
+        if (!minStart || start < minStart) {
+          minStart = start
+        }
+        if (!maxEnd || end > maxEnd) {
+          maxEnd = end
+        }
+      }
+    }
+
+    if (!minStart || !maxEnd) {
+      return new Map()
+    }
+
+    const rows = await this.transactionRepository.getCardSpendsForRanges({
+      userId,
+      cards: [...milestonesByCard.keys()],
+      range: { start: minStart, end: maxEnd },
+    })
+
+    const spendIndex = new Map<string, { transactionDate: Date, amount: number }[]>()
+
+    for (const row of rows) {
+      const existing = spendIndex.get(row.cardLast4)
+      if (existing) {
+        existing.push({ transactionDate: row.transactionDate, amount: row.amount })
+      } else {
+        spendIndex.set(row.cardLast4, [{ transactionDate: row.transactionDate, amount: row.amount }])
+      }
+    }
+
+    return spendIndex
+  }
+
+  private sumCardSpendInRange(
+    spends: { transactionDate: Date, amount: number }[],
+    start: Date,
+    end: Date,
+  ): number {
+    let total = 0
+    for (const spend of spends) {
+      const time = spend.transactionDate.getTime()
+      if (time >= start.getTime() && time < end.getTime()) {
+        total += spend.amount
+      }
+    }
+    return total
   }
 
   /**

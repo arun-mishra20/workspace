@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength } from "class-validator";
+import { IsOptional, IsString, MaxLength } from 'class-validator'
 
 /**
  * Sync Expenses DTO
@@ -13,7 +13,7 @@ export class SyncExpensesDto {
   @IsString()
   @IsOptional()
   @MaxLength(512)
-  query?: string;
+  query?: string
 
   /**
    * Provider cursor for incremental sync
@@ -21,5 +21,5 @@ export class SyncExpensesDto {
   @IsString()
   @IsOptional()
   @MaxLength(512)
-  after?: string;
+  after?: string
 }

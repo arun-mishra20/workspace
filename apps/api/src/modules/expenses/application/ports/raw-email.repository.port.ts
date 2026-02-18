@@ -14,11 +14,19 @@ export interface RawEmailRepository {
     providerMessageId: string
   }): Promise<RawEmail | null>
   listByUser(params: { userId: string, limit: number, offset: number, category?: string }): Promise<RawEmail[]>
-  listAllByUser(userId: string, category?: string): Promise<RawEmail[]>
+  listAllByUser(
+    userId: string,
+    category?: string,
+    options?: { limit?: number, offset?: number },
+  ): Promise<RawEmail[]>
   /**
    * Find emails that haven't been processed yet (no transactions created from them)
    */
-  listUnprocessedByUser(userId: string, category?: string): Promise<RawEmail[]>
+  listUnprocessedByUser(
+    userId: string,
+    category?: string,
+    options?: { limit?: number, offset?: number },
+  ): Promise<RawEmail[]>
   countByUser(userId: string, category?: string): Promise<number>
 }
 

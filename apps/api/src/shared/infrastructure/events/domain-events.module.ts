@@ -1,6 +1,6 @@
-import { Module, Global } from "@nestjs/common";
+import { Module, Global } from '@nestjs/common'
 
-import { EventPublisher } from "./event-publisher";
+import { EventPublisher } from './event-publisher'
 
 /**
  * Events module
@@ -10,7 +10,7 @@ import { EventPublisher } from "./event-publisher";
  */
 @Global()
 @Module({
-    providers: [EventPublisher],
-    exports: [EventPublisher],
+  providers: [EventPublisher],
+  exports: [EventPublisher],
 })
 export class DomainEventsModule {}
