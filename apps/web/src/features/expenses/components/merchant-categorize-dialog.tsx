@@ -100,10 +100,10 @@ export function MerchantCategorizeDialog() {
       subcategory: selectedSubcategory,
       categoryMetadata: categoryMeta
         ? {
-            icon: categoryMeta.icon,
-            color: categoryMeta.color,
-            parent: categoryMeta.parent,
-          }
+          icon: categoryMeta.icon,
+          color: categoryMeta.color,
+          parent: categoryMeta.parent,
+        }
         : undefined,
     };
 
@@ -135,7 +135,7 @@ export function MerchantCategorizeDialog() {
               placeholder="Search merchants..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="m-1 pl-9 w-[98%]"
             />
           </div>
 
@@ -162,9 +162,8 @@ export function MerchantCategorizeDialog() {
                       <button
                         type="button"
                         onClick={() => handleMerchantSelect(merchant)}
-                        className={`flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-accent ${
-                          isSelected ? "bg-accent" : ""
-                        }`}
+                        className={`flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-accent ${isSelected ? "bg-accent" : ""
+                          }`}
                       >
                         <div className="flex items-center gap-3">
                           {isSelected && (
