@@ -2,6 +2,8 @@
 
 @import "tw-animate-css";
 
+@import url("https://fonts.googleapis.com/css2?family=Anta&family=Italiana&family=MedievalSharp&family=Playwrite+AT:ital,wght@0,100..400;1,100..400&family=Quattrocento:wght@400;700&family=Rubik+Pixels&family=Syne:wght@400..800&display=swap");
+
 @source "../../../apps/**/*.{ts,tsx}";
 @source "../../../components/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
@@ -9,7 +11,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  font-size: var(--font-size-base, 16px);
+  font-size: var(--font-size-base, 12px);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);

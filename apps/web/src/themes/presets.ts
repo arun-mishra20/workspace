@@ -2592,7 +2592,7 @@ const neumorphismPreset: ThemePreset = {
     '--sidebar-border': 'transparent',
     '--sidebar-ring': '#6C63FF',
     '--font-sans':
-      '"DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif',
+      '"Playwrite AT", cursive, "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif',
     '--font-serif':
       'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
     '--font-mono':
@@ -2686,7 +2686,7 @@ const neumorphismPreset: ThemePreset = {
     '--sidebar-border': 'transparent',
     '--sidebar-ring': '#8B84FF',
     '--font-sans':
-      '"DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif',
+      '"Playwrite AT", cursive, "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif',
     '--font-serif':
       'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
     '--font-mono':
@@ -2779,4 +2779,4 @@ export const presets: Record<string, ThemePreset> = {
 /**
  * Default preset name
  */
-export const DEFAULT_PRESET_NAME = 'default'
+export const DEFAULT_PRESET_NAME = 'neumorphism'

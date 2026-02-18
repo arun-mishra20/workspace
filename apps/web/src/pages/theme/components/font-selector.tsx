@@ -40,6 +40,15 @@ const FONT_OPTIONS = {
     { value: "Montserrat, sans-serif", label: "Montserrat" },
     { value: "Poppins, sans-serif", label: "Poppins" },
     { value: "Roboto, sans-serif", label: "Roboto" },
+
+    { value: 'Quattrocento, serif', label: "Quattrocento" },
+    { value: 'Playwrite AT, cursive', label: "Playwrite AT" },
+    { value: 'Italiana, sans-serif', label: "Italiana" },
+    { value: 'MedievalSharp, cursive', label: "MedievalSharp" },
+    { value: 'Syne, sans-serif', label: "Syne" },
+    { value: 'Anta, sans-serif', label: "Anta" },
+    { value: 'Rubik Pixels, system-ui', label: "Rubik Pixels" },
+
     { value: "custom", label: "Custom..." },
   ],
   serif: [

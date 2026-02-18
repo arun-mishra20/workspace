@@ -897,7 +897,7 @@
     transition: box-shadow 200ms ease-out;
   }
 
-  :root[data-theme-preset="neumorphism"] [data-slot="table-row"]:hover {
+  :root[data-theme-preset="neumorphism"] [data-slot="table-row"] {
     background: transparent !important;
     box-shadow: var(
       --neu-shadow-inset-sm,

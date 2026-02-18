@@ -208,6 +208,7 @@ export function ThemeEditorPanel() {
                     ? 'bg-accent text-accent-foreground'
                     : 'hover:bg-muted'
                   }`}
+                data-slot={activeCategory === category ? "badge" : undefined}
               >
                 {CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS]}
               </button>

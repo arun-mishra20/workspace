@@ -169,7 +169,8 @@ const HoldingRow = ({ holding, config, onEdit, onDelete }: HoldingRowProps) => {
   const isPositive = returns >= 0;
 
   return (
-    <TableRow key={holding.id}>
+    <TableRow
+      key={holding.id}>
       <TableCell className="font-medium">
         <div className="flex flex-col gap-1">
           <span className="truncate max-w-[220px]">{holding.name}</span>
@@ -209,9 +210,8 @@ const HoldingRow = ({ holding, config, onEdit, onDelete }: HoldingRowProps) => {
       </TableCell>
       <TableCell className="text-right">
         <span
-          className={`inline-flex items-center gap-1 tabular-nums font-medium ${
-            isPositive ? "text-green-600" : "text-red-600"
-          }`}
+          className={`inline-flex items-center gap-1 tabular-nums font-medium ${isPositive ? "text-green-600" : "text-red-600"
+            }`}
         >
           {isPositive ? (
             <TrendingUp className="h-3.5 w-3.5" />

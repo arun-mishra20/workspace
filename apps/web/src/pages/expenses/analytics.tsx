@@ -80,6 +80,7 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
+import { Separator } from "@workspace/ui/components/ui/separator";
 
 // ── Helpers ──
 
@@ -686,6 +687,7 @@ const AnalyticsPage = () => {
                 </CardDescription>
               </div>
             </div>
+            <Separator className="w-full mt-2" />
           </CardHeader>
           <CardContent>
             {cardQ.isLoading ? (
@@ -763,6 +765,7 @@ const AnalyticsPage = () => {
           <CardHeader>
             <CardTitle className="text-base">Top Merchants</CardTitle>
             <CardDescription>Where you spend the most</CardDescription>
+            <Separator className="w-full mt-2" />
           </CardHeader>
           <CardContent>
             {merchantQ.isLoading ? (
@@ -777,7 +780,8 @@ const AnalyticsPage = () => {
                   const maxAmount = merchantQ.data![0]!.amount;
                   const pct = maxAmount > 0 ? (m.amount / maxAmount) * 100 : 0;
                   return (
-                    <div key={m.merchant} className="flex items-center gap-3">
+                    <div
+                      key={m.merchant} className="flex items-center gap-3 py-2">
                       <span className="w-5 text-xs text-muted-foreground">
                         {i + 1}
                       </span>
@@ -816,6 +820,7 @@ const AnalyticsPage = () => {
             <CardHeader>
               <CardTitle className="text-base">Category Breakdown</CardTitle>
               <CardDescription>Detailed spending per category</CardDescription>
+              <Separator className="w-full mt-2" />
             </CardHeader>
             <CardContent>
               <div className="divide-y">
@@ -879,6 +884,7 @@ const AnalyticsPage = () => {
                   <CardDescription>When do you spend the most?</CardDescription>
                 </div>
               </div>
+              <Separator className="w-full mt-2" />
             </CardHeader>
             <CardContent>
               {dayOfWeekQ.isLoading ? (
@@ -963,6 +969,7 @@ const AnalyticsPage = () => {
                   </CardDescription>
                 </div>
               </div>
+              <Separator className="w-full mt-2" />
             </CardHeader>
             <CardContent>
               {cumulativeQ.isLoading ? (
@@ -1062,6 +1069,7 @@ const AnalyticsPage = () => {
                   <CardDescription>Category spending over time</CardDescription>
                 </div>
               </div>
+              <Separator className="w-full mt-2" />
             </CardHeader>
             <CardContent>
               {categoryTrendQ.isLoading ? (
@@ -1142,6 +1150,7 @@ const AnalyticsPage = () => {
                   </CardDescription>
                 </div>
               </div>
+              <Separator className="w-full mt-2" />
             </CardHeader>
             <CardContent>
               {savingsRateQ.isLoading ? (
@@ -1251,6 +1260,7 @@ const AnalyticsPage = () => {
                 </CardDescription>
               </div>
             </div>
+            <Separator className="w-full mt-2" />
           </CardHeader>
           <CardContent>
             {velocityQ.isLoading ? (
@@ -1344,6 +1354,7 @@ const AnalyticsPage = () => {
                   <CardDescription>Most-paid VPA addresses</CardDescription>
                 </div>
               </div>
+              <Separator className="w-full mt-2" />
             </CardHeader>
             <CardContent>
               {topVpasQ.isLoading ? (
@@ -1409,6 +1420,7 @@ const AnalyticsPage = () => {
                   <CardDescription>What you spend on per card</CardDescription>
                 </div>
               </div>
+              <Separator className="w-full mt-2" />
             </CardHeader>
             <CardContent>
               {cardCategoriesQ.isLoading ? (
@@ -1443,6 +1455,7 @@ const AnalyticsPage = () => {
                   </CardDescription>
                 </div>
               </div>
+              <Separator className="w-full mt-2" />
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1455,7 +1468,7 @@ const AnalyticsPage = () => {
         )}
 
         {/* ── Largest Transactions ── */}
-        <Card>
+        <Card className="gap-2">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Receipt className="size-4 text-muted-foreground" />
@@ -1466,6 +1479,7 @@ const AnalyticsPage = () => {
                 <CardDescription>Biggest spends this period</CardDescription>
               </div>
             </div>
+            <Separator className="w-full mt-2" />
           </CardHeader>
           <CardContent>
             {largestQ.isLoading ? (
@@ -1696,6 +1710,7 @@ function PeriodComparisonSection({
         <CardDescription>
           Current {period} vs previous {period}
         </CardDescription>
+        <Separator className="w-full mt-2" />
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -1711,7 +1726,9 @@ function PeriodComparisonSection({
               const isGood = m.invert ? !isPositive : isPositive;
               const isCurrency = m.isCurrency !== false;
               return (
-                <div key={m.label} className="rounded-lg border p-4 space-y-1">
+                <div
+                  data-slot="badge"
+                  key={m.label} className="rounded-lg border p-4 space-y-1">
                   <p className="text-xs font-medium text-muted-foreground">
                     {m.label}
                   </p>
@@ -1833,7 +1850,9 @@ function MilestoneEtaCard({ eta }: { eta: MilestoneEta }) {
         : "var(--color-chart-1)";
 
   return (
-    <div className="rounded-lg border p-4 space-y-3">
+    <div
+      data-slot="badge"
+      className="rounded-lg border p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">{eta.description}</p>
