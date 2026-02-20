@@ -183,7 +183,7 @@ export class ExpensesController {
       userId: req.user.id,
       limit: page_size,
       offset,
-      filters: Object.keys(filters).length > 0 ? (filters as any) : undefined,
+      filters: Object.keys(filters).length > 0 ? (filters) : undefined,
     })
 
     return {

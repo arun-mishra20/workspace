@@ -295,7 +295,7 @@ export class GmailOAuthService {
   }
 
   private base64UrlEncode(data: string | Buffer): string {
-    const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data, 'utf-8')
+    const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data, 'utf8')
     return buffer.toString('base64').replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
   }
 
