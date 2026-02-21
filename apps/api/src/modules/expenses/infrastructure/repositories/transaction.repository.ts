@@ -7,7 +7,7 @@ import {
   transactionsTable,
 
 } from '@workspace/database'
-import { and, desc, eq, gte, ilike, inArray, lt, lte, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, inArray, lt, lte, ne, sql } from 'drizzle-orm'
 
 import { DB_TOKEN } from '@/shared/infrastructure/db/db.port'
 
@@ -1032,6 +1032,56 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     return [...merchantMap.values()].sort(
       (a, b) => b.transactionCount - a.transactionCount,
     )
+  }
+
+  async getCategorizedMerchants(
+    userId: string,
+  ): Promise<{ merchant: string, category: string, subcategory: string }[]> {
+    const rows = await this.db
+      .select({
+        merchant: transactionsTable.merchant,
+        category: transactionsTable.category,
+        subcategory: transactionsTable.subcategory,
+        transactionCount: sql<number>`count(*)::int`,
+      })
+      .from(transactionsTable)
+      .where(
+        and(
+          eq(transactionsTable.userId, userId),
+          ne(transactionsTable.category, 'uncategorized'),
+        ),
+      )
+      .groupBy(
+        transactionsTable.merchant,
+        transactionsTable.category,
+        transactionsTable.subcategory,
+      )
+      .orderBy(sql`count(*) desc`)
+      .limit(TransactionRepositoryImpl.DISTINCT_MERCHANTS_MAX_ROWS)
+
+    // Deduplicate: same merchant may have multiple categories — pick the most common one
+    const merchantMap = new Map<
+      string,
+      { merchant: string, category: string, subcategory: string, count: number }
+    >()
+
+    for (const row of rows) {
+      const existing = merchantMap.get(row.merchant)
+      if (!existing || row.transactionCount > existing.count) {
+        merchantMap.set(row.merchant, {
+          merchant: row.merchant,
+          category: row.category,
+          subcategory: row.subcategory,
+          count: row.transactionCount,
+        })
+      }
+    }
+
+    return [...merchantMap.values()].map(({ merchant, category, subcategory }) => ({
+      merchant,
+      category,
+      subcategory,
+    }))
   }
 
   async bulkCategorizeByMerchant(params: {

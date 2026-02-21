@@ -2,33 +2,565 @@
     "exact_matches": {
         "swiggy": "food_dining",
         "zomato": "food_dining",
+        "dominos": "food_dining",
+        "pizza hut": "food_dining",
+        "mcdonalds": "food_dining",
+        "burger king": "food_dining",
+        "kfc": "food_dining",
+        "starbucks": "food_dining",
+        "subway": "food_dining",
+        "dunzo": "food_dining",
+        "eatsure": "food_dining",
+        "box8": "food_dining",
+        "faasos": "food_dining",
+        "behrouz": "food_dining",
+        "chaayos": "food_dining",
         "zepto": "groceries",
         "blinkit": "groceries",
+        "bigbasket": "groceries",
+        "jiomart": "groceries",
+        "dmart": "groceries",
+        "grofers": "groceries",
+        "milkbasket": "groceries",
+        "country delight": "groceries",
+        "nature's basket": "groceries",
+        "spencers": "groceries",
+        "reliance fresh": "groceries",
+        "more supermarket": "groceries",
+        "instamart": "groceries",
         "uber": "transport",
         "ola": "transport",
+        "rapido": "transport",
+        "namma yatri": "transport",
+        "india railway": "transport",
+        "irctc": "transport",
+        "makemytrip": "trips",
+        "cleartrip": "trips",
+        "ixigo": "trips",
+        "goibibo": "trips",
+        "yatra": "trips",
+        "redbus": "transport",
+        "blablacar": "transport",
         "amazon": "shopping",
-        "flipkart": "shopping"
+        "flipkart": "shopping",
+        "myntra": "shopping",
+        "ajio": "shopping",
+        "meesho": "shopping",
+        "nykaa": "shopping",
+        "tata cliq": "shopping",
+        "snapdeal": "shopping",
+        "croma": "shopping",
+        "reliance digital": "shopping",
+        "decathlon": "shopping",
+        "ikea": "shopping",
+        "shoppers stop": "shopping",
+        "h&m": "shopping",
+        "zara": "shopping",
+        "lenskart": "shopping",
+        "netflix": "entertainment",
+        "hotstar": "entertainment",
+        "prime video": "entertainment",
+        "spotify": "entertainment",
+        "youtube premium": "entertainment",
+        "bookmyshow": "entertainment",
+        "sony liv": "entertainment",
+        "zee5": "entertainment",
+        "jio cinema": "entertainment",
+        "apple music": "entertainment",
+        "gaana": "entertainment",
+        "pvr": "entertainment",
+        "inox": "entertainment",
+        "chatgpt": "apps_and_software",
+        "openai": "apps_and_software",
+        "notion": "apps_and_software",
+        "google one": "apps_and_software",
+        "icloud": "apps_and_software",
+        "adobe": "apps_and_software",
+        "microsoft": "apps_and_software",
+        "canva": "apps_and_software",
+        "figma": "apps_and_software",
+        "github": "apps_and_software",
+        "aws": "apps_and_software",
+        "dropbox": "apps_and_software",
+        "grammarly": "apps_and_software",
+        "zoom": "apps_and_software",
+        "apollo pharmacy": "medical",
+        "1mg": "medical",
+        "pharmeasy": "medical",
+        "netmeds": "medical",
+        "practo": "medical",
+        "medplus": "medical",
+        "cult fit": "health_and_wellness",
+        "cultfit": "health_and_wellness",
+        "cure fit": "health_and_wellness",
+        "gold gym": "health_and_wellness",
+        "anytime fitness": "health_and_wellness",
+        "byju's": "education",
+        "byjus": "education",
+        "unacademy": "education",
+        "vedantu": "education",
+        "coursera": "education",
+        "udemy": "education",
+        "skill share": "education",
+        "upgrad": "education",
+        "simplilearn": "education",
+        "whitehat jr": "education",
+        "zerodha": "investments",
+        "groww": "investments",
+        "upstox": "investments",
+        "kuvera": "investments",
+        "coin by zerodha": "investments",
+        "angel one": "investments",
+        "paytm money": "investments",
+        "smallcase": "investments",
+        "et money": "investments",
+        "mutual fund": "investments",
+        "lic": "insurance",
+        "acko": "insurance",
+        "digit insurance": "insurance",
+        "hdfc ergo": "insurance",
+        "icici lombard": "insurance",
+        "star health": "insurance",
+        "policybazaar": "insurance",
+        "tata aia": "insurance",
+        "bescom": "utility_bills",
+        "bses": "utility_bills",
+        "tata power": "utility_bills",
+        "adani electricity": "utility_bills",
+        "mahanagar gas": "utility_bills",
+        "indraprastha gas": "utility_bills",
+        "jio": "utility_bills",
+        "airtel": "utility_bills",
+        "vi vodafone": "utility_bills",
+        "bsnl": "utility_bills",
+        "act fibernet": "utility_bills",
+        "hathway": "utility_bills",
+        "tata sky": "utility_bills",
+        "dish tv": "utility_bills",
+        "d2h": "utility_bills",
+        "paytm": "wallet_and_digital_payment",
+        "phonepe": "wallet_and_digital_payment",
+        "mobikwik": "wallet_and_digital_payment",
+        "freecharge": "wallet_and_digital_payment",
+        "oyo": "trips",
+        "airbnb": "trips",
+        "booking.com": "trips",
+        "treebo": "trips",
+        "fab hotels": "trips",
+        "zostel": "trips",
+        "indian oil": "transport",
+        "hp petrol": "transport",
+        "bharat petroleum": "transport",
+        "shell": "transport",
+        "fastag": "transport",
+        "nobroker": "rent",
+        "urban company": "professional_services",
+        "urbanclap": "professional_services",
+        "income tax": "government_payments",
+        "gst": "government_payments",
+        "mcd tax": "government_payments",
+        "e-challan": "government_payments",
+        "passport seva": "government_payments",
+        "digilocker": "government_payments"
     },
     "merchant_patterns": [
         {
             "category": "food_dining",
             "confidence": 0.9,
-            "keywords": ["swiggy", "zomato", "food", "restaurant", "cafe"]
+            "keywords": [
+                "swiggy",
+                "zomato",
+                "food",
+                "restaurant",
+                "cafe",
+                "dominos",
+                "pizza",
+                "burger",
+                "kfc",
+                "mcdonalds",
+                "starbucks",
+                "subway",
+                "biryani",
+                "kitchen",
+                "dhaba",
+                "bakery",
+                "meals",
+                "diner",
+                "eatery",
+                "canteen",
+                "tiffin",
+                "mess"
+            ]
         },
         {
             "category": "groceries",
             "confidence": 0.88,
-            "keywords": ["blinkit", "zepto", "bigbasket", "grocery"]
+            "keywords": [
+                "blinkit",
+                "zepto",
+                "bigbasket",
+                "grocery",
+                "jiomart",
+                "dmart",
+                "grofers",
+                "supermarket",
+                "kirana",
+                "provisions",
+                "vegetables",
+                "fruits",
+                "dairy",
+                "milkbasket",
+                "instamart",
+                "fresh"
+            ]
+        },
+        {
+            "category": "shopping",
+            "confidence": 0.85,
+            "keywords": [
+                "amazon",
+                "flipkart",
+                "myntra",
+                "ajio",
+                "meesho",
+                "nykaa",
+                "mall",
+                "store",
+                "retail",
+                "mart",
+                "bazaar",
+                "shop",
+                "fashion",
+                "clothing",
+                "electronics",
+                "croma",
+                "reliance digital",
+                "decathlon"
+            ]
         },
         {
             "category": "transport",
             "confidence": 0.86,
-            "keywords": ["uber", "ola", "metro", "fuel", "petrol", "ka01"]
+            "keywords": [
+                "uber",
+                "ola",
+                "rapido",
+                "metro",
+                "fuel",
+                "petrol",
+                "diesel",
+                "ka01",
+                "parking",
+                "toll",
+                "fastag",
+                "auto",
+                "cab",
+                "taxi",
+                "railway",
+                "irctc",
+                "redbus",
+                "namma yatri"
+            ]
         },
         {
             "category": "utilities",
             "confidence": 0.85,
-            "keywords": ["electricity", "water", "billpay", "gas"]
+            "keywords": [
+                "electricity",
+                "water",
+                "billpay",
+                "gas",
+                "recharge",
+                "broadband",
+                "wifi",
+                "internet",
+                "postpaid",
+                "prepaid"
+            ]
+        },
+        {
+            "category": "utility_bills",
+            "confidence": 0.87,
+            "keywords": [
+                "bescom",
+                "bses",
+                "tata power",
+                "adani",
+                "jio",
+                "airtel",
+                "vodafone",
+                "bsnl",
+                "act fibernet",
+                "dish tv",
+                "d2h",
+                "tata sky",
+                "hathway",
+                "mahanagar gas"
+            ]
+        },
+        {
+            "category": "entertainment",
+            "confidence": 0.87,
+            "keywords": [
+                "netflix",
+                "hotstar",
+                "prime video",
+                "spotify",
+                "bookmyshow",
+                "pvr",
+                "inox",
+                "cinema",
+                "movie",
+                "theatre",
+                "concert",
+                "zee5",
+                "sony liv",
+                "jio cinema"
+            ]
+        },
+        {
+            "category": "apps_and_software",
+            "confidence": 0.85,
+            "keywords": [
+                "google one",
+                "icloud",
+                "adobe",
+                "microsoft",
+                "notion",
+                "canva",
+                "figma",
+                "github",
+                "aws",
+                "openai",
+                "chatgpt",
+                "dropbox",
+                "zoom",
+                "subscription",
+                "saas"
+            ]
+        },
+        {
+            "category": "medical",
+            "confidence": 0.88,
+            "keywords": [
+                "pharmacy",
+                "pharmeasy",
+                "1mg",
+                "netmeds",
+                "apollo",
+                "hospital",
+                "clinic",
+                "diagnostic",
+                "lab",
+                "pathology",
+                "doctor",
+                "dental",
+                "medplus",
+                "practo",
+                "prescription",
+                "medicine"
+            ]
+        },
+        {
+            "category": "health_and_wellness",
+            "confidence": 0.85,
+            "keywords": [
+                "gym",
+                "fitness",
+                "cultfit",
+                "yoga",
+                "spa",
+                "salon",
+                "wellness",
+                "physiotherapy",
+                "nutrition"
+            ]
+        },
+        {
+            "category": "education",
+            "confidence": 0.86,
+            "keywords": [
+                "school",
+                "college",
+                "university",
+                "tuition",
+                "coaching",
+                "byju",
+                "unacademy",
+                "vedantu",
+                "coursera",
+                "udemy",
+                "exam",
+                "course",
+                "training",
+                "institute",
+                "upgrad",
+                "simplilearn"
+            ]
+        },
+        {
+            "category": "investments",
+            "confidence": 0.88,
+            "keywords": [
+                "zerodha",
+                "groww",
+                "upstox",
+                "mutual fund",
+                "sip",
+                "stocks",
+                "demat",
+                "trading",
+                "smallcase",
+                "kuvera",
+                "angel one",
+                "nsdl",
+                "cdsl",
+                "ipo"
+            ]
+        },
+        {
+            "category": "insurance",
+            "confidence": 0.87,
+            "keywords": [
+                "insurance",
+                "lic",
+                "acko",
+                "policy",
+                "premium",
+                "policybazaar",
+                "hdfc ergo",
+                "icici lombard",
+                "star health",
+                "tata aia",
+                "life insurance",
+                "health insurance"
+            ]
+        },
+        {
+            "category": "emi",
+            "confidence": 0.9,
+            "keywords": [
+                "emi",
+                "loan",
+                "instalment",
+                "installment",
+                "home loan",
+                "car loan",
+                "personal loan",
+                "bajaj finserv",
+                "hdfc ltd"
+            ]
+        },
+        {
+            "category": "rent",
+            "confidence": 0.85,
+            "keywords": [
+                "rent",
+                "nobroker",
+                "house rent",
+                "flat rent",
+                "pg rent",
+                "lease",
+                "landlord"
+            ]
+        },
+        {
+            "category": "trips",
+            "confidence": 0.86,
+            "keywords": [
+                "makemytrip",
+                "cleartrip",
+                "ixigo",
+                "goibibo",
+                "yatra",
+                "oyo",
+                "airbnb",
+                "hotel",
+                "flight",
+                "booking",
+                "travel",
+                "holiday",
+                "zostel",
+                "treebo",
+                "fabhotels"
+            ]
+        },
+        {
+            "category": "government_payments",
+            "confidence": 0.88,
+            "keywords": [
+                "income tax",
+                "gst",
+                "challan",
+                "stamp duty",
+                "property tax",
+                "municipal",
+                "passport",
+                "visa fee",
+                "court fee",
+                "traffic fine"
+            ]
+        },
+        {
+            "category": "wallet_and_digital_payment",
+            "confidence": 0.82,
+            "keywords": [
+                "paytm wallet",
+                "mobikwik",
+                "freecharge",
+                "amazon pay",
+                "phonepe wallet"
+            ]
+        },
+        {
+            "category": "credit_card_bills",
+            "confidence": 0.9,
+            "keywords": [
+                "credit card",
+                "card payment",
+                "card bill",
+                "amex",
+                "visa bill",
+                "mastercard bill",
+                "cc bill",
+                "cc payment"
+            ]
+        },
+        {
+            "category": "professional_services",
+            "confidence": 0.84,
+            "keywords": [
+                "urban company",
+                "urbanclap",
+                "plumber",
+                "electrician",
+                "carpenter",
+                "painter",
+                "pest control",
+                "cleaning service",
+                "home service",
+                "repair"
+            ]
+        },
+        {
+            "category": "cash_withdrawal",
+            "confidence": 0.92,
+            "keywords": [
+                "atm",
+                "cash withdrawal",
+                "atm withdrawal",
+                "nwd"
+            ]
+        },
+        {
+            "category": "gift_cards",
+            "confidence": 0.85,
+            "keywords": [
+                "gift card",
+                "gift voucher",
+                "e-gift",
+                "voucher"
+            ]
         }
     ],
     "vpa_amount_rules": [],
@@ -39,14 +571,79 @@
             "confidence": 0.92
         },
         {
+            "pattern": ".*@paytm$",
+            "category": "wallet_and_digital_payment",
+            "confidence": 0.85
+        },
+        {
+            "pattern": ".*@ybl$",
+            "category": "personal_transfer",
+            "confidence": 0.78
+        },
+        {
+            "pattern": ".*@okaxis$",
+            "category": "personal_transfer",
+            "confidence": 0.78
+        },
+        {
+            "pattern": ".*@oksbi$",
+            "category": "personal_transfer",
+            "confidence": 0.78
+        },
+        {
             "pattern": ".*@okhdfcbank$",
             "category": "personal_transfer",
             "confidence": 0.8
+        },
+        {
+            "pattern": ".*@okicici$",
+            "category": "personal_transfer",
+            "confidence": 0.78
+        },
+        {
+            "pattern": ".*@axl$",
+            "category": "personal_transfer",
+            "confidence": 0.78
+        },
+        {
+            "pattern": ".*zerodha.*@.*",
+            "category": "investments",
+            "confidence": 0.9
+        },
+        {
+            "pattern": ".*groww.*@.*",
+            "category": "investments",
+            "confidence": 0.9
+        },
+        {
+            "pattern": ".*irctc.*@.*",
+            "category": "transport",
+            "confidence": 0.9
+        },
+        {
+            "pattern": ".*swiggy.*@.*",
+            "category": "food_dining",
+            "confidence": 0.92
+        },
+        {
+            "pattern": ".*zomato.*@.*",
+            "category": "food_dining",
+            "confidence": 0.92
         }
     ],
     "neft_patterns": {
         "category": "income_salary",
         "confidence": 0.9,
-        "salary_keywords": ["salary", "payroll", "sal", "monthly salary", "wages"]
+        "salary_keywords": [
+            "salary",
+            "payroll",
+            "sal",
+            "monthly salary",
+            "wages",
+            "stipend",
+            "bonus",
+            "incentive",
+            "reimbursement"
+        ]
     }
 }

@@ -1,9 +1,6 @@
 import { Header } from "@/components/layouts";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { getAccessToken } from "@/lib/auth";
-import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/api-client";
-import type { SessionResponse } from "@/lib/api-types";
+import { useAuthSession } from "@/app/auth-session-context";
 
 import { Button } from "@workspace/ui/components/ui/button";
 import { Link } from "react-router-dom";
@@ -11,20 +8,10 @@ import { NavUser } from "./nav-user";
 import { Logo } from "@/components/nav/logo";
 import NavTabs from "./nav-tabs";
 const Nav = () => {
-  const accessToken = getAccessToken();
-  const sessionQuery = useQuery({
-    queryKey: ["auth", "session"],
-    queryFn: ({ signal }) =>
-      apiRequest<SessionResponse>({
-        method: "GET",
-        url: "/api/auth/session",
-        signal,
-      }),
-    enabled: !!accessToken, // Only fetch session if user has a token
-  });
+  const { hasToken, isAuthenticated, user } = useAuthSession();
 
-  const email = sessionQuery.data?.user?.email;
-  const isSuccess = sessionQuery.isSuccess && !!accessToken;
+  const email = user?.email;
+  const isSuccess = isAuthenticated && hasToken;
 
   return (
     <Header className="absolute top-0 w-full h-12">

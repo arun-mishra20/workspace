@@ -324,9 +324,7 @@ const AnalyticsPage = () => {
             <p className="max-w-2xl text-sm text-muted-foreground">
               Spending patterns, category breakdowns and trends.
             </p>
-          </div>
-
-          {/* Period selector */}
+          </div> {/* Period selector */}
           <div className="flex items-center gap-2">
             {PERIODS.map((p) => (
               <Button
@@ -484,6 +482,7 @@ const AnalyticsPage = () => {
               ) : categoryChartData.length > 0 ? (
                 <ChartContainer
                   config={categoryChartConfig}
+                  chartType="pie"
                   className="mx-auto aspect-square h-80"
                 >
                   <PieChart>
@@ -630,6 +629,7 @@ const AnalyticsPage = () => {
               ) : modeChartData.length > 0 ? (
                 <ChartContainer
                   config={modeChartConfig}
+                  chartType="pie"
                   className="mx-auto aspect-square h-65"
                 >
                   <PieChart>

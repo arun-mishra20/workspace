@@ -1042,24 +1042,40 @@ export class ExpensesService {
   }
 
   /**
-     * Build a UserCategorizationRules object from the user's persisted
-     * merchant → category rules. Called once per sync/reprocess.
-     */
+   * Build a UserCategorizationRules object from the user's persisted
+   * merchant → category rules AND from already-categorized transactions.
+   * Called once per sync/reprocess.
+   *
+   * Priority: explicit merchant rules > inferred from existing transactions.
+   */
   private async buildUserCategorizationRules(
     userId: string,
   ): Promise<UserCategorizationRules | undefined> {
-    const rules = await this.merchantRuleRepository.findAllByUser(userId)
-    if (rules.length === 0) {
+    const [rules, categorizedMerchants] = await Promise.all([
+      this.merchantRuleRepository.findAllByUser(userId),
+      this.transactionRepository.getCategorizedMerchants(userId),
+    ])
+
+    if (rules.length === 0 && categorizedMerchants.length === 0) {
       return undefined
     }
 
     const exactMatches: Record<string, string> = {}
+
+    // Lower priority: inferred from existing transactions (added first so
+    // explicit rules can overwrite them below)
+    for (const entry of categorizedMerchants) {
+      exactMatches[entry.merchant] = entry.category
+    }
+
+    // Higher priority: explicit merchant rules (overwrites any inferred entry)
     for (const rule of rules) {
-      // The categorizer's checkExactMatch lowercases paidTo, so store merchant as-is
       exactMatches[rule.merchant] = rule.category
     }
 
-    this.logger.debug(`Loaded ${rules.length} merchant category rules for user ${userId}`)
+    this.logger.debug(
+      `Loaded ${rules.length} explicit merchant rules and ${categorizedMerchants.length} inferred merchant categories for user ${userId}`,
+    )
 
     return { exact_matches: exactMatches }
   }

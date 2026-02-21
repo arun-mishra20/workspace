@@ -705,7 +705,11 @@ function AssetAllocationChart({
         <CardDescription>Investment distribution by asset type</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[300px] w-full">
+        <ChartContainer
+          config={chartConfig}
+          chartType="pie"
+          className="h-[300px] w-full"
+        >
           <PieChart>
             <ChartTooltip
               content={

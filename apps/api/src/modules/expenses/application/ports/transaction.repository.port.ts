@@ -136,6 +136,15 @@ export interface TransactionRepository {
   >
 
   /**
+     * Get already-categorized merchants (category != 'uncategorized') with
+     * their most common category. Used during sync to auto-assign categories
+     * to new transactions for known merchants.
+     */
+  getCategorizedMerchants(userId: string): Promise<
+    { merchant: string, category: string, subcategory: string }[]
+  >
+
+  /**
      * Bulk update category/subcategory for all transactions matching a merchant
      */
   bulkCategorizeByMerchant(params: {

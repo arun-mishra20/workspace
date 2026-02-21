@@ -1,22 +1,21 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import path from "node:path";
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "@workspace/ui": path.resolve(__dirname, "../../packages/ui/src"),
-      "@workspace/domain": path.resolve(__dirname, "../../packages/domain/src"),
+      '@': new URL('src', import.meta.url).pathname,
+      '@workspace/ui': new URL('../../packages/ui/src', import.meta.url).pathname,
+      '@workspace/domain': new URL('../../packages/domain/src', import.meta.url).pathname,
     },
   },
   server: {
     port: 5173,
     proxy: {
-      "/api": {
-        target: "http://127.0.0.1:3000",
+      '/api': {
+        target: 'http://127.0.0.1:3000',
         changeOrigin: true,
       },
     },
@@ -25,7 +24,7 @@ export default defineConfig({
     port: 5173,
   },
   build: {
-    outDir: "dist",
+    outDir: 'dist',
     sourcemap: true,
   },
-});
+})
