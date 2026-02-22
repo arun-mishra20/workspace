@@ -7,6 +7,7 @@
 import type { ThemePreset } from './types'
 
 let neumorphismStylesLoader: Promise<unknown> | null = null
+let glassmorphismStylesLoader: Promise<unknown> | null = null
 let previousPresetName: string | null = null
 
 /**
@@ -42,8 +43,17 @@ export function applyThemeWithPreset(
     cleanupNeumorphismInlineStyles()
   }
 
+  // Clean up glassmorphism-specific inline CSS variables when switching away
+  if (previousPresetName === 'glassmorphism' && presetName !== 'glassmorphism') {
+    cleanupGlassmorphismInlineStyles()
+  }
+
   if (presetName === 'neumorphism') {
     ensureNeumorphismStyles()
+  }
+
+  if (presetName === 'glassmorphism') {
+    ensureGlassmorphismStyles()
   }
 
   const root = document.documentElement
@@ -79,6 +89,34 @@ function ensureNeumorphismStyles(): void {
   }
 
   neumorphismStylesLoader = import('@workspace/ui/styles/neumorphism.css')
+}
+
+/**
+ * Remove all --glass-* inline style properties from <html>
+ * so they don't bleed into non-glassmorphic presets.
+ */
+function cleanupGlassmorphismInlineStyles(): void {
+  const root = document.documentElement
+  const style = root.style
+  const keysToRemove: string[] = []
+
+  for (const prop of style) {
+    if (prop.startsWith('--glass-')) {
+      keysToRemove.push(prop)
+    }
+  }
+
+  for (const key of keysToRemove) {
+    root.style.removeProperty(key)
+  }
+}
+
+function ensureGlassmorphismStyles(): void {
+  if (glassmorphismStylesLoader) {
+    return
+  }
+
+  glassmorphismStylesLoader = import('@workspace/ui/styles/glassmorphism.css')
 }
 
 /**
