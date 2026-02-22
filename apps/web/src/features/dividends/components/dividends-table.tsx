@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import { Pencil, Trash2, Check, X } from "lucide-react";
+import { Pencil, Trash2, Check, X, Building2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -87,7 +87,12 @@ export function DividendsTable() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Company</TableHead>
+            <TableHead className="flex items-center gap-1">
+              <span data-slot="badge">
+                <Building2 className="size-4" />
+              </span>
+              Company
+            </TableHead>
             <TableHead>ISIN</TableHead>
             <TableHead className="text-right">Ex-Date</TableHead>
             <TableHead className="text-right">Shares</TableHead>

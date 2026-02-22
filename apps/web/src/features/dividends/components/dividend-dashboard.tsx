@@ -213,7 +213,12 @@ function LifetimeDividendPerCompany({ data }: { data: DividendDashboard }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Company</TableHead>
+                <TableHead className="flex items-center gap-1">
+                  <span data-slot="badge">
+                    <Building2 className="size-4" />
+                  </span>
+                  Company
+                </TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right w-[80px]">Share</TableHead>
               </TableRow>
