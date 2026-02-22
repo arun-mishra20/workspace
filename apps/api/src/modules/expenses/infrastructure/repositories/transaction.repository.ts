@@ -7,7 +7,7 @@ import {
   transactionsTable,
 
 } from '@workspace/database'
-import { and, desc, eq, gte, ilike, inArray, lt, lte, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, inArray, lt, lte, ne, sql } from 'drizzle-orm'
 
 import { DB_TOKEN } from '@/shared/infrastructure/db/db.port'
 
@@ -94,6 +94,9 @@ const CATEGORY_META = loadCategoryMeta()
 
 @Injectable()
 export class TransactionRepositoryImpl implements TransactionRepository {
+  private static readonly UPSERT_BATCH_SIZE = 250
+  private static readonly DISTINCT_MERCHANTS_MAX_ROWS = 1000
+
   constructor(@Inject(DB_TOKEN) private readonly db: DrizzleDb) {}
 
   async upsertMany(transactions: Transaction[]): Promise<void> {
@@ -101,88 +104,85 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       return
     }
 
-    for (const transaction of transactions) {
-      const value = this.toInsert(transaction)
+    for (let index = 0; index < transactions.length; index += TransactionRepositoryImpl.UPSERT_BATCH_SIZE) {
+      const chunk = transactions
+        .slice(index, index + TransactionRepositoryImpl.UPSERT_BATCH_SIZE)
+        .map((transaction) => this.toInsert(transaction))
 
       await this.db
         .insert(transactionsTable)
-        .values(value)
+        .values(chunk)
         .onConflictDoUpdate({
           target: [transactionsTable.userId, transactionsTable.sourceEmailId],
           set: {
-            // Always update the dedupeHash to the latest algorithm
-            dedupeHash: value.dedupeHash,
-            // Only overwrite merchant if the new value is NOT a fallback
-            // (i.e. keep existing real merchant over "Card ••XXXX Transaction")
             merchant: sql`
               CASE
-                                          WHEN ${value.merchant} LIKE 'Card %Transaction'
-                                              OR ${value.merchant} = 'Unknown Merchant'
+                                          WHEN excluded.merchant LIKE 'Card %Transaction'
+                                              OR excluded.merchant = 'Unknown Merchant'
                                           THEN ${transactionsTable.merchant}
-                                          ELSE ${value.merchant}
+                                          ELSE excluded.merchant
                                       END
             `,
             merchantRaw: sql`
               CASE
-                                          WHEN ${value.merchantRaw} LIKE 'Card %Transaction'
-                                              OR ${value.merchantRaw} = 'Unknown Merchant'
+                                          WHEN excluded.merchant_raw LIKE 'Card %Transaction'
+                                              OR excluded.merchant_raw = 'Unknown Merchant'
                                           THEN ${transactionsTable.merchantRaw}
-                                          ELSE ${value.merchantRaw}
+                                          ELSE excluded.merchant_raw
                                       END
             `,
-            vpa: sql`COALESCE(${value.vpa}, ${transactionsTable.vpa})`,
-            amount: value.amount,
-            currency: value.currency,
-            transactionDate: value.transactionDate,
-            transactionType: value.transactionType,
-            transactionMode: value.transactionMode,
-            cardLast4: sql`COALESCE(${value.cardLast4}, ${transactionsTable.cardLast4})`,
-            cardName: sql`COALESCE(${value.cardName}, ${transactionsTable.cardName})`,
-            // Only overwrite category if the new value is actually categorized
-            // (keep existing categorization over "uncategorized")
+            dedupeHash: sql`excluded.dedupe_hash`,
+            vpa: sql`COALESCE(excluded.vpa, ${transactionsTable.vpa})`,
+            amount: sql`excluded.amount`,
+            currency: sql`excluded.currency`,
+            transactionDate: sql`excluded.transaction_date`,
+            transactionType: sql`excluded.transaction_type`,
+            transactionMode: sql`excluded.transaction_mode`,
+            cardLast4: sql`COALESCE(excluded.card_last4, ${transactionsTable.cardLast4})`,
+            cardName: sql`COALESCE(excluded.card_name, ${transactionsTable.cardName})`,
             category: sql`
               CASE
-                                          WHEN ${value.category} = 'uncategorized'
+                                          WHEN excluded.category = 'uncategorized'
                                           THEN ${transactionsTable.category}
-                                          ELSE ${value.category}
+                                          ELSE excluded.category
                                       END
             `,
             subcategory: sql`
               CASE
-                                          WHEN ${value.subcategory} = 'uncategorized'
+                                          WHEN excluded.subcategory = 'uncategorized'
                                           THEN ${transactionsTable.subcategory}
-                                          ELSE ${value.subcategory}
+                                          ELSE excluded.subcategory
                                       END
             `,
             confidence: sql`
               CASE
-                                          WHEN ${value.category} = 'uncategorized'
+                                          WHEN excluded.category = 'uncategorized'
                                           THEN ${transactionsTable.confidence}
-                                          ELSE ${value.confidence}
+                                          ELSE excluded.confidence
                                       END
             `,
             categorizationMethod: sql`
               CASE
-                                          WHEN ${value.category} = 'uncategorized'
+                                          WHEN excluded.category = 'uncategorized'
                                           THEN ${transactionsTable.categorizationMethod}
-                                          ELSE ${value.categorizationMethod}
+                                          ELSE excluded.categorization_method
                                       END
             `,
             requiresReview: sql`
               CASE
-                                          WHEN ${value.category} = 'uncategorized'
+                                          WHEN excluded.category = 'uncategorized'
                                           THEN ${transactionsTable.requiresReview}
-                                          ELSE ${value.requiresReview}
+                                          ELSE excluded.requires_review
                                       END
             `,
             categoryMetadata: sql`
               CASE
-                                          WHEN ${value.category} = 'uncategorized'
+                                          WHEN excluded.category = 'uncategorized'
                                           THEN ${transactionsTable.categoryMetadata}
-                                          ELSE ${value.categoryMetadata}
+                                          ELSE excluded.category_metadata
                                       END
             `,
-            statementId: sql`COALESCE(${value.statementId}, ${transactionsTable.statementId})`,
+            statementId: sql`COALESCE(excluded.statement_id, ${transactionsTable.statementId})`,
             updatedAt: new Date(),
           },
         })
@@ -613,6 +613,41 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     return Number(row?.total ?? 0)
   }
 
+  async getCardSpendsForRanges(params: {
+    userId: string
+    cards: string[]
+    range: DateRange
+  }): Promise<{ cardLast4: string, transactionDate: Date, amount: number }[]> {
+    if (params.cards.length === 0) {
+      return []
+    }
+
+    const rows = await this.db
+      .select({
+        cardLast4: transactionsTable.cardLast4,
+        transactionDate: transactionsTable.transactionDate,
+        amount: transactionsTable.amount,
+      })
+      .from(transactionsTable)
+      .where(
+        and(
+          eq(transactionsTable.userId, params.userId),
+          inArray(transactionsTable.cardLast4, params.cards),
+          gte(transactionsTable.transactionDate, params.range.start),
+          lt(transactionsTable.transactionDate, params.range.end),
+          eq(transactionsTable.transactionType, 'debited'),
+          eq(transactionsTable.transactionMode, 'credit_card'),
+          sql`${transactionsTable.cardLast4} is not null`,
+        ),
+      )
+
+    return rows.map((row) => ({
+      cardLast4: row.cardLast4 ?? '',
+      transactionDate: row.transactionDate,
+      amount: Number(row.amount),
+    }))
+  }
+
   // ── Extended Analytics ──
 
   async getDayOfWeekSpending(params: {
@@ -970,6 +1005,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         transactionsTable.subcategory,
       )
       .orderBy(sql`count(*) desc`)
+      .limit(TransactionRepositoryImpl.DISTINCT_MERCHANTS_MAX_ROWS)
 
     // Aggregate: same merchant may have multiple categories — pick the most common one
     const merchantMap = new Map<
@@ -996,6 +1032,56 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     return [...merchantMap.values()].sort(
       (a, b) => b.transactionCount - a.transactionCount,
     )
+  }
+
+  async getCategorizedMerchants(
+    userId: string,
+  ): Promise<{ merchant: string, category: string, subcategory: string }[]> {
+    const rows = await this.db
+      .select({
+        merchant: transactionsTable.merchant,
+        category: transactionsTable.category,
+        subcategory: transactionsTable.subcategory,
+        transactionCount: sql<number>`count(*)::int`,
+      })
+      .from(transactionsTable)
+      .where(
+        and(
+          eq(transactionsTable.userId, userId),
+          ne(transactionsTable.category, 'uncategorized'),
+        ),
+      )
+      .groupBy(
+        transactionsTable.merchant,
+        transactionsTable.category,
+        transactionsTable.subcategory,
+      )
+      .orderBy(sql`count(*) desc`)
+      .limit(TransactionRepositoryImpl.DISTINCT_MERCHANTS_MAX_ROWS)
+
+    // Deduplicate: same merchant may have multiple categories — pick the most common one
+    const merchantMap = new Map<
+      string,
+      { merchant: string, category: string, subcategory: string, count: number }
+    >()
+
+    for (const row of rows) {
+      const existing = merchantMap.get(row.merchant)
+      if (!existing || row.transactionCount > existing.count) {
+        merchantMap.set(row.merchant, {
+          merchant: row.merchant,
+          category: row.category,
+          subcategory: row.subcategory,
+          count: row.transactionCount,
+        })
+      }
+    }
+
+    return [...merchantMap.values()].map(({ merchant, category, subcategory }) => ({
+      merchant,
+      category,
+      subcategory,
+    }))
   }
 
   async bulkCategorizeByMerchant(params: {

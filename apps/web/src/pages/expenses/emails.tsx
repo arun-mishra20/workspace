@@ -75,6 +75,7 @@ import {
   Send,
   ArrowLeft,
   ArrowRight,
+  CreditCard,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { appPaths } from "@/config/app-paths";
@@ -88,6 +89,7 @@ import {
 import { useDebounce } from "@/hooks/use-debounce";
 import { Separator } from "@workspace/ui/components/ui/separator";
 import { Skeleton } from "@workspace/ui/components/ui/skeleton";
+import { cn } from "@workspace/ui/lib/utils";
 
 const TRANSACTION_TYPES = ["debited", "credited"] as const;
 const TRANSACTION_MODES = [
@@ -233,12 +235,15 @@ const buildExpenseColumns = (
         <div className="flex gap-2 items-center max-w-72">
           <div className="font-medium text-foreground">{row.original.merchant}
           </div>
-          <Badge className="ml-2 text-[10px] p-0.5 px-2 h-fit max-w-30"
+          <Badge className="ml-2 text-[10px] p-0.5 px-2"
             variant={"outline"}
           >
-            <p className="truncate">
-              {row.original.cardName ?? row.original.vpa ?? row.original.merchantRaw ?? "Unknown source"}
-            </p>
+            <div className="h-fit max-w-30 flex gap-1 items-center">
+              <p className="truncate">
+                {row.original.cardName ?? row.original.vpa ?? row.original.merchantRaw ?? "Unknown source"}
+              </p>
+              {row.original.cardName && <CreditCard className={cn("size-3")} />}
+            </div>
           </Badge>
         </div>
       ),
@@ -668,12 +673,14 @@ const ExpenseEmailsPage = () => {
             </Button>
 
             {statusQuery.data?.connected ? (
-              <Badge className="flex gap-0 items-center"
+              <Badge className="flex gap-0 items-center p-1 pr-2"
                 variant={"outline"}
               >
                 <Dot className="text-teal-500 size-6" />
-                Connected
-                {statusQuery.data.email ? ` • ${statusQuery.data.email}` : ""}
+                <p className="-ml-[8px]">
+                  Connected
+                  {statusQuery.data.email ? ` • ${statusQuery.data.email}` : ""}
+                </p>
               </Badge>
             ) : (
               <Badge variant="outline">Not connected</Badge>

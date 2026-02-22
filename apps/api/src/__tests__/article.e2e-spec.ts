@@ -1,10 +1,10 @@
+import { FastifyAdapter } from '@nestjs/platform-fastify'
 import { Test } from '@nestjs/testing'
 import request from 'supertest'
-import { FastifyAdapter } from '@nestjs/platform-fastify'
-import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 
 import { AppModule } from '@/app.module'
 
+import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import type { TestingModule } from '@nestjs/testing'
 import type { SuperTest, Test as SuperTestType } from 'supertest'
 import type TestAgent from 'supertest/lib/agent'

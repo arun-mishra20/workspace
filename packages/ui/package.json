@@ -86,9 +86,12 @@
   },
   "exports": {
     "./globals.css": "./src/styles/index.css",
+    "./styles/neumorphism.css": "./src/styles/neumorphism.css",
+    "./styles/glassmorphism.css": "./src/styles/glassmorphism.css",
     "./postcss.config": "./postcss.config.mjs",
     "./lib/*": "./src/lib/*.ts",
     "./components/*": "./src/components/*.tsx",
-    "./hooks/*": "./src/hooks/*.ts"
+    "./hooks/*": "./src/hooks/*.ts",
+    "./context/*": "./src/context/*.tsx"
   }
 }

@@ -1,38 +1,41 @@
 export const appPaths = {
   home: {
-    getHref: () => "/",
+    getHref: () => '/',
   },
   auth: {
     register: {
       getHref: (redirectTo?: string | null) =>
-        `/register${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""}`,
+        `/register${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ''}`,
     },
     login: {
       getHref: (redirectTo?: string | null) =>
-        `/login${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""}`,
+        `/login${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ''}`,
     },
     // Dashboard path
     dashboard: {
-      getHref: () => "/dashboard",
+      getHref: () => '/dashboard',
     },
     // Themes path
     themes: {
-      getHref: () => "/themes",
+      getHref: () => '/themes',
     },
     analytics: {
-      getHref: () => "/analytics",
+      getHref: () => '/analytics',
     },
     patterns: {
-      getHref: () => "/patterns",
+      getHref: () => '/patterns',
     },
     holdings: {
-      getHref: () => "/holdings",
+      getHref: () => '/holdings',
+    },
+    playground: {
+      getHref: () => '/playground',
     },
     expensesEmails: {
-      getHref: () => "/expenses/emails",
+      getHref: () => '/expenses/emails',
     },
     expensesEmailDetails: {
       getHref: (id: string) => `/expenses/emails/${encodeURIComponent(id)}`,
     },
   },
-} as const;
+} as const

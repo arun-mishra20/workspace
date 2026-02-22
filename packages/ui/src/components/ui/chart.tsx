@@ -26,6 +26,7 @@ interface ChartContextProps {
 }
 
 const ChartContext = React.createContext<ChartContextProps | null>(null)
+type ChartType = 'default' | 'pie'
 
 function useChart() {
   const context = React.use(ChartContext)
@@ -37,14 +38,24 @@ function useChart() {
   return context
 }
 
-const ChartContainer = ({ ref, id, className, children, config, ...props }: React.ComponentProps<'div'> & {
+const ChartContainer = ({
+  ref,
+  id,
+  className,
+  children,
+  config,
+  chartType = 'default',
+  ...props
+}: React.ComponentProps<'div'> & {
   config: ChartConfig
+  chartType?: ChartType
   children: React.ComponentProps<
     typeof RechartsPrimitive.ResponsiveContainer
   >['children']
 } & { ref?: React.RefObject<HTMLDivElement | null> }) => {
   const uniqueId = React.useId()
   const chartId = `chart-${id || uniqueId.replace(/:/g, '')}`
+  const slot = chartType === 'pie' ? 'chart-pie' : 'chart'
 
   return (
     <ChartContext value={{ config }}>
@@ -56,6 +67,7 @@ const ChartContainer = ({ ref, id, className, children, config, ...props }: Reac
           className,
         )}
         {...props}
+        data-slot={slot}
       >
         <ChartStyle id={chartId} config={config} />
         <RechartsPrimitive.ResponsiveContainer>
@@ -178,6 +190,7 @@ const ChartTooltipContent = (
         'grid min-w-32 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl',
         className,
       )}
+      data-slot="chart-tooltip"
     >
       {nestLabel ? null : tooltipLabel}
       <div className="grid gap-1.5">

@@ -1,4 +1,4 @@
-import type { RawEmail, Statement, Transaction } from "@workspace/domain";
+import type { RawEmail, Statement, Transaction } from '@workspace/domain'
 
 /**
  * Email Parser interface
@@ -6,9 +6,9 @@ import type { RawEmail, Statement, Transaction } from "@workspace/domain";
  * Parses raw email content into structured financial data
  */
 export interface EmailParser {
-  canParse(email: RawEmail): boolean;
-  parseTransactions(email: RawEmail): Transaction[];
-  parseStatement(email: RawEmail): Statement | null;
+  canParse(email: RawEmail): boolean
+  parseTransactions(email: RawEmail): Transaction[]
+  parseStatement(email: RawEmail): Statement | null
 }
 
-export const EMAIL_PARSERS = Symbol("EMAIL_PARSERS");
+export const EMAIL_PARSERS = Symbol('EMAIL_PARSERS')

@@ -28,18 +28,19 @@ export default function HoldingsPage() {
     <MainLayout>
       <div className="flex flex-1 flex-col gap-6 px-6 py-10 mx-8">
         {/* Header */}
-        <header className="flex flex-col gap-4">
+        <header
+          className="flex flex-col gap-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <div>
-                <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
-                  Investment Allocation
-                </p>
-                <h1 className="text-2xl font-bold tracking-tight">Holdings</h1>
-                <p className="text-sm text-muted-foreground">
-                  Track your complete investment portfolio
-                </p>
-              </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
+                Holdings
+              </p>
+              <h1 className="text-2xl font-semibold text-foreground">
+                Investment Allocation
+              </h1>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                Track your complete investment portfolio
+              </p>
             </div>
 
             <div className="flex items-center gap-2">

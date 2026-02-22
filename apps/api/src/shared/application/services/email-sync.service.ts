@@ -13,6 +13,7 @@ import {
 import type { GmailProvider } from '@/modules/expenses/application/ports/gmail-provider.port'
 import type { RawEmailRepository } from '@/modules/expenses/application/ports/raw-email.repository.port'
 import type { SyncJobRepository, SyncJob } from '@/modules/expenses/application/ports/sync-job.repository.port'
+import type { RawEmail } from '@workspace/domain'
 
 export interface StartSyncParams {
   userId: string
@@ -26,6 +27,13 @@ export interface StartSyncParams {
 
 export interface SyncResult {
   jobId: string
+}
+
+export interface FetchPreviewEmailsParams {
+  userId: string
+  query: string
+  maxResults: number
+  category?: string
 }
 
 /**
@@ -110,6 +118,28 @@ export class EmailSyncService {
    */
   async getUserSyncJobs(userId: string, limit = 10, category?: string): Promise<SyncJob[]> {
     return this.syncJobRepository.findByUserId(userId, limit, category)
+  }
+
+  /**
+   * Fetch emails from Gmail for preview/playground use cases.
+   * This does NOT persist emails and does NOT create sync jobs.
+   */
+  async fetchPreviewEmails(params: FetchPreviewEmailsParams): Promise<RawEmail[]> {
+    const emailRefs = await this.gmailProvider.listExpenseEmails({
+      userId: params.userId,
+      query: params.query,
+      maxResults: params.maxResults,
+    })
+
+    if (emailRefs.length === 0) {
+      return []
+    }
+
+    return this.gmailProvider.fetchEmailContentBatch({
+      userId: params.userId,
+      emailIds: emailRefs.map((ref) => ref.id),
+      category: params.category,
+    })
   }
 
   // ── Internal sync loop ──

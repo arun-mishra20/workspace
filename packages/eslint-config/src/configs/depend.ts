@@ -95,6 +95,7 @@ export function depend(options: DependOptions = {}): Linter.Config[] {
             modules,
             allowed: [
               'dotenv', // Required by drizzle.config.ts and utility scripts
+              'axios',
               ...allowed,
             ],
           },

@@ -1,9 +1,6 @@
 import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { getAccessToken } from "@/lib/auth";
-import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/api-client";
-import type { SessionResponse } from "@/lib/api-types";
+import { useAuthSession } from "@/app/auth-session-context";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -31,22 +28,9 @@ export function ProtectedRoute({
   children,
   isPublic = false,
 }: ProtectedRouteProps) {
-  const accessToken = getAccessToken();
-  const sessionQuery = useQuery({
-    queryKey: ["auth", "session"],
-    queryFn: ({ signal }) =>
-      apiRequest<SessionResponse>({
-        method: "GET",
-        url: "/api/auth/session",
-        signal,
-      }),
-    enabled: !!accessToken, // Only fetch session if user has a token
-    retry: false,
-  });
+  const { hasToken, isAuthenticated, isLoading } = useAuthSession();
 
-  const isAuthenticated = !!sessionQuery.data?.user;
-
-  if (accessToken && sessionQuery.isLoading) {
+  if (hasToken && isLoading) {
     return null;
   }
 

@@ -67,6 +67,7 @@ import {
   Activity,
   Repeat,
 } from "lucide-react";
+import { Separator } from "@workspace/ui/components/ui/separator";
 
 // ── Helpers ──
 
@@ -180,7 +181,7 @@ function TopRoutesTable({ routes }: { routes: BusAnalytics["routes"] }) {
   if (routes.length === 0) return null;
 
   return (
-    <Card>
+    <Card className="gap-4">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MapPin className="h-5 w-5" />
@@ -189,6 +190,7 @@ function TopRoutesTable({ routes }: { routes: BusAnalytics["routes"] }) {
         <CardDescription>
           Most frequently taken buses, ranked by trip count
         </CardDescription>
+        <Separator className="w-full mt-2" />
       </CardHeader>
       <CardContent>
         <Table>
@@ -703,7 +705,11 @@ function AssetAllocationChart({
         <CardDescription>Investment distribution by asset type</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[300px] w-full">
+        <ChartContainer
+          config={chartConfig}
+          chartType="pie"
+          className="h-[300px] w-full"
+        >
           <PieChart>
             <ChartTooltip
               content={
@@ -760,12 +766,13 @@ function AssetBreakdownTable({
   if (data.length === 0) return null;
 
   return (
-    <Card>
+    <Card className="gap-4">
       <CardHeader>
         <CardTitle>Asset Type Breakdown</CardTitle>
         <CardDescription>
           Detailed metrics for each investment category
         </CardDescription>
+        <Separator className="w-full mt-2" />
       </CardHeader>
       <CardContent>
         <Table>
@@ -823,12 +830,13 @@ function PlatformBreakdownTable({
   if (data.length === 0) return null;
 
   return (
-    <Card>
+    <Card className="gap-4">
       <CardHeader>
         <CardTitle>Platform Distribution</CardTitle>
         <CardDescription>
           Investment activity across different platforms
         </CardDescription>
+        <Separator className="w-full mt-2" />
       </CardHeader>
       <CardContent>
         <Table>
@@ -968,10 +976,11 @@ function LargestInvestmentsTable({
   if (data.length === 0) return null;
 
   return (
-    <Card>
+    <Card className="gap-4">
       <CardHeader>
         <CardTitle>Largest Investments</CardTitle>
         <CardDescription>Top 10 single transactions by amount</CardDescription>
+        <Separator className="w-full mt-2" />
       </CardHeader>
       <CardContent>
         <Table>
@@ -1017,7 +1026,7 @@ function SipDetectionTable({
   if (data.length === 0) return null;
 
   return (
-    <Card>
+    <Card className="gap-4">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Repeat className="h-5 w-5" />
@@ -1026,6 +1035,7 @@ function SipDetectionTable({
         <CardDescription>
           Recurring investments identified from transaction patterns
         </CardDescription>
+        <Separator className="w-full mt-2" />
       </CardHeader>
       <CardContent>
         <Table>
@@ -1316,14 +1326,19 @@ const PatternsPage = () => {
   return (
     <MainLayout>
       <div className="flex flex-1 flex-col gap-6 px-6 py-10 mx-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Spending Patterns
-          </h1>
-          <p className="text-muted-foreground">
-            Discover insights from your recurring spending habits
-          </p>
-        </div>
+        <header className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
+              Patterns
+            </p>
+            <h1 className="text-2xl font-semibold text-foreground">
+              Spending Patterns
+            </h1>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              Discover insights from your recurring spending habits
+            </p>
+          </div>
+        </header>
 
         <Tabs defaultValue="bus">
           <TabsList>

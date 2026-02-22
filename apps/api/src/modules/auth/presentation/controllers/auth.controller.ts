@@ -10,6 +10,7 @@ import { RevokeSessionDto, RevokeSessionResponseDto } from '@/modules/auth/prese
 import { SessionResponseDto } from '@/modules/auth/presentation/dtos/session-response.dto'
 import { SessionsListResponseDto } from '@/modules/auth/presentation/dtos/sessions-list-response.dto'
 import { JwtAuthGuard } from '@/modules/auth/presentation/guards/jwt-auth.guard'
+
 import type { FastifyRequest } from 'fastify'
 
 /**

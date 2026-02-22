@@ -6,6 +6,7 @@ import {
   Mail,
   Paintbrush,
   Briefcase,
+  FlaskConical,
 } from "lucide-react";
 
 import { appPaths } from "@/config/app-paths";
@@ -37,6 +38,11 @@ const navItems = [
     label: "Emails",
     href: appPaths.auth.expensesEmails.getHref(),
     icon: Mail,
+  },
+  {
+    label: "Playground",
+    href: appPaths.auth.playground.getHref(),
+    icon: FlaskConical,
   },
 ];
 

@@ -69,7 +69,7 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
       this.logger.debug(`Upsert with constraint successful: id=${record.id}, isNew=${isNew}`)
       return { isNew, id: record.id }
     } catch (error) {
-      this.logger.warn(`Upsert with constraint failed, using fallback: ${error}`)
+      this.logger.warn(`Upsert with constraint failed, using fallback: ${String(error)}`)
       // Fallback: Check if email exists, then insert or return existing
       const existing = await this.findByProviderMessageId({
         userId: email.userId,
@@ -149,7 +149,11 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
     return records.map((record) => this.toDomain(record))
   }
 
-  async listAllByUser(userId: string, category?: string): Promise<RawEmail[]> {
+  async listAllByUser(
+    userId: string,
+    category?: string,
+    options?: { limit?: number, offset?: number },
+  ): Promise<RawEmail[]> {
     this.logger.debug(`Listing ALL emails for user ${userId} (reprocess), category: ${category}`)
 
     const conditions = [eq(rawEmailsTable.userId, userId)]
@@ -157,17 +161,41 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
       conditions.push(eq(rawEmailsTable.category, category))
     }
 
-    const records = await this.db
+    const baseQuery = this.db
       .select(this.selectFields())
       .from(rawEmailsTable)
       .where(and(...conditions))
       .orderBy(desc(rawEmailsTable.receivedAt))
 
+    if (options?.limit !== undefined && options?.offset !== undefined) {
+      const records = await baseQuery.limit(options.limit).offset(options.offset)
+      this.logger.debug(`Found ${records.length} total emails for user ${userId}, category: ${category}`)
+      return records.map((record) => this.toDomain(record))
+    }
+
+    if (options?.limit !== undefined) {
+      const records = await baseQuery.limit(options.limit)
+      this.logger.debug(`Found ${records.length} total emails for user ${userId}, category: ${category}`)
+      return records.map((record) => this.toDomain(record))
+    }
+
+    if (options?.offset !== undefined) {
+      const records = await baseQuery.offset(options.offset)
+      this.logger.debug(`Found ${records.length} total emails for user ${userId}, category: ${category}`)
+      return records.map((record) => this.toDomain(record))
+    }
+
+    const records = await baseQuery
+
     this.logger.debug(`Found ${records.length} total emails for user ${userId}, category: ${category}`)
     return records.map((record) => this.toDomain(record))
   }
 
-  async listUnprocessedByUser(userId: string, category?: string): Promise<RawEmail[]> {
+  async listUnprocessedByUser(
+    userId: string,
+    category?: string,
+    options?: { limit?: number, offset?: number },
+  ): Promise<RawEmail[]> {
     this.logger.debug(`Listing UNPROCESSED emails for user ${userId}, category: ${category}`)
 
     const conditions = [eq(rawEmailsTable.userId, userId)]
@@ -176,7 +204,7 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
     }
 
     // Find emails that don't have any transactions created from them
-    const records = await this.db
+    const baseQuery = this.db
       .select(this.selectFields())
       .from(rawEmailsTable)
       .leftJoin(
@@ -185,6 +213,26 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
       )
       .where(and(...conditions, isNull(transactionsTable.id)))
       .orderBy(desc(rawEmailsTable.receivedAt))
+
+    if (options?.limit !== undefined && options?.offset !== undefined) {
+      const records = await baseQuery.limit(options.limit).offset(options.offset)
+      this.logger.debug(`Found ${records.length} unprocessed emails for user ${userId}`)
+      return records.map((record) => this.toDomain(record))
+    }
+
+    if (options?.limit !== undefined) {
+      const records = await baseQuery.limit(options.limit)
+      this.logger.debug(`Found ${records.length} unprocessed emails for user ${userId}`)
+      return records.map((record) => this.toDomain(record))
+    }
+
+    if (options?.offset !== undefined) {
+      const records = await baseQuery.offset(options.offset)
+      this.logger.debug(`Found ${records.length} unprocessed emails for user ${userId}`)
+      return records.map((record) => this.toDomain(record))
+    }
+
+    const records = await baseQuery
 
     this.logger.debug(`Found ${records.length} unprocessed emails for user ${userId}`)
     return records.map((record) => this.toDomain(record))

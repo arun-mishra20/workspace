@@ -133,6 +133,13 @@ export const transactionsTable = pgTable(
       table.sourceEmailId,
     ),
     index('transactions_dedupe_hash_idx').on(table.dedupeHash),
+    index('transactions_user_transaction_date_idx').on(
+      table.userId,
+      table.transactionDate,
+    ),
+    index('transactions_user_category_idx').on(table.userId, table.category),
+    index('transactions_transaction_date_idx').on(table.transactionDate),
+    index('transactions_card_last4_idx').on(table.cardLast4),
   ],
 )
 

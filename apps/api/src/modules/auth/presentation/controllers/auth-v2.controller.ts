@@ -7,6 +7,7 @@ import { RefreshTokenDto, RefreshTokenResponseDto } from '@/modules/auth/present
 import { RegisterDto, RegisterResponseDto } from '@/modules/auth/presentation/dtos/register.dto'
 import { SessionResponseDto } from '@/modules/auth/presentation/dtos/session-response.dto'
 import { JwtAuthGuard } from '@/modules/auth/presentation/guards/jwt-auth.guard'
+
 import type { FastifyRequest } from 'fastify'
 
 /**
