@@ -16,6 +16,7 @@ import { Separator } from '@workspace/ui/components/ui/separator'
 import { ScrollArea } from '@workspace/ui/components/ui/scroll-area'
 import { CATEGORY_LABELS, THEME_VARIABLES } from '@/themes'
 import { NeumorphicPresets } from './neumorphic-presets'
+import { GlassmorphicPresets } from './glassmorphic-presets'
 
 export function ThemeEditorPanel() {
   const {
@@ -189,6 +190,14 @@ export function ThemeEditorPanel() {
             <>
               <Separator className="my-4" />
               <NeumorphicPresets activeMode={activeMode} />
+            </>
+          )}
+
+          {/* GLASSMORPHIC PRESETS - Only show when glassmorphism preset is active */}
+          {currentPreset === 'glassmorphism' && (
+            <>
+              <Separator className="my-4" />
+              <GlassmorphicPresets activeMode={activeMode} />
             </>
           )}
         </div>
