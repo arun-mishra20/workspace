@@ -6,6 +6,7 @@ import {
   Mail,
   Paintbrush,
   Briefcase,
+  Banknote,
   FlaskConical,
 } from "lucide-react";
 
@@ -33,6 +34,11 @@ const navItems = [
     label: "Holdings",
     href: appPaths.auth.holdings.getHref(),
     icon: Briefcase,
+  },
+  {
+    label: "Dividends",
+    href: appPaths.auth.dividends.getHref(),
+    icon: Banknote,
   },
   {
     label: "Emails",

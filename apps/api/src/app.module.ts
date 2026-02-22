@@ -20,6 +20,7 @@ import { LoggerModule } from '@/app/logger/logger.module'
 import { ApiVersionMiddleware } from '@/app/middleware/api-version.middleware'
 import { SwaggerDevController } from '@/app/swagger/swagger-dev.controller'
 import { AuthModule } from '@/modules/auth/auth.module'
+import { DividendsModule } from '@/modules/dividends/dividends.module'
 import { ExpensesModule } from '@/modules/expenses/expenses.module'
 import { HoldingsModule } from '@/modules/holdings/holdings.module'
 import { PlaygroundModule } from '@/modules/playground/playground.module'
@@ -74,6 +75,7 @@ import type { NestModule, MiddlewareConsumer } from '@nestjs/common'
     AuthModule, // Auth module (authentication + DDD example)
     ExpensesModule, // Expenses module (email parsing + finance data)
     HoldingsModule, // Holdings module (investment portfolio management)
+    DividendsModule, // Dividends module (dividend income tracking + analytics)
     PlaygroundModule, // Playground module (ad-hoc email fetch for parser experiments)
   ],
   controllers: [
