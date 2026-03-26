@@ -10,12 +10,13 @@ import {
 import maplibregl from 'maplibre-gl/dist/maplibre-gl-csp'
 import maplibreglWorkerUrl from 'maplibre-gl/dist/maplibre-gl-csp-worker.js?url'
 import {
+  Building2,
+  Filter,
   Globe2,
   MapPinned,
   Pause,
   Play,
   Route,
-  Settings2,
   SkipBack,
   SkipForward,
   Sparkles,
@@ -46,6 +47,12 @@ import {
   type MapSettings,
   type MapStyleName,
 } from '@/features/flights/components/flight-map-dashboard.lib'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@workspace/ui/components/ui/accordion'
 import { Badge } from '@workspace/ui/components/ui/badge'
 import { Button } from '@workspace/ui/components/ui/button'
 import {
@@ -56,11 +63,6 @@ import {
 } from '@workspace/ui/components/ui/card'
 import { Label } from '@workspace/ui/components/ui/label'
 import { Input } from '@workspace/ui/components/ui/input'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@workspace/ui/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -1059,124 +1061,121 @@ function MapControlsInline({
   onChange: (patch: Partial<MapSettings>) => void
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-      <div className="flex items-center gap-2">
-        <Label className="text-xs text-muted-foreground whitespace-nowrap">
-          Style
-        </Label>
-        <Select
-          value={settings.mapStyle}
-          onValueChange={(value) =>
-            onChange({ mapStyle: value as MapStyleName })
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <Select
+        value={settings.mapStyle}
+        onValueChange={(value) => onChange({ mapStyle: value as MapStyleName })}
+      >
+        <SelectTrigger className="h-7 w-27 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {MAP_STYLE_OPTIONS.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value} className="text-xs">
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Separator orientation="vertical" className="h-4" />
+
+      <ToggleGroup
+        type="single"
+        value={settings.projection}
+        onValueChange={(value) => {
+          if (value === 'mercator' || value === 'globe') {
+            onChange({ projection: value })
           }
-        >
-          <SelectTrigger className="h-7 w-27.5 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {MAP_STYLE_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+        }}
+        className="gap-0.5"
+      >
+        <ToggleGroupItem value="mercator" className="h-7 px-2 text-xs">
+          Flat
+        </ToggleGroupItem>
+        <ToggleGroupItem value="globe" className="h-7 px-2 text-xs">
+          Globe
+        </ToggleGroupItem>
+      </ToggleGroup>
 
-      <Separator orientation="vertical" className="hidden h-5 lg:block" />
+      <Separator orientation="vertical" className="h-4" />
 
-      <div className="flex items-center gap-2">
-        <Label className="text-xs text-muted-foreground whitespace-nowrap">
-          Projection
-        </Label>
-        <ToggleGroup
-          type="single"
-          value={settings.projection}
-          onValueChange={(value) => {
-            if (value === 'mercator' || value === 'globe') {
-              onChange({ projection: value })
-            }
-          }}
-          className="gap-1"
-        >
-          <ToggleGroupItem value="mercator" className="h-7 px-2.5 text-xs">
-            Flat
-          </ToggleGroupItem>
-          <ToggleGroupItem value="globe" className="h-7 px-2.5 text-xs">
-            Globe
-          </ToggleGroupItem>
-        </ToggleGroup>
-      </div>
-
-      <Separator orientation="vertical" className="hidden h-5 lg:block" />
-
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-1">
           <Switch
             id="toggle-heatmap"
             checked={settings.showHeatmap}
             onCheckedChange={(value) => onChange({ showHeatmap: value })}
-            className="scale-75"
+            className="scale-[0.65]"
           />
-          <Label htmlFor="toggle-heatmap" className="text-xs cursor-pointer">
+          <Label
+            htmlFor="toggle-heatmap"
+            className="text-[11px] cursor-pointer"
+          >
             Heatmap
           </Label>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <Switch
             id="toggle-heatmap3d"
             checked={settings.heatmap3d}
             onCheckedChange={(value) => onChange({ heatmap3d: value })}
-            className="scale-75"
+            className="scale-[0.65]"
           />
-          <Label htmlFor="toggle-heatmap3d" className="text-xs cursor-pointer">
-            3D Heat
+          <Label
+            htmlFor="toggle-heatmap3d"
+            className="text-[11px] cursor-pointer"
+          >
+            3D
           </Label>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <Switch
             id="toggle-routes"
             checked={settings.showRoutes}
             onCheckedChange={(value) => onChange({ showRoutes: value })}
-            className="scale-75"
+            className="scale-[0.65]"
           />
-          <Label htmlFor="toggle-routes" className="text-xs cursor-pointer">
+          <Label htmlFor="toggle-routes" className="text-[11px] cursor-pointer">
             Routes
           </Label>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <Switch
             id="toggle-markers"
             checked={settings.showMarkers}
             onCheckedChange={(value) => onChange({ showMarkers: value })}
-            className="scale-75"
+            className="scale-[0.65]"
           />
-          <Label htmlFor="toggle-markers" className="text-xs cursor-pointer">
+          <Label
+            htmlFor="toggle-markers"
+            className="text-[11px] cursor-pointer"
+          >
             Markers
           </Label>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <Switch
             id="toggle-labels"
             checked={settings.showLabels}
             onCheckedChange={(value) => onChange({ showLabels: value })}
-            className="scale-75"
+            className="scale-[0.65]"
           />
-          <Label htmlFor="toggle-labels" className="text-xs cursor-pointer">
+          <Label htmlFor="toggle-labels" className="text-[11px] cursor-pointer">
             Labels
           </Label>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <Switch
             id="toggle-terrain"
             checked={settings.terrainEnabled}
             onCheckedChange={(value) => onChange({ terrainEnabled: value })}
             disabled={!supportsTerrain(settings.mapStyle)}
-            className="scale-75"
+            className="scale-[0.65]"
           />
           <Label
             htmlFor="toggle-terrain"
-            className="text-xs cursor-pointer data-[disabled=true]:cursor-not-allowed"
+            className="text-[11px] cursor-pointer data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-50"
             data-disabled={!supportsTerrain(settings.mapStyle)}
           >
             Terrain
@@ -1184,210 +1183,25 @@ function MapControlsInline({
         </div>
       </div>
 
-      {/* <Separator orientation="vertical" className="hidden h-5 lg:block" /> */}
-
-      {/* <div className="flex items-center gap-2">
-        <Label className="text-xs text-muted-foreground whitespace-nowrap">
-          <Palette className="inline h-3 w-3 mr-1" />
-          Route
-        </Label>
-        <ToggleGroup
-          type="single"
-          value={settings.routeColor}
-          onValueChange={(value) => {
-            if (value) {
-              onChange({ routeColor: value })
-            }
-          }}
-          className="gap-1"
-        >
-          {ROUTE_COLOR_PRESETS.map((preset) => (
-            <ToggleGroupItem
-              key={preset.value}
-              value={preset.value}
-              aria-label={preset.label}
-              className="h-6 w-6 rounded-full p-0 data-[state=on]:ring-2 data-[state=on]:ring-primary data-[state=on]:ring-offset-1"
-              style={{ backgroundColor: preset.value }}
-            />
-          ))}
-        </ToggleGroup>
-      </div> */}
-
       {settings.showHeatmap ? (
         <>
-          <Separator orientation="vertical" className="hidden h-5 lg:block" />
-          <div className="flex items-center gap-2">
-            <Label className="text-xs text-muted-foreground whitespace-nowrap">
-              Intensity
-            </Label>
+          <Separator orientation="vertical" className="h-4" />
+          <div className="flex items-center gap-1.5">
             <Slider
               min={0.2}
               max={2.0}
               step={0.1}
               value={[settings.heatmapIntensity]}
               onValueChange={([value]) => onChange({ heatmapIntensity: value })}
-              className="w-20"
+              className="w-16"
             />
-            <span className="text-xs tabular-nums text-muted-foreground w-7">
+            <span className="text-[11px] tabular-nums text-muted-foreground w-6">
               {settings.heatmapIntensity.toFixed(1)}
             </span>
           </div>
         </>
       ) : null}
     </div>
-  )
-}
-
-function MapControlsPopover({
-  settings,
-  onChange,
-}: {
-  settings: MapSettings
-  onChange: (patch: Partial<MapSettings>) => void
-}) {
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="icon" className="h-8 w-8">
-          <Settings2 className="h-4 w-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-72 space-y-4" align="end">
-        <p className="text-sm font-medium">Map Settings</p>
-
-        <div className="space-y-1.5">
-          <Label className="text-xs">Base Map</Label>
-          <Select
-            value={settings.mapStyle}
-            onValueChange={(value) =>
-              onChange({ mapStyle: value as MapStyleName })
-            }
-          >
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MAP_STYLE_OPTIONS.map((opt) => (
-                <SelectItem
-                  key={opt.value}
-                  value={opt.value}
-                  className="text-xs"
-                >
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <Separator />
-
-        <div className="space-y-1.5">
-          <Label className="text-xs">Projection</Label>
-          <ToggleGroup
-            type="single"
-            value={settings.projection}
-            onValueChange={(value) => {
-              if (value === 'mercator' || value === 'globe') {
-                onChange({ projection: value })
-              }
-            }}
-            className="justify-start gap-1.5"
-          >
-            <ToggleGroupItem value="mercator" className="h-8 px-3 text-xs">
-              Flat
-            </ToggleGroupItem>
-            <ToggleGroupItem value="globe" className="h-8 px-3 text-xs">
-              Globe
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
-
-        <Separator />
-
-        <div className="space-y-2">
-          <Label className="text-xs">Layers</Label>
-          {(
-            [
-              { key: 'showHeatmap', label: 'Heatmap' },
-              { key: 'heatmap3d', label: '3D Heatmap' },
-              { key: 'showRoutes', label: 'Routes' },
-              { key: 'showMarkers', label: 'Markers' },
-              { key: 'showLabels', label: 'Labels' },
-              { key: 'terrainEnabled', label: 'Terrain' },
-            ] as { key: keyof MapSettings; label: string }[]
-          ).map((item) => (
-            <div key={item.key} className="flex items-center justify-between">
-              <Label
-                htmlFor={`pop-${item.key}`}
-                className="text-xs cursor-pointer"
-              >
-                {item.label}
-              </Label>
-              <Switch
-                id={`pop-${item.key}`}
-                checked={settings[item.key] as boolean}
-                onCheckedChange={(value) => onChange({ [item.key]: value })}
-                disabled={
-                  item.key === 'terrainEnabled' &&
-                  !supportsTerrain(settings.mapStyle)
-                }
-                className="scale-75"
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* <Separator /> */}
-
-        {/* <div className="space-y-1.5">
-          <Label className="text-xs">Route Color</Label>
-          <ToggleGroup
-            type="single"
-            value={settings.routeColor}
-            onValueChange={(value) => {
-              if (value) {
-                onChange({ routeColor: value })
-              }
-            }}
-            className="gap-1.5 justify-start"
-          >
-            {ROUTE_COLOR_PRESETS.map((preset) => (
-              <ToggleGroupItem
-                key={preset.value}
-                value={preset.value}
-                aria-label={preset.label}
-                className="h-7 w-7 rounded-full p-0 data-[state=on]:ring-2 data-[state=on]:ring-primary data-[state=on]:ring-offset-1"
-                style={{ backgroundColor: preset.value }}
-              />
-            ))}
-          </ToggleGroup>
-        </div> */}
-
-        {settings.showHeatmap ? (
-          <>
-            <Separator />
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Heatmap Intensity</Label>
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {settings.heatmapIntensity.toFixed(1)}
-                </span>
-              </div>
-              <Slider
-                min={0.2}
-                max={2.0}
-                step={0.1}
-                value={[settings.heatmapIntensity]}
-                onValueChange={([value]) =>
-                  onChange({ heatmapIntensity: value })
-                }
-              />
-            </div>
-          </>
-        ) : null}
-      </PopoverContent>
-    </Popover>
   )
 }
 
@@ -1787,18 +1601,18 @@ function HotelInteractionControls({
 
 function TravelMapLegend() {
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-      <div className="flex items-center gap-2">
-        <span className="size-3 rounded-full bg-orange-500 ring-2 ring-white/90" />
+    <div className="pointer-events-none absolute bottom-3 left-3 z-10 flex items-center gap-3 rounded-lg bg-background/70 px-3 py-1.5 text-[11px] text-muted-foreground shadow-sm backdrop-blur-sm">
+      <div className="flex items-center gap-1.5">
+        <span className="size-2.5 rounded-full bg-orange-500" />
         Airports
       </div>
-      <div className="flex items-center gap-2">
-        <span className="size-3 rounded-full bg-teal-400 ring-2 ring-white/90" />
+      <div className="flex items-center gap-1.5">
+        <span className="size-2.5 rounded-full bg-teal-400" />
         Hotels
       </div>
-      <div className="flex items-center gap-2">
-        <span className="size-3 rounded-full bg-slate-400 ring-2 ring-white/90" />
-        Archived hotel
+      <div className="flex items-center gap-1.5">
+        <span className="size-2.5 rounded-full bg-slate-400" />
+        Archived
       </div>
     </div>
   )
@@ -2943,19 +2757,11 @@ export function FlightMapDashboard({ isActive }: FlightMapDashboardProps) {
       </div>
 
       <Card className="overflow-hidden border-border/60">
-        <CardHeader className="border-b border-border/60">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle>Travel Map</CardTitle>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Switch between flat and globe projection, enable terrain on
-                  satellite, and control overlays without losing route state.
-                  Hotel pins follow the main markers toggle.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
+        <CardHeader className="space-y-3 border-b border-border/60">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-base">Travel Map</CardTitle>
+              <div className="hidden items-center gap-1.5 sm:flex">
                 <Badge variant="outline" className="text-xs">
                   {displayData?.airports.length ?? 0} airports
                 </Badge>
@@ -2964,201 +2770,239 @@ export function FlightMapDashboard({ isActive }: FlightMapDashboardProps) {
                 </Badge>
                 {totalHotelMarkers.length > 0 ? (
                   <Badge variant="outline" className="text-xs">
-                    {hotelMarkers.length} / {totalHotelMarkers.length} hotels
+                    {hotelMarkers.length} hotels
                   </Badge>
                 ) : null}
-                {hasActiveHotelFilters && settings.showMarkers ? (
-                  <Badge variant="outline" className="text-xs">
-                    Hotel filters
-                  </Badge>
-                ) : null}
-                {selectedHotel ? (
-                  <Badge variant="outline" className="text-xs">
-                    Hotel selected
-                  </Badge>
-                ) : null}
-                {isPlaybackEnabled ? (
-                  <Badge variant="outline" className="text-xs">
-                    Playback
-                  </Badge>
-                ) : null}
-                {hasActiveFilters ? (
-                  <Badge variant="outline" className="text-xs">
-                    Filtered
-                  </Badge>
-                ) : null}
-                <Badge variant="outline" className="text-xs">
-                  {settings.projection === 'globe' ? 'Globe' : 'Flat'}
-                </Badge>
-                {settings.terrainEnabled ? (
-                  <Badge variant="outline" className="text-xs">
-                    Terrain
-                  </Badge>
-                ) : null}
-                <div className="lg:hidden">
-                  <MapControlsPopover
-                    settings={settings}
-                    onChange={handleSettingsChange}
-                  />
-                </div>
               </div>
             </div>
-            <div className="hidden lg:block">
-              <MapControlsInline
-                settings={settings}
-                onChange={handleSettingsChange}
-              />
-            </div>
-            <TravelMapLegend />
-            <HotelInteractionControls
-              hotelCount={hotelMarkers.length}
-              scope={hotelScope}
-              startDate={hotelStartDate}
-              endDate={hotelEndDate}
-              onScopeChange={setHotelScope}
-              onStartDateChange={setHotelStartDate}
-              onEndDateChange={setHotelEndDate}
-              onClear={() => {
-                setHotelScope('all')
-                setHotelStartDate('')
-                setHotelEndDate('')
-              }}
+            <p className="hidden text-[11px] text-muted-foreground lg:block">
+              {settings.projection === 'globe' ? 'Globe' : 'Flat'}
+              {settings.terrainEnabled ? ' · Terrain' : ''}
+              {isPlaybackEnabled ? ' · Playback' : ''}
+              {hasActiveFilters ? ' · Filtered' : ''}
+            </p>
+          </div>
+          <MapControlsInline
+            settings={settings}
+            onChange={handleSettingsChange}
+          />
+        </CardHeader>
+
+        <div className="relative">
+          <CardContent className="p-0">
+            <div
+              ref={containerRef}
+              className="h-140 w-full"
+              data-map-active={isActive ? 'true' : 'false'}
             />
-            {settings.showMarkers &&
-            hotelMarkers.length === 0 &&
-            totalHotelMarkers.length > 0 ? (
-              <div className="flex flex-col gap-3 rounded-xl border border-amber-400/20 bg-amber-500/5 p-3 text-sm lg:flex-row lg:items-center lg:justify-between">
-                <div className="space-y-1">
-                  <p className="font-medium text-foreground">
-                    Hotel filters are hiding all pins
-                  </p>
-                  <p className="text-muted-foreground">
-                    Clear the hotel filters or switch the scope to reveal the
-                    available hotel markers.
+          </CardContent>
+          <TravelMapLegend />
+        </div>
+
+        <div className="border-t border-border/60">
+          {selectedHotel ? (
+            <div className="border-b border-border/60 px-4 py-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {selectedHotel.hotelName}
+                    </p>
+                    {selectedHotel.archivedAt ? (
+                      <Badge variant="secondary" className="shrink-0 text-xs">
+                        Archived
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedHotel.city ?? 'Unknown city'},{' '}
+                    {selectedHotel.country ?? 'Unknown country'}
+                    {' · '}
+                    {selectedHotel.checkInDate || selectedHotel.checkOutDate
+                      ? `${formatStayDate(selectedHotel.checkInDate)} → ${formatStayDate(selectedHotel.checkOutDate)}`
+                      : 'Dates not captured'}
+                    {' · '}
+                    {formatHotelPricing(selectedHotel)}
                   </p>
                 </div>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    setHotelScope('all')
-                    setHotelStartDate('')
-                    setHotelEndDate('')
-                  }}
+                  className="shrink-0"
+                  onClick={() => setSelectedHotelId(null)}
                 >
-                  Show all hotels
+                  Clear
                 </Button>
               </div>
-            ) : null}
-            {selectedHotel ? (
-              <div className="rounded-xl border border-sky-400/30 bg-sky-500/5 p-3 text-sm">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-foreground">
-                        {selectedHotel.hotelName}
-                      </p>
-                      <Badge variant="outline" className="text-xs">
-                        Selected hotel
-                      </Badge>
-                      {selectedHotel.archivedAt ? (
-                        <Badge variant="secondary" className="text-xs">
-                          Archived
-                        </Badge>
-                      ) : null}
-                    </div>
-                    <p className="text-muted-foreground">
-                      {selectedHotel.city ?? 'Unknown city'},{' '}
-                      {selectedHotel.country ?? 'Unknown country'}
-                    </p>
-                    <p className="text-muted-foreground">
-                      {selectedHotel.checkInDate || selectedHotel.checkOutDate
-                        ? `${formatStayDate(selectedHotel.checkInDate)} → ${formatStayDate(selectedHotel.checkOutDate)}`
-                        : 'Dates not captured'}
-                    </p>
-                    <p className="text-muted-foreground">
-                      {formatHotelPricing(selectedHotel)}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedHotelId(null)}
-                  >
-                    Clear selection
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-            <FlightInteractionControls
-              airlineOptions={airlineOptions}
-              routeOptions={routeOptions}
-              routeScope={routeScope}
-              selectedAirline={selectedAirline}
-              selectedRoute={selectedRoute}
-              selectedYear={selectedYear}
-              topRoutesOnly={topRoutesOnly}
-              yearOptions={yearOptions}
-              onAirlineChange={(value) => {
-                setSelectedAirline(value)
-                setSelectedRoute('all')
-              }}
-              onRouteChange={setSelectedRoute}
-              onRouteScopeChange={(value) => {
-                setRouteScope(value)
-                setSelectedRoute('all')
-              }}
-              onTopRoutesChange={setTopRoutesOnly}
-              onYearChange={(value) => {
-                setSelectedYear(value)
-                setSelectedRoute('all')
-              }}
-            />
-            {filteredFlights.length === 0 ? (
+            </div>
+          ) : null}
+
+          {settings.showMarkers &&
+          hotelMarkers.length === 0 &&
+          totalHotelMarkers.length > 0 ? (
+            <div className="flex items-center justify-between gap-3 border-b border-amber-400/20 bg-amber-500/5 px-4 py-2.5">
+              <p className="text-xs text-muted-foreground">
+                Hotel filters are hiding all pins.
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="shrink-0 text-xs"
+                onClick={() => {
+                  setHotelScope('all')
+                  setHotelStartDate('')
+                  setHotelEndDate('')
+                }}
+              >
+                Show all
+              </Button>
+            </div>
+          ) : null}
+
+          {filteredFlights.length === 0 ? (
+            <div className="border-b border-border/60 px-4 py-2.5">
               <p className="text-xs text-muted-foreground">
                 No flights match the current filters. Clear a filter to bring
                 routes back into view.
               </p>
+            </div>
+          ) : null}
+
+          <Accordion type="multiple" className="w-full">
+            <AccordionItem
+              value="flights"
+              className="border-b border-border/60"
+            >
+              <AccordionTrigger className="px-4 py-3 text-sm hover:no-underline">
+                <span className="flex items-center gap-2">
+                  <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                  Flight Filters
+                  {hasActiveFilters ? (
+                    <Badge
+                      variant="secondary"
+                      className="px-1.5 py-0 text-[10px]"
+                    >
+                      Active
+                    </Badge>
+                  ) : null}
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <FlightInteractionControls
+                  airlineOptions={airlineOptions}
+                  routeOptions={routeOptions}
+                  routeScope={routeScope}
+                  selectedAirline={selectedAirline}
+                  selectedRoute={selectedRoute}
+                  selectedYear={selectedYear}
+                  topRoutesOnly={topRoutesOnly}
+                  yearOptions={yearOptions}
+                  onAirlineChange={(value) => {
+                    setSelectedAirline(value)
+                    setSelectedRoute('all')
+                  }}
+                  onRouteChange={setSelectedRoute}
+                  onRouteScopeChange={(value) => {
+                    setRouteScope(value)
+                    setSelectedRoute('all')
+                  }}
+                  onTopRoutesChange={setTopRoutesOnly}
+                  onYearChange={(value) => {
+                    setSelectedYear(value)
+                    setSelectedRoute('all')
+                  }}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            {totalHotelMarkers.length > 0 ? (
+              <AccordionItem
+                value="hotels"
+                className="border-b border-border/60"
+              >
+                <AccordionTrigger className="px-4 py-3 text-sm hover:no-underline">
+                  <span className="flex items-center gap-2">
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    Hotel Filters
+                    {hasActiveHotelFilters ? (
+                      <Badge
+                        variant="secondary"
+                        className="px-1.5 py-0 text-[10px]"
+                      >
+                        Active
+                      </Badge>
+                    ) : null}
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <HotelInteractionControls
+                    hotelCount={hotelMarkers.length}
+                    scope={hotelScope}
+                    startDate={hotelStartDate}
+                    endDate={hotelEndDate}
+                    onScopeChange={setHotelScope}
+                    onStartDateChange={setHotelStartDate}
+                    onEndDateChange={setHotelEndDate}
+                    onClear={() => {
+                      setHotelScope('all')
+                      setHotelStartDate('')
+                      setHotelEndDate('')
+                    }}
+                  />
+                </AccordionContent>
+              </AccordionItem>
             ) : null}
-            <TimelinePlaybackControls
-              activeFlight={activeFlight}
-              currentIndex={boundedPlaybackIndex}
-              enabled={isPlaybackEnabled}
-              isPlaying={isPlaying}
-              onEnabledChange={handlePlaybackEnabledChange}
-              onPlayPause={() => {
-                if (!isPlaybackEnabled) {
-                  setIsPlaybackEnabled(true)
-                }
-                if (boundedPlaybackIndex >= filteredFlights.length - 1) {
-                  setPlaybackIndex(0)
-                }
-                setIsPlaying((previous) => !previous)
-              }}
-              onReset={() => {
-                setIsPlaying(false)
-                setPlaybackIndex(0)
-              }}
-              onStep={handlePlaybackStep}
-              onValueChange={(nextIndex) => {
-                setIsPlaying(false)
-                setPlaybackIndex(nextIndex)
-              }}
-              setSpeed={setPlaybackSpeed}
-              speed={playbackSpeed}
-              totalFlights={filteredFlights.length}
-            />
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div
-            ref={containerRef}
-            className="h-140 w-full"
-            data-map-active={isActive ? 'true' : 'false'}
-          />
-        </CardContent>
+
+            <AccordionItem value="playback" className="border-none">
+              <AccordionTrigger className="px-4 py-3 text-sm hover:no-underline">
+                <span className="flex items-center gap-2">
+                  <Play className="h-3.5 w-3.5 text-muted-foreground" />
+                  Timeline Playback
+                  {isPlaybackEnabled ? (
+                    <Badge
+                      variant="secondary"
+                      className="px-1.5 py-0 text-[10px]"
+                    >
+                      Active
+                    </Badge>
+                  ) : null}
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <TimelinePlaybackControls
+                  activeFlight={activeFlight}
+                  currentIndex={boundedPlaybackIndex}
+                  enabled={isPlaybackEnabled}
+                  isPlaying={isPlaying}
+                  onEnabledChange={handlePlaybackEnabledChange}
+                  onPlayPause={() => {
+                    if (!isPlaybackEnabled) {
+                      setIsPlaybackEnabled(true)
+                    }
+                    if (boundedPlaybackIndex >= filteredFlights.length - 1) {
+                      setPlaybackIndex(0)
+                    }
+                    setIsPlaying((previous) => !previous)
+                  }}
+                  onReset={() => {
+                    setIsPlaying(false)
+                    setPlaybackIndex(0)
+                  }}
+                  onStep={handlePlaybackStep}
+                  onValueChange={(nextIndex) => {
+                    setIsPlaying(false)
+                    setPlaybackIndex(nextIndex)
+                  }}
+                  setSpeed={setPlaybackSpeed}
+                  speed={playbackSpeed}
+                  totalFlights={filteredFlights.length}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
       </Card>
     </div>
   )
