@@ -367,8 +367,13 @@ function DashboardComposer({
   sidebarOpen = false,
 }: DashboardComposerProps) {
   return (
-    <div className={cn('pointer-events-none fixed bottom-0 right-0 z-40 px-3 pb-3 transition-[left] duration-200 sm:px-6 sm:pb-6', sidebarOpen ? 'left-64' : 'left-0')}>
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-background via-background/92 to-transparent" />
+    <div
+      className={cn(
+        'pointer-events-none fixed bottom-0 right-0 z-40 px-3 pb-3 transition-[left] duration-200 sm:px-6 sm:pb-6',
+        sidebarOpen ? 'left-64' : 'left-0',
+      )}
+    >
+      {/* <div className="absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-background via-background/92 to-transparent" /> */}
       <div className="pointer-events-auto relative mx-auto max-w-3xl">
         <div className="rounded-3xl border border-border/70 bg-background/90 p-2 shadow-[0_-10px_40px_rgba(0,0,0,0.08)] backdrop-blur-xl sm:p-3">
           <div className="relative rounded-2xl border border-border/70 bg-card shadow-sm transition-all focus-within:border-border focus-within:ring-1 focus-within:ring-ring/20">
@@ -413,9 +418,9 @@ function DashboardComposer({
                 >
                   {statusQuery.isLoading
                     ? 'Checking OpenWire…'
-                    : (statusQuery.data?.available
+                    : statusQuery.data?.available
                       ? `OpenWire ready · ${statusQuery.data.defaultModel}`
-                      : 'OpenWire unavailable')}
+                      : 'OpenWire unavailable'}
                 </Badge>
               )}
 
