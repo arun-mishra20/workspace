@@ -13,6 +13,7 @@ import {
   UseGuards,
   NotFoundException,
   BadRequestException,
+  SetMetadata,
 } from '@nestjs/common'
 import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiQuery } from '@nestjs/swagger'
 import { SkipThrottle } from '@nestjs/throttler'
@@ -605,6 +606,7 @@ export class ExpensesController {
   }
 
   @Post('categorize-with-llm')
+  @SetMetadata('request_timeout_ms', null)
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Categorize transactions using an LLM provider' })
