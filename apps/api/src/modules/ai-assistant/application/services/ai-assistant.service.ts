@@ -125,6 +125,8 @@ function estimateMessageTokens(messages: AiChatProviderMessage[]): number {
 }
 
 class ToolCallCache {
+  private static readonly MAX_SIZE = 50
+
   private readonly cache = new Map<string, { ok: true; tool: string; result: unknown } | { ok: false; tool: string; error: string }>()
 
   private buildKey(name: string, args: string): string {
@@ -141,7 +143,15 @@ class ToolCallCache {
   }
 
   set(name: string, args: string, result: { ok: true; tool: string; result: unknown } | { ok: false; tool: string; error: string }) {
-    this.cache.set(this.buildKey(name, args), result)
+    const key = this.buildKey(name, args)
+    this.cache.delete(key)
+    this.cache.set(key, result)
+
+    // Evict oldest entries when exceeding max size
+    if (this.cache.size > ToolCallCache.MAX_SIZE) {
+      const firstKey = this.cache.keys().next()
+      if (!firstKey.done) this.cache.delete(firstKey.value)
+    }
   }
 
   get size() {

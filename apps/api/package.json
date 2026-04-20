@@ -20,7 +20,7 @@
         "start:debug": "nest start --debug --watch",
         "start:dev": "nest start --watch",
         "prestart:prod": "pnpm build",
-        "start:prod": "node dist/main",
+        "start:prod": "node --max-old-space-size=1024 dist/main",
         "test": "vitest run",
         "test:cov": "vitest run --coverage",
         "test:e2e": "vitest run --config ./vitest.e2e.config.ts",

@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger  } from '@nestjs/common'
 import { addDays, format, isValid, parseISO, startOfDay } from 'date-fns'
 
 import {
@@ -25,6 +25,8 @@ import {
 import { RAW_EMAIL_REPOSITORY  } from '@/shared/application/ports/raw-email.repository.port'
 import { SYNC_JOB_REPOSITORY  } from '@/shared/application/ports/sync-job.repository.port'
 import { EmailSyncService } from '@/shared/application/services/email-sync.service'
+import { BoundedCache } from '@/shared/infrastructure/utils/bounded-cache'
+import { JobManager } from '@/shared/infrastructure/utils/job-manager'
 
 import type { EmailParser } from '@/modules/expenses/application/ports/email-parser.port'
 import type { MerchantCategoryRuleRepository } from '@/modules/expenses/application/ports/merchant-rule.repository.port'
@@ -33,6 +35,7 @@ import type { TransactionRepository, TransactionFilters, DateRange } from '@/mod
 import type { UserCategorizationRules } from '@/modules/expenses/infrastructure/categorization/transaction-categorizer'
 import type {RawEmailRepository} from '@/shared/application/ports/raw-email.repository.port';
 import type {SyncJobRepository} from '@/shared/application/ports/sync-job.repository.port';
+import type {OnModuleDestroy} from '@nestjs/common';
 import type {
   RawEmail,
   Transaction,
@@ -64,8 +67,9 @@ const EXPENSE_CATEGORY = 'expenses'
 const EXPENSE_QUERY_TERMS = 'subject:(statement OR receipt OR purchase OR transaction OR payment OR invoice OR card OR bank OR upi)'
 
 @Injectable()
-export class ExpensesService {
+export class ExpensesService implements OnModuleDestroy {
   private static readonly ANALYTICS_CACHE_TTL_MS = 60_000
+  private static readonly ANALYTICS_CACHE_MAX_SIZE = 500
   private static readonly EMAIL_PROCESS_BATCH_SIZE = 20
 
   private readonly logger = new Logger(ExpensesService.name)
@@ -86,21 +90,26 @@ export class ExpensesService {
     @Inject(MERCHANT_RULE_REPOSITORY)
     private readonly merchantRuleRepository: MerchantCategoryRuleRepository,
     private readonly emailSyncService: EmailSyncService,
+    private readonly jobManager: JobManager,
   ) {}
 
-  private readonly analyticsCache = new Map<string, { expiresAt: number, value: unknown }>()
+  private readonly analyticsCache = new BoundedCache<unknown>({
+    maxSize: ExpensesService.ANALYTICS_CACHE_MAX_SIZE,
+    ttlMs: ExpensesService.ANALYTICS_CACHE_TTL_MS,
+  })
+
+  onModuleDestroy(): void {
+    this.analyticsCache.destroy()
+  }
 
   private async getCachedOrCompute<T>(key: string, compute: () => Promise<T>): Promise<T> {
-    const entry = this.analyticsCache.get(key)
-    if (entry && entry.expiresAt > Date.now()) {
-      return entry.value as T
+    const cached = this.analyticsCache.get(key)
+    if (cached !== undefined) {
+      return cached as T
     }
 
     const value = await compute()
-    this.analyticsCache.set(key, {
-      expiresAt: Date.now() + ExpensesService.ANALYTICS_CACHE_TTL_MS,
-      value,
-    })
+    this.analyticsCache.set(key, value)
     return value
   }
 
@@ -109,12 +118,7 @@ export class ExpensesService {
   }
 
   private invalidateUserAnalyticsCache(userId: string): void {
-    const prefix = `expenses:${userId}:`
-    for (const key of this.analyticsCache.keys()) {
-      if (key.startsWith(prefix)) {
-        this.analyticsCache.delete(key)
-      }
-    }
+    this.analyticsCache.deleteByPrefix(`expenses:${userId}:`)
   }
 
   /**
@@ -137,18 +141,35 @@ export class ExpensesService {
       query,
     })
 
-    this.runSyncJobPipeline(job.id, params.userId, query).catch(async (error) => {
-      this.logger.error(`Expense sync pipeline for job ${job.id} failed`, error)
-      try {
-        await this.syncJobRepository.update(job.id, {
-          status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unexpected error',
-          completedAt: new Date(),
-        })
-      } catch (updateError) {
-        this.logger.error(`Failed to update expense sync job ${job.id} status`, updateError)
-      }
+    const accepted = this.jobManager.enqueue({
+      userId: params.userId,
+      jobType: 'expense-sync',
+      jobId: job.id,
+      fn: async () => {
+        try {
+          await this.runSyncJobPipeline(job.id, params.userId, query)
+        } catch (error) {
+          this.logger.error(`Expense sync pipeline for job ${job.id} failed`, error)
+          try {
+            await this.syncJobRepository.update(job.id, {
+              status: 'failed',
+              errorMessage: error instanceof Error ? error.message : 'Unexpected error',
+              completedAt: new Date(),
+            })
+          } catch (updateError) {
+            this.logger.error(`Failed to update expense sync job ${job.id} status`, updateError)
+          }
+        }
+      },
     })
+
+    if (!accepted) {
+      await this.syncJobRepository.update(job.id, {
+        status: 'failed',
+        errorMessage: 'Job rejected — a sync is already running or the queue is full',
+        completedAt: new Date(),
+      })
+    }
 
     return { jobId: job.id }
   }
@@ -222,21 +243,38 @@ export class ExpensesService {
       query: '__reprocess__',
     })
 
-    this.runReprocessJob(job.id, params.userId, params.forceProcessAll ?? false).catch(async (error) => {
-      this.logger.error(
-        `Reprocess job ${job.id} failed unexpectedly outside try-catch`,
-        error,
-      )
-      try {
-        await this.syncJobRepository.update(job.id, {
-          status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unexpected error',
-          completedAt: new Date(),
-        })
-      } catch (updateError) {
-        this.logger.error(`Failed to update reprocess job ${job.id} status`, updateError)
-      }
+    const accepted = this.jobManager.enqueue({
+      userId: params.userId,
+      jobType: 'expense-reprocess',
+      jobId: job.id,
+      fn: async () => {
+        try {
+          await this.runReprocessJob(job.id, params.userId, params.forceProcessAll ?? false)
+        } catch (error) {
+          this.logger.error(
+            `Reprocess job ${job.id} failed unexpectedly outside try-catch`,
+            error,
+          )
+          try {
+            await this.syncJobRepository.update(job.id, {
+              status: 'failed',
+              errorMessage: error instanceof Error ? error.message : 'Unexpected error',
+              completedAt: new Date(),
+            })
+          } catch (updateError) {
+            this.logger.error(`Failed to update reprocess job ${job.id} status`, updateError)
+          }
+        }
+      },
     })
+
+    if (!accepted) {
+      await this.syncJobRepository.update(job.id, {
+        status: 'failed',
+        errorMessage: 'Job rejected — a reprocess job is already running or the queue is full',
+        completedAt: new Date(),
+      })
+    }
 
     return { jobId: job.id }
   }

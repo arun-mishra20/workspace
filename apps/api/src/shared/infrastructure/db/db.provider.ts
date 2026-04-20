@@ -7,9 +7,11 @@ import type { DrizzleModuleOptions } from './db.port'
 import type { PoolClient } from 'pg'
 
 let poolInstance: Pool | null = null
+let listenersAttached = false
 
 type QueryableClient = {
   query: (...args: unknown[]) => unknown
+  __patchedPreparedStatements?: boolean
 }
 
 type NamedQueryConfig = {
@@ -36,6 +38,10 @@ function usesPoolerConnection(connectionString: string): boolean {
 }
 
 function patchPreparedStatements(target: QueryableClient) {
+  // Guard against double-patching
+  if (target.__patchedPreparedStatements) return
+  target.__patchedPreparedStatements = true
+
   const originalQuery = target.query.bind(target)
 
   target.query = ((...args: unknown[]) => {
@@ -82,7 +88,7 @@ export function createDrizzleInstance(options: DrizzleModuleOptions) {
     connectionString: options.connectionString,
     max: options.pool?.max ?? 10,
     min: options.pool?.min ?? 2,
-    idleTimeoutMillis: options.pool?.idleTimeoutMillis ?? 30_000,
+    idleTimeoutMillis: options.pool?.idleTimeoutMillis ?? 25_000,
     connectionTimeoutMillis: options.pool?.connectionTimeoutMillis ?? 5000,
   })
 
@@ -93,33 +99,37 @@ export function createDrizzleInstance(options: DrizzleModuleOptions) {
     patchPreparedStatements(poolInstance)
   }
 
-  // Handle pool errors to prevent unhandled error events from crashing the app
-  // This is critical for serverless databases like NeonDB that close idle connections
-  poolInstance.on('error', (error, client) => {
-    logger.error('Unexpected database pool error', {
-      error: error.message,
-      stack: error.stack,
-      clientId: client ? getClientProcessId(client) : null,
+  if (!listenersAttached) {
+    // Handle pool errors to prevent unhandled error events from crashing the app
+    // This is critical for serverless databases like NeonDB that close idle connections
+    poolInstance.on('error', (error, client) => {
+      logger.error('Unexpected database pool error', {
+        error: error.message,
+        stack: error.stack,
+        clientId: client ? getClientProcessId(client) : null,
+      })
+      // Don't throw - let the pool handle reconnection
     })
-    // Don't throw - let the pool handle reconnection
-  })
 
-  // Log pool events for monitoring
-  poolInstance.on('connect', (client) => {
-    if (isPoolerConnection) {
-      patchPreparedStatements(client)
-    }
+    // Log pool events for monitoring
+    poolInstance.on('connect', (client) => {
+      if (isPoolerConnection) {
+        patchPreparedStatements(client)
+      }
 
-    logger.debug(
-      `Database client connected (processID: ${getClientProcessId(client) ?? 'unknown'})`,
-    )
-  })
+      logger.debug(
+        `Database client connected (processID: ${getClientProcessId(client) ?? 'unknown'})`,
+      )
+    })
 
-  poolInstance.on('remove', (client) => {
-    logger.debug(
-      `Database client removed (processID: ${getClientProcessId(client) ?? 'unknown'})`,
-    )
-  })
+    poolInstance.on('remove', (client) => {
+      logger.debug(
+        `Database client removed (processID: ${getClientProcessId(client) ?? 'unknown'})`,
+      )
+    })
+
+    listenersAttached = true
+  }
 
   return drizzle({ client: poolInstance, schema })
 }
@@ -141,6 +151,8 @@ export async function closeDatabasePool(): Promise<void> {
 
   if (poolInstance) {
     logger.log('Closing database pool...')
+    poolInstance.removeAllListeners()
+    listenersAttached = false
     await poolInstance.end()
     poolInstance = null
     logger.log('Database pool closed successfully')

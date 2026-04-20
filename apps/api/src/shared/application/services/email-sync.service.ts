@@ -3,6 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import { GMAIL_PROVIDER } from '@/shared/application/ports/gmail-provider.port'
 import { RAW_EMAIL_REPOSITORY } from '@/shared/application/ports/raw-email.repository.port'
 import { SYNC_JOB_REPOSITORY } from '@/shared/application/ports/sync-job.repository.port'
+import { JobManager } from '@/shared/infrastructure/utils/job-manager'
 
 import type { GmailProvider } from '@/shared/application/ports/gmail-provider.port'
 import type { RawEmailRepository } from '@/shared/application/ports/raw-email.repository.port'
@@ -54,6 +55,7 @@ export class EmailSyncService {
     private readonly rawEmailRepository: RawEmailRepository,
     @Inject(SYNC_JOB_REPOSITORY)
     private readonly syncJobRepository: SyncJobRepository,
+    private readonly jobManager: JobManager,
   ) {}
 
   /**
@@ -67,21 +69,30 @@ export class EmailSyncService {
       query: params.query,
     })
 
-    // Run the sync in the background
-    this.runSyncForExistingJob(job.id, params).catch(async (error) => {
-      this.logger.error(`Sync job ${job.id} failed unexpectedly outside try-catch`, error)
-      try {
-        await this.syncJobRepository.update(job.id, {
-          status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unexpected error',
-          completedAt: new Date(),
-        })
-      } catch (updateError) {
-        this.logger.error(
-          `Failed to update job ${job.id} status after unexpected error`,
-          updateError,
-        )
-      }
+    // Run the sync in the background via job manager
+    this.jobManager.enqueue({
+      userId: params.userId,
+      jobType: `email-sync-${params.category}`,
+      jobId: job.id,
+      fn: async () => {
+        try {
+          await this.runSyncForExistingJob(job.id, params)
+        } catch (error) {
+          this.logger.error(`Sync job ${job.id} failed unexpectedly outside try-catch`, error)
+          try {
+            await this.syncJobRepository.update(job.id, {
+              status: 'failed',
+              errorMessage: error instanceof Error ? error.message : 'Unexpected error',
+              completedAt: new Date(),
+            })
+          } catch (updateError) {
+            this.logger.error(
+              `Failed to update job ${job.id} status after unexpected error`,
+              updateError,
+            )
+          }
+        }
+      },
     })
 
     return { jobId: job.id }
@@ -115,8 +126,8 @@ export class EmailSyncService {
         `Sync job ${jobId} [${params.category}]: Found ${emailRefs.length} emails to process`,
       )
 
-      // Process emails in batches
-      const BATCH_SIZE = 100
+      // Process emails in batches (kept smaller to limit memory pressure)
+      const BATCH_SIZE = 50
       for (let i = 0; i < emailRefs.length; i += BATCH_SIZE) {
         const batch = emailRefs.slice(i, i + BATCH_SIZE)
         const batchIds = batch.map((ref) => ref.id)

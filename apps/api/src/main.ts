@@ -127,10 +127,17 @@ async function bootstrap() {
   app.enableShutdownHooks()
 
   // Handle shutdown signals
+  const SHUTDOWN_TIMEOUT_MS = 15_000
   const signals = ['SIGTERM', 'SIGINT'] as const
   for (const signal of signals) {
     process.on(signal, async () => {
       logger.log(`Received ${signal}, starting graceful shutdown...`)
+
+      const forceExit = setTimeout(() => {
+        logger.error('Graceful shutdown timed out, forcing exit')
+        process.exit(1)
+      }, SHUTDOWN_TIMEOUT_MS)
+      forceExit.unref()
 
       try {
         // Close NestJS application

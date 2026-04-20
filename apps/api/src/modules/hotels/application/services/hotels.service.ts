@@ -25,6 +25,7 @@ import {
 import {
   SYNC_JOB_REPOSITORY,
 } from '@/shared/application/ports/sync-job.repository.port'
+import { JobManager } from '@/shared/infrastructure/utils/job-manager'
 
 import type { HotelStayDraft } from '@/modules/hotels/application/hotel-extraction.schema'
 import type { HotelEmailProcessingRepository } from '@/modules/hotels/application/ports/hotel-email-processing.repository.port'
@@ -59,6 +60,7 @@ export class HotelsService {
     private readonly syncJobRepository: SyncJobRepository,
     @Inject(HOTEL_LLM_EXTRACTOR)
     private readonly hotelLlmExtractor: HotelLlmExtractor,
+    private readonly jobManager: JobManager,
   ) {}
 
   async listHotelStays(params: {
@@ -220,16 +222,23 @@ export class HotelsService {
       query: '__hotel_review_process__',
     })
 
-    this.runSelectedLlmProcessingJob(job.id, params.userId, sourceEmailIds).catch(
-      async (error) => {
-        this.logger.error(`Hotel LLM review processing job ${job.id} failed`, error)
-        await this.syncJobRepository.update(job.id, {
-          status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unexpected error',
-          completedAt: new Date(),
-        })
+    this.jobManager.enqueue({
+      userId: params.userId,
+      jobType: 'hotel-llm-review',
+      jobId: job.id,
+      fn: async () => {
+        try {
+          await this.runSelectedLlmProcessingJob(job.id, params.userId, sourceEmailIds)
+        } catch (error) {
+          this.logger.error(`Hotel LLM review processing job ${job.id} failed`, error)
+          await this.syncJobRepository.update(job.id, {
+            status: 'failed',
+            errorMessage: error instanceof Error ? error.message : 'Unexpected error',
+            completedAt: new Date(),
+          }).catch((error_) => this.logger.error(`Failed to update hotel LLM job ${job.id}`, error_))
+        }
       },
-    )
+    })
 
     return { jobId: job.id }
   }
