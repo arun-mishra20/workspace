@@ -524,6 +524,7 @@ const AnalyticsPage = () => {
                       fontSize={12}
                     />
                     <ChartTooltip
+                      wrapperStyle={{ zIndex: 100 }}
                       content={
                         <ChartTooltipContent
                           formatter={(value, name) => (
@@ -577,6 +578,7 @@ const AnalyticsPage = () => {
                 >
                   <PieChart>
                     <ChartTooltip
+                      wrapperStyle={{ zIndex: 100 }}
                       content={
                         <ChartTooltipContent
                           formatter={(value, name) => (
@@ -655,6 +657,7 @@ const AnalyticsPage = () => {
                       fontSize={12}
                     />
                     <ChartTooltip
+                      wrapperStyle={{ zIndex: 100 }}
                       content={
                         <ChartTooltipContent
                           formatter={(value, name) => (
@@ -724,6 +727,7 @@ const AnalyticsPage = () => {
                 >
                   <PieChart>
                     <ChartTooltip
+                      wrapperStyle={{ zIndex: 100 }}
                       content={
                         <ChartTooltipContent
                           formatter={(value, name) => (
@@ -1002,6 +1006,7 @@ const AnalyticsPage = () => {
                       fontSize={12}
                     />
                     <ChartTooltip
+                      wrapperStyle={{ zIndex: 100 }}
                       content={
                         <ChartTooltipContent
                           formatter={(value) => (
@@ -1112,6 +1117,7 @@ const AnalyticsPage = () => {
                       fontSize={12}
                     />
                     <ChartTooltip
+                      wrapperStyle={{ zIndex: 100 }}
                       content={
                         <ChartTooltipContent
                           formatter={(value) => (
@@ -1192,6 +1198,7 @@ const AnalyticsPage = () => {
                       fontSize={12}
                     />
                     <ChartTooltip
+                      wrapperStyle={{ zIndex: 100 }}
                       content={
                         <ChartTooltipContent
                           formatter={(value, name) => (
@@ -1283,6 +1290,7 @@ const AnalyticsPage = () => {
                       fontSize={12}
                     />
                     <ChartTooltip
+                      wrapperStyle={{ zIndex: 100 }}
                       content={
                         <ChartTooltipContent
                           formatter={(value, name) => (
@@ -1400,6 +1408,7 @@ const AnalyticsPage = () => {
                     fontSize={12}
                   />
                   <ChartTooltip
+                    wrapperStyle={{ zIndex: 100 }}
                     content={
                       <ChartTooltipContent
                         formatter={(value) => (
