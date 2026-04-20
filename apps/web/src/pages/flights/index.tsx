@@ -434,11 +434,11 @@ export default function FlightsPage() {
         <header className="flex flex-col gap-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-2">
-              <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
+              <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
                 Flights
               </p>
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-semibold text-foreground">
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground">
                   Flight and Hotels Activity
                 </h1>
                 <Badge variant="outline" className="gap-1">

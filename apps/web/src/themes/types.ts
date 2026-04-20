@@ -30,6 +30,12 @@ export interface ThemeConfig {
 
 export type ThemeStyleControlId =
   | 'none'
+  | 'ocean'
+  | 'rose'
+  | 'sunset'
+  | 'forest'
+  | 'lavender'
+  | 'supabase'
   | 'neumorphism'
   | 'glassmorphism'
   | 'brutalism'
@@ -38,6 +44,11 @@ export type ThemeStyleControlId =
   | 'editorial'
   | 'bauhaus'
   | 'blueprint'
+  | 'cyberpunk'
+  | 'handwritten'
+  | 'art-deco'
+  | 'synthwave'
+  | 'zen'
 
 export interface ThemePresetPreview {
   light: string[]

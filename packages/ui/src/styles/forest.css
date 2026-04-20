@@ -1,0 +1,99 @@
+/*
+ * Forest — "Earthy Natural"
+ * Organic green-tinted surfaces, soft earthy depth, grounded feel.
+ * Hue 142 · radius 0.75rem
+ */
+
+@layer components {
+  :root[data-theme-preset='forest'] {
+    /* ── Cards: earthy green ambient shadow ── */
+    [data-slot='card'] {
+      border: 1px solid oklch(0.9 0.01 142);
+      box-shadow: 0 3px 10px -2px oklch(0.45 0.08 142 / 0.07);
+      transition:
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+    }
+    [data-slot='card']:hover {
+      box-shadow: 0 5px 16px -3px oklch(0.45 0.08 142 / 0.12);
+      border-color: oklch(0.85 0.02 142);
+    }
+
+    /* ── Inputs: green focus ring ── */
+    [data-slot='input'],
+    [data-slot='textarea'] {
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+    [data-slot='input']:focus,
+    [data-slot='textarea']:focus {
+      border-color: oklch(0.55 0.12 142);
+      box-shadow: 0 0 0 3px oklch(0.55 0.12 142 / 0.12);
+    }
+
+    /* ── Badges: earthy shadow ── */
+    [data-slot='badge'] {
+      box-shadow: inset 0 -1px 0 oklch(0.45 0.08 142 / 0.06);
+    }
+
+    /* ── Separators: organic green tint ── */
+    [data-slot='separator'] {
+      background: linear-gradient(
+        90deg,
+        transparent,
+        oklch(0.7 0.04 142 / 0.35),
+        transparent
+      );
+    }
+
+    /* ── Tab triggers: green bottom accent ── */
+    [data-slot='tabs-trigger'][data-state='active'] {
+      box-shadow: inset 0 -2px 0 0 oklch(0.45 0.15 142);
+    }
+
+    /* ── Table cells: green-tinted borders ── */
+    [data-slot='table-cell'] {
+      border-color: oklch(0.92 0.008 142 / 0.6);
+    }
+  }
+
+  :root[data-theme-preset='forest'].dark,
+  :root[data-theme-preset='forest'] .dark {
+    [data-slot='card'] {
+      border-color: oklch(0.22 0.02 142);
+      box-shadow: 0 3px 12px -2px oklch(0.08 0.03 142 / 0.3);
+    }
+    [data-slot='card']:hover {
+      box-shadow: 0 6px 20px -3px oklch(0.08 0.03 142 / 0.45);
+      border-color: oklch(0.28 0.03 142);
+    }
+
+    [data-slot='input']:focus,
+    [data-slot='textarea']:focus {
+      border-color: oklch(0.58 0.15 142);
+      box-shadow: 0 0 0 3px oklch(0.58 0.15 142 / 0.18);
+    }
+
+    [data-slot='badge'] {
+      box-shadow: inset 0 -1px 0 oklch(0.3 0.05 142 / 0.1);
+    }
+
+    [data-slot='separator'] {
+      background: linear-gradient(
+        90deg,
+        transparent,
+        oklch(0.3 0.04 142 / 0.4),
+        transparent
+      );
+    }
+
+    [data-slot='tabs-trigger'][data-state='active'] {
+      box-shadow: inset 0 -2px 0 0 oklch(0.58 0.15 142);
+    }
+
+    [data-slot='table-cell'] {
+      border-color: oklch(0.22 0.015 142 / 0.6);
+    }
+  }
+}

@@ -1,0 +1,405 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+
+@layer components {
+  /* ═══════════════════════════════════════════════════════════════
+     ART DECO — "Gatsby"
+     1920s luxury with geometric elegance, gold-leaf opulence,
+     sharp symmetry, and lavish ornamental flourishes.
+     ═══════════════════════════════════════════════════════════════ */
+
+  :root[data-theme-preset='art-deco'] {
+    --deco-gold-shimmer-duration: 2s;
+    --deco-border-width: 2px;
+    --deco-ornament-size: 8px;
+  }
+
+  .dark[data-theme-preset='art-deco'] {
+    --deco-border-width: 1.5px;
+  }
+
+  /* ─── Typography & Background ──────────────────────────────── */
+  :root[data-theme-preset='art-deco'] body {
+    font-family: var(--font-sans);
+    letter-spacing: var(--tracking-normal);
+    line-height: 1.65;
+    background:
+      url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0 L60 30 L30 60 L0 30Z' fill='none' stroke='%23bfa35a' stroke-width='0.3' opacity='0.08'/%3E%3C/svg%3E"),
+      var(--background);
+  }
+
+  .dark[data-theme-preset='art-deco'] body {
+    background:
+      url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0 L60 30 L30 60 L0 30Z' fill='none' stroke='%23bfa35a' stroke-width='0.3' opacity='0.06'/%3E%3C/svg%3E"),
+      var(--background);
+  }
+
+  /* Fan pattern overlay */
+  :root[data-theme-preset='art-deco'] body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.03;
+    background:
+      radial-gradient(
+        ellipse at 50% 100%,
+        var(--deco-gold) 0%,
+        transparent 50%
+      ),
+      repeating-conic-gradient(
+        from 0deg at 50% 100%,
+        transparent 0deg,
+        transparent 10deg,
+        oklch(0.75 0.15 85 / 0.1) 10deg,
+        oklch(0.75 0.15 85 / 0.1) 11deg
+      );
+  }
+
+  /* ─── Headings — Playfair Display ──────────────────────────── */
+  :root[data-theme-preset='art-deco'] h1,
+  :root[data-theme-preset='art-deco'] h2,
+  :root[data-theme-preset='art-deco'] h3 {
+    font-family: 'Playfair Display', var(--font-serif);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* ─── Animations ───────────────────────────────────────────── */
+  @keyframes deco-gold-shimmer {
+    0% {
+      background-position: -200% center;
+    }
+    100% {
+      background-position: 200% center;
+    }
+  }
+
+  @keyframes deco-reveal {
+    0% {
+      opacity: 0;
+      transform: scaleY(0.95);
+    }
+    100% {
+      opacity: 1;
+      transform: scaleY(1);
+    }
+  }
+
+  @keyframes deco-border-shine {
+    0% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0.5;
+    }
+  }
+
+  /* ─── Buttons ──────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='button'] {
+    font-family: 'Playfair Display', var(--font-serif);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.82em;
+    border-radius: 0;
+    border: var(--deco-border-width) solid currentColor;
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='button']::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border: 1px solid currentColor;
+    opacity: 0.3;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='button']:hover {
+    transform: translateY(-1px);
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='button']:hover::before {
+    opacity: 0.6;
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='button']:active {
+    transform: translateY(0);
+  }
+
+  /* ─── Cards ────────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='card'] {
+    border: var(--deco-border-width) solid var(--deco-gold);
+    border-radius: 0;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='card']::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid var(--deco-gold);
+    opacity: 0.25;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='card']:hover::before {
+    opacity: 0.5;
+  }
+
+  /* Gold corner ornaments */
+  :root[data-theme-preset='art-deco'] [data-slot='card']::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: var(--deco-ornament-size);
+    height: var(--deco-ornament-size);
+    border-top: 2px solid var(--deco-gold);
+    border-left: 2px solid var(--deco-gold);
+    pointer-events: none;
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='card']:hover {
+    box-shadow: 0 4px 20px oklch(0.75 0.15 85 / 0.08);
+  }
+
+  .dark[data-theme-preset='art-deco'] [data-slot='card']:hover {
+    box-shadow: 0 4px 20px oklch(0.78 0.16 85 / 0.15);
+  }
+
+  /* ─── Inputs ───────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='input'],
+  :root[data-theme-preset='art-deco'] [data-slot='textarea'] {
+    font-family: 'Cormorant Garamond', var(--font-sans);
+    font-size: 1.05em;
+    border: var(--deco-border-width) solid var(--border);
+    border-radius: 0;
+    transition: all 0.3s ease;
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='input']:focus,
+  :root[data-theme-preset='art-deco'] [data-slot='textarea']:focus {
+    border-color: var(--deco-gold);
+    box-shadow: inset 0 0 0 1px var(--deco-gold);
+  }
+
+  /* ─── Badges ───────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='badge'] {
+    font-family: 'Playfair Display', var(--font-serif);
+    font-size: 0.72em;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 700;
+    border-radius: 0;
+    border: 1px solid currentColor;
+  }
+
+  /* ─── Tabs ─────────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='tabs-list'] {
+    border-bottom: var(--deco-border-width) solid var(--deco-gold);
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='tabs-trigger'] {
+    font-family: 'Playfair Display', var(--font-serif);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.82em;
+    border-radius: 0;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  :root[data-theme-preset='art-deco']
+    [data-slot='tabs-trigger'][data-state='active'] {
+    background: var(--deco-gold);
+    color: var(--deco-navy);
+  }
+
+  /* ─── Select ───────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='select-trigger'] {
+    font-family: 'Cormorant Garamond', var(--font-sans);
+    border: var(--deco-border-width) solid var(--border);
+    border-radius: 0;
+    transition: all 0.3s ease;
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='select-trigger']:hover {
+    border-color: var(--deco-gold);
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='select-content'] {
+    border: var(--deco-border-width) solid var(--deco-gold);
+    border-radius: 0;
+  }
+
+  /* ─── Dialog / Sheet / Drawer ──────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='dialog-content'],
+  :root[data-theme-preset='art-deco'] [data-slot='sheet-content'],
+  :root[data-theme-preset='art-deco'] [data-slot='drawer-content'] {
+    border: var(--deco-border-width) solid var(--deco-gold);
+    border-radius: 0;
+    position: relative;
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='dialog-content']::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid var(--deco-gold);
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  /* ─── Dropdown / Popover / Tooltip ─────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='dropdown-menu-content'],
+  :root[data-theme-preset='art-deco'] [data-slot='popover-content'] {
+    border: var(--deco-border-width) solid var(--deco-gold);
+    border-radius: 0;
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='tooltip-content'] {
+    font-family: 'Cormorant Garamond', var(--font-sans);
+    border: 1px solid var(--deco-gold);
+    border-radius: 0;
+    letter-spacing: 0.04em;
+  }
+
+  /* ─── Switch ───────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='switch'] {
+    border-radius: 0;
+    border: 1px solid var(--deco-gold);
+    transition: all 0.3s ease;
+  }
+
+  /* ─── Separator ────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='separator'] {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--deco-gold),
+      transparent
+    );
+    height: 1px;
+    position: relative;
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='separator']::before {
+    content: '◆';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 8px;
+    color: var(--deco-gold);
+    background: var(--background);
+    padding: 0 8px;
+  }
+
+  /* ─── Table ────────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='table'] {
+    border: var(--deco-border-width) solid var(--deco-gold);
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='table-header'] {
+    font-family: 'Playfair Display', var(--font-serif);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.78em;
+    font-weight: 700;
+    border-bottom: var(--deco-border-width) solid var(--deco-gold);
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='table-row'] {
+    border-bottom: 1px solid oklch(0.75 0.15 85 / 0.2);
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='table-row']:hover {
+    background: oklch(0.75 0.15 85 / 0.04);
+  }
+
+  .dark[data-theme-preset='art-deco'] [data-slot='table-row']:hover {
+    background: oklch(0.78 0.16 85 / 0.06);
+  }
+
+  /* ─── Progress ─────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='progress'] {
+    border-radius: 0;
+    border: 1px solid var(--deco-gold);
+    overflow: hidden;
+  }
+
+  /* ─── Sidebar ──────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='sidebar'] {
+    border-right: var(--deco-border-width) solid var(--deco-gold);
+  }
+
+  /* ─── Skeleton ─────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='skeleton'] {
+    border-radius: 0;
+    background: linear-gradient(
+      90deg,
+      oklch(0.75 0.15 85 / 0.04),
+      oklch(0.75 0.15 85 / 0.08),
+      oklch(0.75 0.15 85 / 0.04)
+    );
+    background-size: 200% 100%;
+    animation: deco-gold-shimmer var(--deco-gold-shimmer-duration) ease-in-out
+      infinite;
+  }
+
+  /* ─── Alert ────────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='alert'] {
+    border: var(--deco-border-width) solid var(--border);
+    border-radius: 0;
+  }
+
+  /* ─── Accordion ────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='accordion-item'] {
+    border-bottom: 1px solid var(--deco-gold);
+  }
+
+  /* ─── Checkbox ─────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='checkbox'] {
+    border-radius: 0;
+    border: var(--deco-border-width) solid var(--border);
+  }
+
+  /* ─── Toggle ───────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='toggle'] {
+    border-radius: 0;
+    transition: all 0.3s ease;
+  }
+
+  /* ─── Slider ───────────────────────────────────────────────── */
+  :root[data-theme-preset='art-deco'] [data-slot='slider-track'] {
+    border-radius: 0;
+    height: 3px;
+    background: var(--deco-gold);
+  }
+
+  :root[data-theme-preset='art-deco'] [data-slot='slider-thumb'] {
+    border-radius: 0;
+    border: 2px solid var(--deco-gold);
+    transform: rotate(45deg);
+  }
+
+  /* ─── Reduced motion ───────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    :root[data-theme-preset='art-deco'] [data-slot='skeleton'],
+    :root[data-theme-preset='art-deco'] [data-slot='button'],
+    :root[data-theme-preset='art-deco'] [data-slot='card'] {
+      animation: none;
+    }
+  }
+}

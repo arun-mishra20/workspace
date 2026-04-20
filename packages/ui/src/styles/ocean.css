@@ -1,0 +1,128 @@
+@layer components {
+  /* ═══════════════════════════════════════════════════════════════
+     OCEAN — Calm Minimal
+     ─────────────────────────────────────────────────────────────
+     Soft blue-tinted ambient shadows, borderless cards that float,
+     generous rounding, and a subtle aquatic warmth. The design is
+     stripped-back and breathable — less decoration, more whitespace.
+     ═══════════════════════════════════════════════════════════════ */
+
+  :root[data-theme-preset='ocean'] {
+    /* ── Ambient glow tokens ───────────────────────────────────── */
+    --ocean-glow: oklch(0.55 0.12 240 / 0.06);
+    --ocean-glow-strong: oklch(0.55 0.12 240 / 0.10);
+
+    /* ── Card treatment ────────────────────────────────────────── */
+    --ocean-card-border: transparent;
+    --ocean-card-bg: oklch(1 0 0);
+  }
+
+  :root.dark[data-theme-preset='ocean'] {
+    --ocean-glow: oklch(0.50 0.14 240 / 0.12);
+    --ocean-glow-strong: oklch(0.50 0.14 240 / 0.18);
+    --ocean-card-border: oklch(0.28 0.03 240);
+    --ocean-card-bg: oklch(0.16 0.025 240);
+  }
+
+  /* ── Cards: borderless with ambient glow ───────────────────── */
+  :root[data-theme-preset='ocean'] [data-slot='card'] {
+    border-color: var(--ocean-card-border);
+    box-shadow:
+      0 1px 3px -1px oklch(0.55 0.10 240 / 0.04),
+      0 6px 20px -4px var(--ocean-glow);
+    transition:
+      box-shadow 0.25s ease,
+      transform 0.25s ease;
+  }
+
+  :root[data-theme-preset='ocean'] [data-slot='card']:hover {
+    box-shadow:
+      0 2px 6px -2px oklch(0.55 0.10 240 / 0.06),
+      0 10px 28px -6px var(--ocean-glow-strong);
+    transform: translateY(-1px);
+  }
+
+  /* ── Dark cards: subtle border + glow ──────────────────────── */
+  :root.dark[data-theme-preset='ocean'] [data-slot='card'] {
+    border-color: var(--ocean-card-border);
+    box-shadow:
+      0 1px 3px -1px oklch(0.10 0.04 240 / 0.20),
+      0 6px 20px -4px var(--ocean-glow);
+  }
+
+  :root.dark[data-theme-preset='ocean'] [data-slot='card']:hover {
+    box-shadow:
+      0 2px 6px -2px oklch(0.10 0.04 240 / 0.25),
+      0 10px 28px -6px var(--ocean-glow-strong);
+    transform: translateY(-1px);
+  }
+
+  /* ── Buttons: soft pill shape ──────────────────────────────── */
+  :root[data-theme-preset='ocean'] button[data-slot='button'] {
+    transition:
+      background-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.15s ease;
+  }
+
+  :root[data-theme-preset='ocean'] button[data-slot='button']:active {
+    transform: scale(0.98);
+  }
+
+  /* ── Inputs: softer borders ────────────────────────────────── */
+  :root[data-theme-preset='ocean'] [data-slot='input'],
+  :root[data-theme-preset='ocean'] [data-slot='textarea'] {
+    border-color: oklch(0.90 0.02 240);
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  :root[data-theme-preset='ocean'] [data-slot='input']:focus,
+  :root[data-theme-preset='ocean'] [data-slot='textarea']:focus {
+    border-color: oklch(0.70 0.12 240);
+    box-shadow: 0 0 0 3px oklch(0.55 0.12 240 / 0.12);
+  }
+
+  :root.dark[data-theme-preset='ocean'] [data-slot='input'],
+  :root.dark[data-theme-preset='ocean'] [data-slot='textarea'] {
+    border-color: oklch(0.28 0.03 240);
+  }
+
+  :root.dark[data-theme-preset='ocean'] [data-slot='input']:focus,
+  :root.dark[data-theme-preset='ocean'] [data-slot='textarea']:focus {
+    border-color: oklch(0.50 0.14 240);
+    box-shadow: 0 0 0 3px oklch(0.50 0.14 240 / 0.15);
+  }
+
+  /* ── Badges: softer appearance ─────────────────────────────── */
+  :root[data-theme-preset='ocean'] [data-slot='badge'] {
+    border-color: transparent;
+    box-shadow: 0 1px 4px -1px oklch(0.55 0.10 240 / 0.08);
+  }
+
+  :root.dark[data-theme-preset='ocean'] [data-slot='badge'] {
+    border-color: oklch(0.30 0.03 240);
+    box-shadow: none;
+  }
+
+  /* ── Tables: relaxed row spacing ───────────────────────────── */
+  :root[data-theme-preset='ocean'] [data-slot='table-cell'] {
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+  }
+
+  /* ── Separator: lighter ────────────────────────────────────── */
+  :root[data-theme-preset='ocean'] [data-slot='separator'] {
+    background-color: oklch(0.94 0.01 240);
+  }
+
+  :root.dark[data-theme-preset='ocean'] [data-slot='separator'] {
+    background-color: oklch(0.22 0.025 240);
+  }
+
+  /* ── Tabs: underline glow ──────────────────────────────────── */
+  :root[data-theme-preset='ocean'] [data-slot='tabs-trigger'][data-state='active'] {
+    box-shadow: inset 0 -2px 0 0 oklch(0.55 0.20 240);
+  }
+}

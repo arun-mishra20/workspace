@@ -1,0 +1,129 @@
+@layer components {
+  /* ═══════════════════════════════════════════════════════════════
+     ROSE — Warm Soft
+     ─────────────────────────────────────────────────────────────
+     Warm rose-tinted ambient shadows, pill-shaped rounding, and
+     a gentle blush warmth. Cards float with a rosy glow, inputs
+     feel plush, and transitions are smooth and unhurried.
+     ═══════════════════════════════════════════════════════════════ */
+
+  :root[data-theme-preset='rose'] {
+    /* ── Warm glow tokens ──────────────────────────────────────── */
+    --rose-glow: oklch(0.58 0.14 20 / 0.06);
+    --rose-glow-strong: oklch(0.58 0.14 20 / 0.1);
+    --rose-tint: oklch(0.96 0.02 20);
+
+    /* ── Card treatment ────────────────────────────────────────── */
+    --rose-card-border: transparent;
+  }
+
+  :root.dark[data-theme-preset='rose'] {
+    --rose-glow: oklch(0.55 0.16 20 / 0.12);
+    --rose-glow-strong: oklch(0.55 0.16 20 / 0.18);
+    --rose-tint: oklch(0.2 0.04 20);
+    --rose-card-border: oklch(0.28 0.04 20);
+  }
+
+  /* ── Cards: borderless with warm glow ──────────────────────── */
+  :root[data-theme-preset='rose'] [data-slot='card'] {
+    border-color: var(--rose-card-border);
+    box-shadow:
+      0 1px 3px -1px oklch(0.58 0.12 20 / 0.04),
+      0 6px 22px -4px var(--rose-glow);
+    transition:
+      box-shadow 0.3s ease,
+      transform 0.3s ease;
+  }
+
+  :root[data-theme-preset='rose'] [data-slot='card']:hover {
+    box-shadow:
+      0 2px 6px -2px oklch(0.58 0.12 20 / 0.06),
+      0 12px 30px -6px var(--rose-glow-strong);
+    transform: translateY(-1px);
+  }
+
+  /* ── Dark cards ────────────────────────────────────────────── */
+  :root.dark[data-theme-preset='rose'] [data-slot='card'] {
+    border-color: var(--rose-card-border);
+    box-shadow:
+      0 1px 3px -1px oklch(0.1 0.04 20 / 0.2),
+      0 6px 22px -4px var(--rose-glow);
+  }
+
+  :root.dark[data-theme-preset='rose'] [data-slot='card']:hover {
+    box-shadow:
+      0 2px 6px -2px oklch(0.1 0.04 20 / 0.25),
+      0 12px 30px -6px var(--rose-glow-strong);
+    transform: translateY(-1px);
+  }
+
+  /* ── Buttons: soft press ───────────────────────────────────── */
+  :root[data-theme-preset='rose'] button[data-slot='button'] {
+    transition:
+      background-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  :root[data-theme-preset='rose'] button[data-slot='button']:active {
+    transform: scale(0.97);
+  }
+
+  /* ── Inputs: warm focus ────────────────────────────────────── */
+  :root[data-theme-preset='rose'] [data-slot='input'],
+  :root[data-theme-preset='rose'] [data-slot='textarea'] {
+    border-color: oklch(0.92 0.015 20);
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  :root[data-theme-preset='rose'] [data-slot='input']:focus,
+  :root[data-theme-preset='rose'] [data-slot='textarea']:focus {
+    border-color: oklch(0.72 0.14 20);
+    box-shadow: 0 0 0 3px oklch(0.58 0.14 20 / 0.12);
+  }
+
+  :root.dark[data-theme-preset='rose'] [data-slot='input'],
+  :root.dark[data-theme-preset='rose'] [data-slot='textarea'] {
+    border-color: oklch(0.28 0.04 20);
+  }
+
+  :root.dark[data-theme-preset='rose'] [data-slot='input']:focus,
+  :root.dark[data-theme-preset='rose'] [data-slot='textarea']:focus {
+    border-color: oklch(0.55 0.16 20);
+    box-shadow: 0 0 0 3px oklch(0.55 0.16 20 / 0.15);
+  }
+
+  /* ── Badges: borderless warm pills ─────────────────────────── */
+  :root[data-theme-preset='rose'] [data-slot='badge'] {
+    border-color: transparent;
+    box-shadow: 0 1px 4px -1px oklch(0.58 0.12 20 / 0.08);
+  }
+
+  :root.dark[data-theme-preset='rose'] [data-slot='badge'] {
+    border-color: oklch(0.3 0.04 20);
+    box-shadow: none;
+  }
+
+  /* ── Tables: relaxed row spacing ───────────────────────────── */
+  :root[data-theme-preset='rose'] [data-slot='table-cell'] {
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+  }
+
+  /* ── Separator: warmer ─────────────────────────────────────── */
+  :root[data-theme-preset='rose'] [data-slot='separator'] {
+    background-color: oklch(0.94 0.01 20);
+  }
+
+  :root.dark[data-theme-preset='rose'] [data-slot='separator'] {
+    background-color: oklch(0.22 0.03 20);
+  }
+
+  /* ── Tabs: warm underline ──────────────────────────────────── */
+  :root[data-theme-preset='rose']
+    [data-slot='tabs-trigger'][data-state='active'] {
+    box-shadow: inset 0 -2px 0 0 oklch(0.58 0.22 20);
+  }
+}

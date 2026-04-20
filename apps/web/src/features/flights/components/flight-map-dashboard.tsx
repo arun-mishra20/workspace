@@ -2728,10 +2728,10 @@ export function FlightMapDashboard({ isActive }: FlightMapDashboardProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
+        <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
           Travel Map
         </p>
-        <h2 className="text-2xl font-semibold text-foreground">
+        <h2 className="text-3xl font-semibold tracking-tight text-foreground">
           Interactive route visualization
         </h2>
         <p className="max-w-3xl text-sm text-muted-foreground">

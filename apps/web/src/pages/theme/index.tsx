@@ -39,10 +39,10 @@ export default function ThemeSettingsPage() {
       <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
         <header className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
+            <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
               Theme Editor
             </p>
-            <h1 className="text-2xl font-semibold text-foreground">
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
               Customize
             </h1>
             <p className="max-w-2xl text-sm text-muted-foreground">

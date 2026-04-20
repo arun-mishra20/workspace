@@ -1,0 +1,102 @@
+/*
+ * Lavender — "Ethereal"
+ * Diffused purple glow, dreamy weightless surfaces, ultra-generous rounding.
+ * Hue 320 · radius 1.5rem
+ */
+
+@layer components {
+  :root[data-theme-preset='lavender'] {
+    /* ── Cards: dreamy purple ambient glow ── */
+    [data-slot='card'] {
+      border: 1px solid oklch(0.92 0.012 320);
+      box-shadow: 0 4px 16px -3px oklch(0.55 0.08 320 / 0.07);
+      transition:
+        box-shadow 0.25s ease,
+        border-color 0.25s ease,
+        transform 0.25s ease;
+    }
+    [data-slot='card']:hover {
+      box-shadow: 0 8px 24px -4px oklch(0.55 0.08 320 / 0.12);
+      border-color: oklch(0.88 0.02 320);
+      transform: translateY(-1px);
+    }
+
+    /* ── Inputs: soft purple focus glow ── */
+    [data-slot='input'],
+    [data-slot='textarea'] {
+      transition:
+        border-color 0.25s ease,
+        box-shadow 0.25s ease;
+    }
+    [data-slot='input']:focus,
+    [data-slot='textarea']:focus {
+      border-color: oklch(0.65 0.1 320);
+      box-shadow: 0 0 0 4px oklch(0.65 0.1 320 / 0.1);
+    }
+
+    /* ── Badges: dreamy inner shadow ── */
+    [data-slot='badge'] {
+      box-shadow: inset 0 -1px 0 oklch(0.55 0.06 320 / 0.06);
+    }
+
+    /* ── Separators: ethereal purple gradient ── */
+    [data-slot='separator'] {
+      background: linear-gradient(
+        90deg,
+        transparent,
+        oklch(0.75 0.05 320 / 0.3),
+        transparent
+      );
+    }
+
+    /* ── Tab triggers: purple bottom accent ── */
+    [data-slot='tabs-trigger'][data-state='active'] {
+      box-shadow: inset 0 -2px 0 0 oklch(0.55 0.12 320);
+    }
+
+    /* ── Table cells: purple-tinted borders ── */
+    [data-slot='table-cell'] {
+      border-color: oklch(0.93 0.008 320 / 0.6);
+    }
+  }
+
+  :root[data-theme-preset='lavender'].dark,
+  :root[data-theme-preset='lavender'] .dark {
+    [data-slot='card'] {
+      border-color: oklch(0.24 0.02 320);
+      box-shadow: 0 4px 20px -3px oklch(0.1 0.04 320 / 0.3);
+    }
+    [data-slot='card']:hover {
+      box-shadow: 0 8px 30px -4px oklch(0.1 0.04 320 / 0.45);
+      border-color: oklch(0.3 0.03 320);
+      transform: translateY(-1px);
+    }
+
+    [data-slot='input']:focus,
+    [data-slot='textarea']:focus {
+      border-color: oklch(0.68 0.12 320);
+      box-shadow: 0 0 0 4px oklch(0.68 0.12 320 / 0.15);
+    }
+
+    [data-slot='badge'] {
+      box-shadow: inset 0 -1px 0 oklch(0.35 0.05 320 / 0.1);
+    }
+
+    [data-slot='separator'] {
+      background: linear-gradient(
+        90deg,
+        transparent,
+        oklch(0.35 0.04 320 / 0.4),
+        transparent
+      );
+    }
+
+    [data-slot='tabs-trigger'][data-state='active'] {
+      box-shadow: inset 0 -2px 0 0 oklch(0.68 0.12 320);
+    }
+
+    [data-slot='table-cell'] {
+      border-color: oklch(0.24 0.015 320 / 0.6);
+    }
+  }
+}
