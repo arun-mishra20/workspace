@@ -5,6 +5,7 @@ export interface AiConversationRepository {
   findConversationById(id: string, userId: string): Promise<AiConversation | null>
   findConversationsByUserId(userId: string, limit: number, offset: number): Promise<{ data: AiConversation[]; total: number }>
   updateConversationTitle(id: string, userId: string, title: string): Promise<AiConversation | null>
+  pinConversation(id: string, userId: string, pinned: boolean): Promise<AiConversation | null>
   deleteConversation(id: string, userId: string): Promise<boolean>
 
   addMessage(data: Omit<InsertAiMessage, 'id' | 'createdAt'>): Promise<AiMessage>

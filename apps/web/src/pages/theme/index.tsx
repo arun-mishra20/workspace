@@ -11,15 +11,18 @@ import { MainLayout } from '@/components/layouts/main-layout'
 import { PreviewSandbox } from './components/preview-sandbox'
 import { useThemeCustomization } from '@/themes/context'
 import { PresetGallery } from './components/preset-gallery'
+import { NavigationLayoutSelector } from './components/navigation-layout-selector'
 import { ScrollArea } from '@workspace/ui/components/ui/scroll-area'
 import { Button } from '@workspace/ui/components/ui/button'
 
 export default function ThemeSettingsPage() {
   const {
     currentPreset,
+    navigationLayout,
     overrides,
     availablePresets,
     setPreset,
+    setNavigationLayout,
     clearOverrides,
     reset,
   } = useThemeCustomization()
@@ -55,15 +58,21 @@ export default function ThemeSettingsPage() {
           <Card className="flex flex-col lg:sticky lg:top-6 lg:max-h-[calc(100dvh)]">
             <CardHeader>
               <CardTitle>Controls</CardTitle>
-              <CardDescription>Presets and variables</CardDescription>
+              <CardDescription>Layout, presets, and variables</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden py-4">
               <ScrollArea className="h-full">
-                <PresetGallery
-                  presets={availablePresets}
-                  currentPreset={currentPreset}
-                  onSelect={setPreset}
-                />
+                <div className="space-y-6 pr-4">
+                  <NavigationLayoutSelector
+                    value={navigationLayout}
+                    onChange={setNavigationLayout}
+                  />
+                  <PresetGallery
+                    presets={availablePresets}
+                    currentPreset={currentPreset}
+                    onSelect={setPreset}
+                  />
+                </div>
               </ScrollArea>
             </CardContent>
           </Card>

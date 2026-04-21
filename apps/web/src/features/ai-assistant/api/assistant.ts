@@ -107,6 +107,7 @@ export type AiConversationSummary = {
   model: string | null;
   createdAt: string;
   updatedAt: string;
+  pinnedAt: string | null;
 };
 
 export type AiPersistedMessage = {
@@ -158,6 +159,15 @@ export async function renameConversation(id: string, title: string): Promise<AiC
     method: 'PATCH',
     url: `/api/ai-assistant/conversations/${id}`,
     data: { title },
+    toastError: false,
+  });
+}
+
+export async function pinConversation(id: string, pinned: boolean): Promise<AiConversationSummary> {
+  return apiRequest({
+    method: 'PATCH',
+    url: `/api/ai-assistant/conversations/${id}`,
+    data: { pinned },
     toastError: false,
   });
 }

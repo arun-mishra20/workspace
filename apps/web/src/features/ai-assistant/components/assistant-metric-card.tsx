@@ -26,7 +26,7 @@ export function AssistantMetricCard({ metric }: AssistantMetricCardProps) {
         : 'text-muted-foreground'
 
   return (
-    <div className="inline-flex items-center gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-2">
+    <div className="inline-flex items-center gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-2 m-1">
       <div className="min-w-0">
         <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           {metric.label}

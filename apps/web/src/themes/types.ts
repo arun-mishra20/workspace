@@ -26,7 +26,17 @@ export interface ThemeOverrides {
 export interface ThemeConfig {
   preset: string
   overrides: ThemeOverrides
+  navigationLayout: NavigationLayoutId
 }
+
+export const NAVIGATION_LAYOUT_IDS = [
+  'sidebar',
+  'categorized-topnav',
+  'mega-menu',
+  'command-bar',
+] as const
+
+export type NavigationLayoutId = (typeof NAVIGATION_LAYOUT_IDS)[number]
 
 export type ThemeStyleControlId =
   | 'none'
@@ -78,6 +88,8 @@ export interface ThemePresetDefinition {
 export interface ThemeContextValue {
   /** Current preset name */
   currentPreset: string
+  /** Current navigation layout */
+  navigationLayout: NavigationLayoutId
   /** Metadata for the current preset */
   currentPresetMeta: ThemePresetMeta
   /** Current overrides */
@@ -86,6 +98,8 @@ export interface ThemeContextValue {
   availablePresets: ThemePresetMeta[]
   /** Switch to a different preset */
   setPreset: (name: string) => void
+  /** Switch to a different navigation layout */
+  setNavigationLayout: (layout: NavigationLayoutId) => void
   /** Set a single override for a specific mode */
   setOverride: (mode: 'light' | 'dark', key: string, value: string) => void
   /** Set multiple overrides for a specific mode */

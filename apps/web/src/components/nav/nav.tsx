@@ -18,7 +18,7 @@ import { Logo } from '@/components/nav/logo'
 import NavTabs from './nav-tabs'
 import { Bot, Menu } from 'lucide-react'
 import { useState } from 'react'
-import { navItems } from './nav-tabs'
+import { navItems } from './nav-config'
 
 const MobileNavItems = ({ onSelect }: { onSelect: () => void }) => {
   const location = useLocation()
@@ -96,7 +96,7 @@ const Nav = () => {
   const isSuccess = isAuthenticated && hasToken
 
   return (
-    <Header className="absolute top-0 w-full h-12">
+    <Header className="sticky top-0 z-50 w-full h-12 border-b border-border/40 bg-card/80 backdrop-blur-xl">
       <div className="flex items-center justify-between w-full gap-4">
         <div className="flex items-center">
           <Logo />

@@ -2,8 +2,8 @@ import { BadRequestException, Controller, Delete, Get, Inject, NotFoundException
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
-import { AiAssistantService } from '@/modules/ai-assistant/application/services/ai-assistant.service'
 import { AI_CONVERSATION_REPOSITORY } from '@/modules/ai-assistant/application/ports/ai-conversation.repository.port'
+import { AiAssistantService } from '@/modules/ai-assistant/application/services/ai-assistant.service'
 import {
   AiAssistantChatRequestSchema
 } from '@/modules/ai-assistant/presentation/dtos/ai-assistant.schema'
@@ -134,14 +134,25 @@ export class AiAssistantController {
   }
 
   @Patch('conversations/:id')
-  @ApiOperation({ summary: 'Rename a conversation' })
+  @ApiOperation({ summary: 'Update a conversation (rename or pin)' })
   async updateConversation(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Param('id') id: string,
   ) {
-    const schema = z.object({ title: z.string().trim().min(1).max(200) })
+    const schema = z.object({
+      title: z.string().trim().min(1).max(200).optional(),
+      pinned: z.boolean().optional(),
+    })
     const parsed = schema.safeParse(req.body)
-    if (!parsed.success) throw new BadRequestException('Invalid title')
+    if (!parsed.success) throw new BadRequestException('Invalid input')
+
+    if (parsed.data.pinned !== undefined) {
+      const updated = await this.conversationRepo.pinConversation(id, req.user.id, parsed.data.pinned)
+      if (!updated) throw new NotFoundException('Conversation not found')
+      return updated
+    }
+
+    if (!parsed.data.title) throw new BadRequestException('title or pinned required')
 
     const updated = await this.conversationRepo.updateConversationTitle(id, req.user.id, parsed.data.title)
     if (!updated) throw new NotFoundException('Conversation not found')

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { aiConversationsTable, aiMessagesTable, aiMessageFeedbackTable } from '@workspace/database'
-import { and, count, desc, eq } from 'drizzle-orm'
+import { and, asc, count, desc, eq } from 'drizzle-orm'
 
 import { DB_TOKEN } from '@/shared/infrastructure/db/db.port'
 
@@ -38,7 +38,10 @@ export class AiConversationRepositoryImpl implements AiConversationRepository {
         .select()
         .from(aiConversationsTable)
         .where(eq(aiConversationsTable.userId, userId))
-        .orderBy(desc(aiConversationsTable.updatedAt))
+        .orderBy(
+          asc(aiConversationsTable.pinnedAt),
+          desc(aiConversationsTable.updatedAt),
+        )
         .limit(limit)
         .offset(offset),
       this.db
@@ -53,6 +56,15 @@ export class AiConversationRepositoryImpl implements AiConversationRepository {
     const [conversation] = await this.db
       .update(aiConversationsTable)
       .set({ title })
+      .where(and(eq(aiConversationsTable.id, id), eq(aiConversationsTable.userId, userId)))
+      .returning()
+    return conversation ?? null
+  }
+
+  async pinConversation(id: string, userId: string, pinned: boolean): Promise<AiConversation | null> {
+    const [conversation] = await this.db
+      .update(aiConversationsTable)
+      .set({ pinnedAt: pinned ? new Date() : null })
       .where(and(eq(aiConversationsTable.id, id), eq(aiConversationsTable.userId, userId)))
       .returning()
     return conversation ?? null
