@@ -125,14 +125,14 @@ function YearlyGrowthCards({ data }: { data: DividendDashboard }) {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">YoY Growth</CardTitle>
           {isPositive ? (
-            <ArrowUpRight className="h-4 w-4 text-green-600" />
+            <ArrowUpRight className="h-4 w-4 text-positive" />
           ) : (
-            <ArrowDownRight className="h-4 w-4 text-red-600" />
+            <ArrowDownRight className="h-4 w-4 text-negative" />
           )}
         </CardHeader>
         <CardContent>
           <div
-            className={`text-2xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}
+            className={`text-2xl font-bold ${isPositive ? 'text-positive' : 'text-negative'}`}
           >
             {isPositive ? '+' : ''}
             {yearlyGrowth.growthPercent.toFixed(1)}%

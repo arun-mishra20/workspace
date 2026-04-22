@@ -1,107 +1,21 @@
 import { useMemo } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import {
-  ChartArea,
-  LayoutDashboard,
-  Mail,
-  Paintbrush,
-  Briefcase,
-  Banknote,
-  Plane,
-  FlaskConical,
-} from 'lucide-react'
 
-import { appPaths } from '@/config/app-paths'
 import { Tabs, TabsList, TabsTrigger } from '@workspace/ui/components/ui/tabs'
-
-export interface NavSubItem {
-  label: string
-  href: string
-  icon: React.ComponentType<{ className?: string }>
-}
-
-export interface NavItem {
-  label: string
-  href: string
-  icon: React.ComponentType<{ className?: string }>
-  children?: NavSubItem[]
-}
-
-export const navItems: NavItem[] = [
-  {
-    label: 'Dashboard',
-    href: appPaths.auth.dashboard.getHref(),
-    icon: LayoutDashboard,
-  },
-  { label: 'Themes', href: appPaths.auth.themes.getHref(), icon: Paintbrush },
-  {
-    label: 'Analytics',
-    href: appPaths.auth.analytics.getHref(),
-    icon: ChartArea,
-  },
-  {
-    label: 'Patterns',
-    href: appPaths.auth.patterns.getHref(),
-    icon: ChartArea,
-  },
-  {
-    label: 'Holdings',
-    href: appPaths.auth.holdings.getHref(),
-    icon: Briefcase,
-  },
-  {
-    label: 'Dividends',
-    href: appPaths.auth.dividends.getHref(),
-    icon: Banknote,
-  },
-  {
-    label: 'Flights and Hotels',
-    href: appPaths.auth.flights.getHref(),
-    icon: Plane,
-  },
-  {
-    label: 'Emails',
-    href: appPaths.auth.expensesEmails.getHref(),
-    icon: Mail,
-  },
-  {
-    label: 'Playground',
-    href: appPaths.auth.playground.getHref(),
-    icon: FlaskConical,
-  },
-]
-
-function isItemActive(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`)
-}
+import { getActiveNavChild, getActiveNavItem, navItems } from './nav-config'
 
 const NavTabs = () => {
   const location = useLocation()
   const navigate = useNavigate()
 
   const activeItem = useMemo(() => {
-    const match = navItems.find(
-      (item) =>
-        item.children?.some((child) =>
-          isItemActive(location.pathname, child.href),
-        ) || isItemActive(location.pathname, item.href),
-    )
-
-    return match ?? navItems[0]
+    return getActiveNavItem(location.pathname)
   }, [location.pathname])
 
   const current = activeItem?.href ?? '/'
 
   const currentChild = useMemo(() => {
-    if (!activeItem?.children) {
-      return null
-    }
-
-    const match = activeItem.children.find((child) =>
-      isItemActive(location.pathname, child.href),
-    )
-
-    return match?.href ?? activeItem.children[0]?.href ?? null
+    return getActiveNavChild(location.pathname, activeItem)?.href ?? null
   }, [activeItem, location.pathname])
 
   return (

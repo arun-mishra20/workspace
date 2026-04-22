@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { format, parseISO } from "date-fns";
-import { Pencil, Trash2, Check, X, Building2 } from "lucide-react";
+import { useState } from 'react'
+import { format, parseISO } from 'date-fns'
+import { Pencil, Trash2, Check, X, Building2 } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -8,58 +8,59 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@workspace/ui/components/ui/table";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Input } from "@workspace/ui/components/ui/input";
-import { Skeleton } from "@workspace/ui/components/ui/skeleton";
-import { Badge } from "@workspace/ui/components/ui/badge";
+} from '@workspace/ui/components/ui/table'
+import { Button } from '@workspace/ui/components/ui/button'
+import { Input } from '@workspace/ui/components/ui/input'
+import { Skeleton } from '@workspace/ui/components/ui/skeleton'
+import { Badge } from '@workspace/ui/components/ui/badge'
+import { EmptyState } from '@/components/empty-state'
 import {
   useDividends,
   useEnrichDividendYield,
   useDeleteDividend,
-} from "@/features/dividends/api/dividends";
-import { toast } from "sonner";
+} from '@/features/dividends/api/dividends'
+import { toast } from 'sonner'
 
 const fmt = (v: string | null, decimals = 2) =>
   v != null
-    ? Number(v).toLocaleString("en-IN", {
+    ? Number(v).toLocaleString('en-IN', {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
       })
-    : "—";
+    : '—'
 
 export function DividendsTable() {
-  const { data: dividends = [], isLoading } = useDividends();
-  const enrichMutation = useEnrichDividendYield();
-  const deleteMutation = useDeleteDividend();
+  const { data: dividends = [], isLoading } = useDividends()
+  const enrichMutation = useEnrichDividendYield()
+  const deleteMutation = useDeleteDividend()
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
 
   const handleSaveYield = (id: string) => {
-    const val = Number.parseFloat(editValue);
+    const val = Number.parseFloat(editValue)
     if (Number.isNaN(val) || val <= 0) {
-      toast.error("Invalid invested value");
-      return;
+      toast.error('Invalid invested value')
+      return
     }
     enrichMutation.mutate(
       { id, investedValue: val },
       {
         onSuccess: () => {
-          toast.success("Invested value updated");
-          setEditingId(null);
+          toast.success('Invested value updated')
+          setEditingId(null)
         },
-        onError: () => toast.error("Update failed"),
+        onError: () => toast.error('Update failed'),
       },
-    );
-  };
+    )
+  }
 
   const handleDelete = (id: string, companyName: string) => {
     deleteMutation.mutate(id, {
       onSuccess: () => toast.success(`Deleted ${companyName}`),
-      onError: () => toast.error("Delete failed"),
-    });
-  };
+      onError: () => toast.error('Delete failed'),
+    })
+  }
 
   if (isLoading) {
     return (
@@ -68,18 +69,17 @@ export function DividendsTable() {
           <Skeleton key={i} className="h-10 w-full" />
         ))}
       </div>
-    );
+    )
   }
 
   if (dividends.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-        <p className="text-sm">No dividends imported yet.</p>
-        <p className="text-xs mt-1">
-          Use the "Import Dividends" button to get started.
-        </p>
-      </div>
-    );
+      <EmptyState
+        icon={Building2}
+        title="No dividends imported yet"
+        description='Use the "Import Dividends" button to get started.'
+      />
+    )
   }
 
   return (
@@ -110,8 +110,8 @@ export function DividendsTable() {
                 ? ((Number(d.amount) / Number(d.investedValue)) * 100).toFixed(
                     2,
                   )
-                : null;
-            const isEditing = editingId === d.id;
+                : null
+            const isEditing = editingId === d.id
 
             return (
               <TableRow key={d.id}>
@@ -122,7 +122,7 @@ export function DividendsTable() {
                   {d.isin}
                 </TableCell>
                 <TableCell className="text-right text-sm">
-                  {format(parseISO(d.exDate), "dd MMM yyyy")}
+                  {format(parseISO(d.exDate), 'dd MMM yyyy')}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {d.shares}
@@ -143,8 +143,8 @@ export function DividendsTable() {
                         className="h-7 w-28 text-right text-xs"
                         autoFocus
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveYield(d.id);
-                          if (e.key === "Escape") setEditingId(null);
+                          if (e.key === 'Enter') handleSaveYield(d.id)
+                          if (e.key === 'Escape') setEditingId(null)
                         }}
                       />
                       <Button
@@ -169,8 +169,8 @@ export function DividendsTable() {
                       type="button"
                       className="inline-flex items-center gap-1 text-sm tabular-nums hover:underline cursor-pointer"
                       onClick={() => {
-                        setEditingId(d.id);
-                        setEditValue(d.investedValue ?? "");
+                        setEditingId(d.id)
+                        setEditValue(d.investedValue ?? '')
                       }}
                     >
                       {d.investedValue ? (
@@ -202,10 +202,10 @@ export function DividendsTable() {
                   </Button>
                 </TableCell>
               </TableRow>
-            );
+            )
           })}
         </TableBody>
       </Table>
     </div>
-  );
+  )
 }

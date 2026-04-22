@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Plus, Check, X, Pencil, Trash2 } from "lucide-react";
+import { useMemo, useState } from 'react'
+import { Plus, Check, X, Pencil, Trash2 } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -8,233 +8,231 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@workspace/ui/components/ui/table";
+} from '@workspace/ui/components/ui/table'
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@workspace/ui/components/ui/card";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Input } from "@workspace/ui/components/ui/input";
+} from '@workspace/ui/components/ui/card'
+import { Button } from '@workspace/ui/components/ui/button'
+import { Input } from '@workspace/ui/components/ui/input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@workspace/ui/components/ui/select";
-import { toast } from "sonner";
+} from '@workspace/ui/components/ui/select'
+import { toast } from 'sonner'
 
 import {
   useCreateContribution,
   useUpdateContribution,
   useDeleteContribution,
-} from "../api/principal";
+} from '../api/principal'
 
-import type { PrincipalContributionRow } from "@workspace/domain";
+import type { PrincipalContributionRow } from '@workspace/domain'
 
 const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-] as const;
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const
 
 const fmt = (v: number) =>
-  v.toLocaleString("en-IN", {
+  v.toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 4,
-  });
+  })
 
-const fmtPct = (v: number) => `${(v * 100).toFixed(1)}%`;
+const fmtPct = (v: number) => `${(v * 100).toFixed(1)}%`
 
 interface ContributionsTableProps {
-  contributions: PrincipalContributionRow[];
+  contributions: PrincipalContributionRow[]
 }
 
 export function ContributionsTable({ contributions }: ContributionsTableProps) {
-  const createMutation = useCreateContribution();
-  const updateMutation = useUpdateContribution();
-  const deleteMutation = useDeleteContribution();
+  const createMutation = useCreateContribution()
+  const updateMutation = useUpdateContribution()
+  const deleteMutation = useDeleteContribution()
 
   // Sort contributions by date (newest first)
   const sortedContributions = useMemo(() => {
     const monthIndex = (m: string) =>
-      MONTHS.indexOf(m as (typeof MONTHS)[number]);
+      MONTHS.indexOf(m as (typeof MONTHS)[number])
     return [...contributions].sort((a, b) => {
-      const yearDiff = b.year - a.year;
-      if (yearDiff !== 0) return yearDiff;
-      return monthIndex(b.month) - monthIndex(a.month);
-    });
-  }, [contributions]);
+      const yearDiff = b.year - a.year
+      if (yearDiff !== 0) return yearDiff
+      return monthIndex(b.month) - monthIndex(a.month)
+    })
+  }, [contributions])
 
   // Build chronological order for MoM calculation (oldest first)
   const chronologicalOrder = useMemo(() => {
     const monthIndex = (m: string) =>
-      MONTHS.indexOf(m as (typeof MONTHS)[number]);
+      MONTHS.indexOf(m as (typeof MONTHS)[number])
     return [...contributions].sort((a, b) => {
-      const yearDiff = a.year - b.year;
-      if (yearDiff !== 0) return yearDiff;
-      return monthIndex(a.month) - monthIndex(b.month);
-    });
-  }, [contributions]);
+      const yearDiff = a.year - b.year
+      if (yearDiff !== 0) return yearDiff
+      return monthIndex(a.month) - monthIndex(b.month)
+    })
+  }, [contributions])
 
   // MoM change map: id → change ratio
   const momChangeMap = useMemo(() => {
-    const map = new Map<string, number | null>();
+    const map = new Map<string, number | null>()
     for (let i = 0; i < chronologicalOrder.length; i++) {
-      const curr = chronologicalOrder[i]!;
+      const curr = chronologicalOrder[i]!
       if (i === 0) {
-        map.set(curr.id, null);
+        map.set(curr.id, null)
       } else {
-        const prev = chronologicalOrder[i - 1]!;
+        const prev = chronologicalOrder[i - 1]!
         if (prev.amountLakhs === 0) {
-          map.set(curr.id, null);
+          map.set(curr.id, null)
         } else {
           map.set(
             curr.id,
             (curr.amountLakhs - prev.amountLakhs) / prev.amountLakhs,
-          );
+          )
         }
       }
     }
-    return map;
-  }, [chronologicalOrder]);
+    return map
+  }, [chronologicalOrder])
 
   // Average savings rate (only rows where salary exists)
   const avgSavingsRate = useMemo(() => {
     const withSalary = contributions.filter(
       (c) => c.salaryLakhs != null && c.salaryLakhs > 0,
-    );
-    if (withSalary.length === 0) return null;
-    const totalInvested = withSalary.reduce((s, c) => s + c.amountLakhs, 0);
-    const totalSalary = withSalary.reduce((s, c) => s + c.salaryLakhs!, 0);
-    return totalInvested / totalSalary;
-  }, [contributions]);
+    )
+    if (withSalary.length === 0) return null
+    const totalInvested = withSalary.reduce((s, c) => s + c.amountLakhs, 0)
+    const totalSalary = withSalary.reduce((s, c) => s + c.salaryLakhs!, 0)
+    return totalInvested / totalSalary
+  }, [contributions])
 
   // ── Inline edit state ──
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editAmount, setEditAmount] = useState("");
-  const [editSalary, setEditSalary] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editAmount, setEditAmount] = useState('')
+  const [editSalary, setEditSalary] = useState('')
 
   // ── Add-row state ──
-  const [isAdding, setIsAdding] = useState(false);
-  const [newMonth, setNewMonth] = useState<string>("Jan");
-  const [newYear, setNewYear] = useState(
-    String(new Date().getFullYear() % 100),
-  );
-  const [newAmount, setNewAmount] = useState("");
-  const [newSalary, setNewSalary] = useState("");
+  const [isAdding, setIsAdding] = useState(false)
+  const [newMonth, setNewMonth] = useState<string>('Jan')
+  const [newYear, setNewYear] = useState(String(new Date().getFullYear() % 100))
+  const [newAmount, setNewAmount] = useState('')
+  const [newSalary, setNewSalary] = useState('')
 
   // ── Handlers ──
 
   const handleStartEdit = (row: PrincipalContributionRow) => {
-    setEditingId(row.id);
-    setEditAmount(String(row.amountLakhs));
-    setEditSalary(row.salaryLakhs != null ? String(row.salaryLakhs) : "");
-  };
+    setEditingId(row.id)
+    setEditAmount(String(row.amountLakhs))
+    setEditSalary(row.salaryLakhs != null ? String(row.salaryLakhs) : '')
+  }
 
   const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditAmount("");
-    setEditSalary("");
-  };
+    setEditingId(null)
+    setEditAmount('')
+    setEditSalary('')
+  }
 
   const handleSaveEdit = (id: string) => {
-    const val = Number.parseFloat(editAmount);
+    const val = Number.parseFloat(editAmount)
     if (Number.isNaN(val) || val <= 0) {
-      toast.error("Enter a valid investment amount");
-      return;
+      toast.error('Enter a valid investment amount')
+      return
     }
 
     const data: {
-      amountLakhs?: number;
-      salaryLakhs?: number | null;
-    } = { amountLakhs: val };
+      amountLakhs?: number
+      salaryLakhs?: number | null
+    } = { amountLakhs: val }
 
-    if (editSalary.trim() === "") {
-      data.salaryLakhs = null;
+    if (editSalary.trim() === '') {
+      data.salaryLakhs = null
     } else {
-      const salaryVal = Number.parseFloat(editSalary);
+      const salaryVal = Number.parseFloat(editSalary)
       if (Number.isNaN(salaryVal) || salaryVal <= 0) {
-        toast.error("Enter a valid salary or leave blank");
-        return;
+        toast.error('Enter a valid salary or leave blank')
+        return
       }
-      data.salaryLakhs = salaryVal;
+      data.salaryLakhs = salaryVal
     }
 
     updateMutation.mutate(
       { id, data },
       {
         onSuccess: () => {
-          toast.success("Contribution updated");
-          handleCancelEdit();
+          toast.success('Contribution updated')
+          handleCancelEdit()
         },
-        onError: () => toast.error("Update failed"),
+        onError: () => toast.error('Update failed'),
       },
-    );
-  };
+    )
+  }
 
   const handleDelete = (row: PrincipalContributionRow) => {
     deleteMutation.mutate(row.id, {
       onSuccess: () => toast.success(`Deleted ${row.label}`),
-      onError: () => toast.error("Delete failed"),
-    });
-  };
+      onError: () => toast.error('Delete failed'),
+    })
+  }
 
   const handleAdd = () => {
-    const val = Number.parseFloat(newAmount);
+    const val = Number.parseFloat(newAmount)
     if (Number.isNaN(val) || val <= 0) {
-      toast.error("Enter a valid amount in Lakhs");
-      return;
+      toast.error('Enter a valid amount in Lakhs')
+      return
     }
-    const yearNum = Number.parseInt(newYear, 10);
+    const yearNum = Number.parseInt(newYear, 10)
     if (Number.isNaN(yearNum) || yearNum < 0 || yearNum > 99) {
-      toast.error("Enter a valid 2-digit year (e.g. 25)");
-      return;
+      toast.error('Enter a valid 2-digit year (e.g. 25)')
+      return
     }
 
-    let salaryLakhs: number | null = null;
+    let salaryLakhs: number | null = null
     if (newSalary.trim()) {
-      const salaryVal = Number.parseFloat(newSalary);
+      const salaryVal = Number.parseFloat(newSalary)
       if (Number.isNaN(salaryVal) || salaryVal <= 0) {
-        toast.error("Enter a valid salary or leave blank");
-        return;
+        toast.error('Enter a valid salary or leave blank')
+        return
       }
-      salaryLakhs = salaryVal;
+      salaryLakhs = salaryVal
     }
 
     createMutation.mutate(
       { month: newMonth, year: yearNum, amountLakhs: val, salaryLakhs },
       {
         onSuccess: () => {
-          toast.success(`Added ${newMonth} ${newYear}`);
-          setNewAmount("");
-          setNewSalary("");
-          setIsAdding(false);
+          toast.success(`Added ${newMonth} ${newYear}`)
+          setNewAmount('')
+          setNewSalary('')
+          setIsAdding(false)
         },
         onError: (error: unknown) => {
           const message =
-            error instanceof Error ? error.message : "Failed to add";
-          toast.error(message);
+            error instanceof Error ? error.message : 'Failed to add'
+          toast.error(message)
         },
       },
-    );
-  };
+    )
+  }
 
   const handleAddKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleAdd();
-    if (e.key === "Escape") setIsAdding(false);
-  };
+    if (e.key === 'Enter') handleAdd()
+    if (e.key === 'Escape') setIsAdding(false)
+  }
 
   return (
     <Card>
@@ -351,12 +349,12 @@ export function ContributionsTable({ contributions }: ContributionsTableProps) {
                 </TableRow>
               ) : (
                 sortedContributions.map((row) => {
-                  const isEditing = editingId === row.id;
+                  const isEditing = editingId === row.id
                   const savingsRate =
                     row.salaryLakhs != null && row.salaryLakhs > 0
                       ? row.amountLakhs / row.salaryLakhs
-                      : null;
-                  const momChange = momChangeMap.get(row.id) ?? null;
+                      : null
+                  const momChange = momChangeMap.get(row.id) ?? null
 
                   return (
                     <TableRow key={row.id}>
@@ -373,8 +371,8 @@ export function ContributionsTable({ contributions }: ContributionsTableProps) {
                             className="ml-auto h-7 w-24 text-right text-xs"
                             autoFocus
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") handleSaveEdit(row.id);
-                              if (e.key === "Escape") handleCancelEdit();
+                              if (e.key === 'Enter') handleSaveEdit(row.id)
+                              if (e.key === 'Escape') handleCancelEdit()
                             }}
                           />
                         ) : (
@@ -400,8 +398,8 @@ export function ContributionsTable({ contributions }: ContributionsTableProps) {
                             onChange={(e) => setEditSalary(e.target.value)}
                             className="ml-auto h-7 w-24 text-right text-xs"
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") handleSaveEdit(row.id);
-                              if (e.key === "Escape") handleCancelEdit();
+                              if (e.key === 'Enter') handleSaveEdit(row.id)
+                              if (e.key === 'Escape') handleCancelEdit()
                             }}
                           />
                         ) : (
@@ -412,7 +410,7 @@ export function ContributionsTable({ contributions }: ContributionsTableProps) {
                           >
                             {row.salaryLakhs != null
                               ? fmt(row.salaryLakhs)
-                              : "—"}
+                              : '—'}
                             <Pencil className="h-3 w-3 text-muted-foreground" />
                           </button>
                         )}
@@ -424,10 +422,10 @@ export function ContributionsTable({ contributions }: ContributionsTableProps) {
                           <span
                             className={
                               savingsRate >= 0.3
-                                ? "text-green-600 dark:text-green-400"
+                                ? 'text-positive'
                                 : savingsRate >= 0.15
-                                  ? "text-yellow-600 dark:text-yellow-400"
-                                  : "text-red-600 dark:text-red-400"
+                                  ? 'text-warning'
+                                  : 'text-negative'
                             }
                           >
                             {fmtPct(savingsRate)}
@@ -443,13 +441,13 @@ export function ContributionsTable({ contributions }: ContributionsTableProps) {
                           <span
                             className={
                               momChange > 0
-                                ? "text-green-600 dark:text-green-400"
+                                ? 'text-positive'
                                 : momChange < 0
-                                  ? "text-red-600 dark:text-red-400"
-                                  : "text-muted-foreground"
+                                  ? 'text-negative'
+                                  : 'text-muted-foreground'
                             }
                           >
-                            {momChange > 0 ? "+" : ""}
+                            {momChange > 0 ? '+' : ''}
                             {fmtPct(momChange)}
                           </span>
                         ) : (
@@ -494,7 +492,7 @@ export function ContributionsTable({ contributions }: ContributionsTableProps) {
                         )}
                       </TableCell>
                     </TableRow>
-                  );
+                  )
                 })
               )}
             </TableBody>
@@ -509,10 +507,10 @@ export function ContributionsTable({ contributions }: ContributionsTableProps) {
                       <span
                         className={
                           avgSavingsRate >= 0.3
-                            ? "text-green-600 dark:text-green-400"
+                            ? 'text-positive'
                             : avgSavingsRate >= 0.15
-                              ? "text-yellow-600 dark:text-yellow-400"
-                              : "text-red-600 dark:text-red-400"
+                              ? 'text-warning'
+                              : 'text-negative'
                         }
                       >
                         {fmtPct(avgSavingsRate)}
@@ -530,5 +528,5 @@ export function ContributionsTable({ contributions }: ContributionsTableProps) {
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

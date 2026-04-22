@@ -128,7 +128,7 @@ export class GoogleApisGmailProvider implements GmailProvider {
     emailIds: string[]
     category?: string
   }): Promise<RawEmail[]> {
-    const CHUNK_SIZE = 100 // Gmail API batch limit is 100 requests per batch
+    const CHUNK_SIZE = 25 // Reduced from 100 to limit concurrent memory pressure
     const results: RawEmail[] = []
 
     // Process emails in chunks
@@ -138,8 +138,7 @@ export class GoogleApisGmailProvider implements GmailProvider {
         `Fetching email batch ${i / CHUNK_SIZE + 1}: ${chunk.length} emails (${i + 1}-${i + chunk.length} of ${params.emailIds.length})`,
       )
 
-      // Use Promise.all for concurrent fetches within a reasonable chunk size
-      // This is more reliable than Gmail's batch API which can be flaky
+      // Use Promise.allSettled for concurrent fetches within a reasonable chunk size
       const chunkResults = await Promise.allSettled(
         chunk.map((emailId) => this.fetchEmailContent({
           userId: params.userId,

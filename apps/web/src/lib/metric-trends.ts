@@ -49,7 +49,7 @@ export function normalizeRecentMonthlySeries<T>({
 
 export function takeLastMetricTrendPoints(
   points: MetricTrendPoint[],
-  count = 3,
+  count = 10,
 ): MetricTrendPoint[] {
   return points.slice(Math.max(points.length - count, 0))
 }

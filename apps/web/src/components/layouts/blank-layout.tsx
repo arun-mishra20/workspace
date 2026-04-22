@@ -1,15 +1,15 @@
-import { cn } from "@workspace/ui/lib/utils";
+import { cn } from '@workspace/ui/lib/utils'
 
-export interface BlankLayoutProps extends React.ComponentProps<"div"> {
-  bordered?: boolean;
+export interface BlankLayoutProps extends React.ComponentProps<'div'> {
+  bordered?: boolean
 }
 
 interface BlankLayoutBorderProps {
-  position: "top" | "bottom" | "left" | "right";
+  position: 'top' | 'bottom' | 'left' | 'right'
 }
 
 function BlankLayoutBorder({ position }: BlankLayoutBorderProps) {
-  const isHorizontal = position === "top" || position === "bottom";
+  const isHorizontal = position === 'top' || position === 'bottom'
 
   return (
     <div
@@ -17,15 +17,15 @@ function BlankLayoutBorder({ position }: BlankLayoutBorderProps) {
       data-position={position}
       aria-hidden="true"
       className={cn(
-        "pointer-events-none absolute z-10 hidden bg-border lg:block",
-        isHorizontal ? "left-0 right-0 h-px" : "bottom-0 top-0 w-px",
-        position === "top" && "-mt-px top-12",
-        position === "bottom" && "-mb-px bottom-12",
-        position === "left" && "-ml-px left-0",
-        position === "right" && "-mr-px right-0",
+        'pointer-events-none absolute z-10 hidden bg-border lg:block',
+        isHorizontal ? 'left-0 right-0 h-px' : 'bottom-0 top-0 w-px',
+        position === 'top' && '-mt-px top-12',
+        position === 'bottom' && '-mb-px bottom-12',
+        position === 'left' && '-ml-px left-0',
+        position === 'right' && '-mr-px right-0',
       )}
     />
-  );
+  )
 }
 
 function BlankLayout({
@@ -39,8 +39,8 @@ function BlankLayout({
       data-slot="blank-layout"
       data-bordered={bordered || undefined}
       className={cn(
-        "relative z-0 px-2 sm:px-6 md:px-8 lg:px-12",
-        bordered && "lg:px-12",
+        'relative z-0 px-2 sm:px-6 md:px-8 lg:px-12',
+        bordered && 'lg:px-12',
         className,
       )}
       {...props}
@@ -57,8 +57,8 @@ function BlankLayout({
       <div
         data-slot="blank-layout-container"
         className={cn(
-          "relative mx-auto flex min-h-dvh max-w-332 flex-col",
-          bordered && "lg:pt-12",
+          'relative mx-auto flex min-h-dvh max-w-332 flex-col',
+          bordered && 'lg:pt-12',
         )}
       >
         {/* Vertical borders */}
@@ -72,7 +72,7 @@ function BlankLayout({
         {/* Main content */}
         <div
           data-slot="blank-layout-content"
-          className="flex flex-1 flex-col bg-card pt-12"
+          className="flex flex-1 flex-col bg-card"
         >
           {children}
         </div>
@@ -86,7 +86,7 @@ function BlankLayout({
         )}
       </div>
     </div>
-  );
+  )
 }
 
-export { BlankLayout };
+export { BlankLayout }

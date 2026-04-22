@@ -32,6 +32,7 @@ import {
   SYNC_JOB_REPOSITORY,
 } from '@/shared/application/ports/sync-job.repository.port'
 import { EmailSyncService } from '@/shared/application/services/email-sync.service'
+import { JobManager } from '@/shared/infrastructure/utils/job-manager'
 
 import type { Env } from '@/app/config/env.schema'
 import type { FlightSegment } from '@/modules/flights/application/flight-extraction.schema'
@@ -110,6 +111,7 @@ export class FlightsService {
     private readonly emailSyncService: EmailSyncService,
     private readonly hybridFlightExtractor: HybridFlightExtractor,
     private readonly configService: ConfigService<Env, true>,
+    private readonly jobManager: JobManager,
   ) {}
 
   async startSyncJob(params: {
@@ -132,8 +134,22 @@ export class FlightsService {
       category: FLIGHT_CATEGORY,
     })
 
-    this.runPostSyncProcessing(jobId, params.userId).catch((error) => {
-      this.logger.error(`Flight post-sync processing for job ${jobId} failed`, error)
+    this.jobManager.enqueue({
+      userId: params.userId,
+      jobType: 'flight-sync',
+      jobId,
+      fn: async () => {
+        try {
+          await this.runPostSyncProcessing(jobId, params.userId)
+        } catch (error) {
+          this.logger.error(`Flight post-sync processing for job ${jobId} failed`, error)
+          await this.syncJobRepository.update(jobId, {
+            status: 'failed',
+            errorMessage: error instanceof Error ? error.message : 'Unexpected error',
+            completedAt: new Date(),
+          }).catch((error_) => this.logger.error(`Failed to update flight sync job ${jobId}`, error_))
+        }
+      },
     })
 
     return { jobId }
@@ -149,16 +165,23 @@ export class FlightsService {
       query: '__reprocess__',
     })
 
-    this.runReprocessJob(job.id, params.userId, params.forceProcessAll ?? false).catch(
-      async (error) => {
-        this.logger.error(`Flight reprocess job ${job.id} failed`, error)
-        await this.syncJobRepository.update(job.id, {
-          status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unexpected error',
-          completedAt: new Date(),
-        })
+    this.jobManager.enqueue({
+      userId: params.userId,
+      jobType: 'flight-reprocess',
+      jobId: job.id,
+      fn: async () => {
+        try {
+          await this.runReprocessJob(job.id, params.userId, params.forceProcessAll ?? false)
+        } catch (error) {
+          this.logger.error(`Flight reprocess job ${job.id} failed`, error)
+          await this.syncJobRepository.update(job.id, {
+            status: 'failed',
+            errorMessage: error instanceof Error ? error.message : 'Unexpected error',
+            completedAt: new Date(),
+          }).catch((e) => this.logger.error(`Failed to update flight reprocess job ${job.id}`, e))
+        }
       },
-    )
+    })
 
     return { jobId: job.id }
   }
@@ -174,16 +197,23 @@ export class FlightsService {
       query,
     })
 
-    this.runReviewedSyncJob(job.id, params.userId, query, params.fromDate).catch(
-      async (error) => {
-        this.logger.error(`Flight reviewed sync job ${job.id} failed`, error)
-        await this.syncJobRepository.update(job.id, {
-          status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unexpected error',
-          completedAt: new Date(),
-        })
+    this.jobManager.enqueue({
+      userId: params.userId,
+      jobType: 'flight-reviewed-sync',
+      jobId: job.id,
+      fn: async () => {
+        try {
+          await this.runReviewedSyncJob(job.id, params.userId, query, params.fromDate)
+        } catch (error) {
+          this.logger.error(`Flight reviewed sync job ${job.id} failed`, error)
+          await this.syncJobRepository.update(job.id, {
+            status: 'failed',
+            errorMessage: error instanceof Error ? error.message : 'Unexpected error',
+            completedAt: new Date(),
+          }).catch((e) => this.logger.error(`Failed to update flight reviewed sync job ${job.id}`, e))
+        }
       },
-    )
+    })
 
     return { jobId: job.id }
   }
@@ -218,16 +248,23 @@ export class FlightsService {
       query: '__llm_review_process__',
     })
 
-    this.runSelectedLlmProcessingJob(job.id, params.userId, sourceEmailIds).catch(
-      async (error) => {
-        this.logger.error(`Flight LLM review processing job ${job.id} failed`, error)
-        await this.syncJobRepository.update(job.id, {
-          status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unexpected error',
-          completedAt: new Date(),
-        })
+    this.jobManager.enqueue({
+      userId: params.userId,
+      jobType: 'flight-llm-review',
+      jobId: job.id,
+      fn: async () => {
+        try {
+          await this.runSelectedLlmProcessingJob(job.id, params.userId, sourceEmailIds)
+        } catch (error) {
+          this.logger.error(`Flight LLM review processing job ${job.id} failed`, error)
+          await this.syncJobRepository.update(job.id, {
+            status: 'failed',
+            errorMessage: error instanceof Error ? error.message : 'Unexpected error',
+            completedAt: new Date(),
+          }).catch((e) => this.logger.error(`Failed to update flight LLM job ${job.id}`, e))
+        }
       },
-    )
+    })
 
     return { jobId: job.id }
   }

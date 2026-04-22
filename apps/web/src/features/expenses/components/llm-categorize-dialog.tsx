@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Loader2,
   Sparkles,
@@ -7,11 +7,11 @@ import {
   Info,
   ArrowRight,
   RotateCcw,
-} from "lucide-react";
+} from 'lucide-react'
 
-import { Badge } from "@workspace/ui/components/ui/badge";
-import { Button } from "@workspace/ui/components/ui/button";
-import { Checkbox } from "@workspace/ui/components/ui/checkbox";
+import { Badge } from '@workspace/ui/components/ui/badge'
+import { Button } from '@workspace/ui/components/ui/button'
+import { Checkbox } from '@workspace/ui/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -19,66 +19,65 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@workspace/ui/components/ui/dialog";
-import { Input } from "@workspace/ui/components/ui/input";
-import { Label } from "@workspace/ui/components/ui/label";
+} from '@workspace/ui/components/ui/dialog'
+import { Input } from '@workspace/ui/components/ui/input'
+import { Label } from '@workspace/ui/components/ui/label'
 import {
   RadioGroup,
   RadioGroupItem,
-} from "@workspace/ui/components/ui/radio-group";
+} from '@workspace/ui/components/ui/radio-group'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@workspace/ui/components/ui/select";
+} from '@workspace/ui/components/ui/select'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@workspace/ui/components/ui/tooltip";
+} from '@workspace/ui/components/ui/tooltip'
 
 import {
   fetchLlmProviders,
   requestLlmCategorization,
   type LlmProvider,
   type LlmCategorizationSuggestion,
-} from "@/features/expenses/api/llm-categorize";
+} from '@/features/expenses/api/llm-categorize'
 import {
   bulkUpdateTransactions,
   type BulkUpdateRequest,
-} from "@/features/expenses/api/bulk-update-transactions";
-import { CATEGORY_OPTIONS } from "@/features/expenses/constants/category-options";
+} from '@/features/expenses/api/bulk-update-transactions'
+import { CATEGORY_OPTIONS } from '@/features/expenses/constants/category-options'
 
-import type { Transaction } from "@workspace/domain";
+import type { Transaction } from '@workspace/domain'
 
 interface LlmCategorizeDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  transactions: Transaction[];
-  onComplete: () => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  transactions: Transaction[]
+  onComplete: () => void
 }
 
-type DialogStep = "select-provider" | "processing" | "review";
+type DialogStep = 'select-provider' | 'processing' | 'review'
 
 interface EditableSuggestion extends LlmCategorizationSuggestion {
-  included: boolean;
-  originalCategory: string;
-  merchantName: string;
-  amount: number;
+  included: boolean
+  originalCategory: string
+  merchantName: string
+  amount: number
 }
 
 function getCategoryMeta(value: string) {
-  return CATEGORY_OPTIONS.find((c) => c.value === value);
+  return CATEGORY_OPTIONS.find((c) => c.value === value)
 }
 
 function getConfidenceLabel(confidence: number) {
-  if (confidence >= 0.9) return { text: "High", className: "text-emerald-600" };
-  if (confidence >= 0.7)
-    return { text: "Medium", className: "text-amber-600" };
-  return { text: "Low", className: "text-red-500" };
+  if (confidence >= 0.9) return { text: 'High', className: 'text-emerald-600' }
+  if (confidence >= 0.7) return { text: 'Medium', className: 'text-amber-600' }
+  return { text: 'Low', className: 'text-red-500' }
 }
 
 export function LlmCategorizeDialog({
@@ -87,16 +86,16 @@ export function LlmCategorizeDialog({
   transactions,
   onComplete,
 }: LlmCategorizeDialogProps) {
-  const queryClient = useQueryClient();
-  const [step, setStep] = useState<DialogStep>("select-provider");
-  const [provider, setProvider] = useState<LlmProvider>("openwire");
-  const [suggestions, setSuggestions] = useState<EditableSuggestion[]>([]);
+  const queryClient = useQueryClient()
+  const [step, setStep] = useState<DialogStep>('select-provider')
+  const [provider, setProvider] = useState<LlmProvider>('openwire')
+  const [suggestions, setSuggestions] = useState<EditableSuggestion[]>([])
 
   const providersQuery = useQuery({
-    queryKey: ["expenses", "llm-providers"],
+    queryKey: ['expenses', 'llm-providers'],
     queryFn: fetchLlmProviders,
     enabled: open,
-  });
+  })
 
   const categorizeMutation = useMutation({
     mutationFn: () =>
@@ -105,44 +104,44 @@ export function LlmCategorizeDialog({
         provider,
       ),
     onSuccess: (data) => {
-      const txnMap = new Map(transactions.map((t) => [t.id, t]));
+      const txnMap = new Map(transactions.map((t) => [t.id, t]))
       const editable: EditableSuggestion[] = data.map((suggestion) => {
-        const txn = txnMap.get(suggestion.id);
+        const txn = txnMap.get(suggestion.id)
         return {
           ...suggestion,
           included: true,
-          originalCategory: txn?.category ?? "uncategorized",
-          merchantName: txn?.merchant ?? "Unknown",
+          originalCategory: txn?.category ?? 'uncategorized',
+          merchantName: txn?.merchant ?? 'Unknown',
           amount: txn?.amount ?? 0,
-        };
-      });
-      setSuggestions(editable);
-      setStep("review");
+        }
+      })
+      setSuggestions(editable)
+      setStep('review')
     },
-  });
+  })
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const included = suggestions.filter((s) => s.included);
-      if (included.length === 0) return { updatedCount: 0 };
+      const included = suggestions.filter((s) => s.included)
+      if (included.length === 0) return { updatedCount: 0 }
 
-      const requests: Promise<{ updatedCount: number }>[] = [];
+      const requests: Promise<{ updatedCount: number }>[] = []
       const byCategory = new Map<
         string,
         { ids: string[]; category: string; subcategory: string }
-      >();
+      >()
 
       for (const s of included) {
-        const key = `${s.category}::${s.subcategory}`;
-        const existing = byCategory.get(key);
+        const key = `${s.category}::${s.subcategory}`
+        const existing = byCategory.get(key)
         if (existing) {
-          existing.ids.push(s.id);
+          existing.ids.push(s.id)
         } else {
           byCategory.set(key, {
             ids: [s.id],
             category: s.category,
             subcategory: s.subcategory,
-          });
+          })
         }
       }
 
@@ -153,69 +152,69 @@ export function LlmCategorizeDialog({
             category: group.category,
             subcategory: group.subcategory,
           },
-        };
-        requests.push(bulkUpdateTransactions(req));
+        }
+        requests.push(bulkUpdateTransactions(req))
       }
 
-      const results = await Promise.all(requests);
+      const results = await Promise.all(requests)
       return {
         updatedCount: results.reduce((sum, r) => sum + r.updatedCount, 0),
-      };
+      }
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: ["expenses", "transactions"],
-      });
-      void queryClient.invalidateQueries({ queryKey: ["analytics"] });
-      onComplete();
-      handleClose();
+        queryKey: ['expenses', 'transactions'],
+      })
+      void queryClient.invalidateQueries({ queryKey: ['analytics'] })
+      onComplete()
+      handleClose()
     },
-  });
+  })
 
   const handleClose = useCallback(() => {
-    onOpenChange(false);
+    onOpenChange(false)
     setTimeout(() => {
-      setStep("select-provider");
-      setSuggestions([]);
-      categorizeMutation.reset();
-      saveMutation.reset();
-    }, 200);
-  }, [onOpenChange, categorizeMutation, saveMutation]);
+      setStep('select-provider')
+      setSuggestions([])
+      categorizeMutation.reset()
+      saveMutation.reset()
+    }, 200)
+  }, [onOpenChange, categorizeMutation, saveMutation])
 
   const handleCategorize = () => {
-    setStep("processing");
-    categorizeMutation.mutate();
-  };
+    setStep('processing')
+    categorizeMutation.mutate()
+  }
 
   const toggleSuggestion = (id: string) => {
     setSuggestions((prev) =>
       prev.map((s) => (s.id === id ? { ...s, included: !s.included } : s)),
-    );
-  };
+    )
+  }
 
   const updateSuggestionCategory = (id: string, category: string) => {
     setSuggestions((prev) =>
       prev.map((s) =>
         s.id === id ? { ...s, category, subcategory: category } : s,
       ),
-    );
-  };
+    )
+  }
 
   const updateSuggestionSubcategory = (id: string, subcategory: string) => {
     setSuggestions((prev) =>
       prev.map((s) => (s.id === id ? { ...s, subcategory } : s)),
-    );
-  };
+    )
+  }
 
-  const includedCount = suggestions.filter((s) => s.included).length;
+  const includedCount = suggestions.filter((s) => s.included).length
   const changedCount = suggestions.filter(
     (s) => s.included && s.category !== s.originalCategory,
-  ).length;
+  ).length
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col">
-        {step === "select-provider" && (
+        {step === 'select-provider' && (
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -224,7 +223,7 @@ export function LlmCategorizeDialog({
               </DialogTitle>
               <DialogDescription>
                 Send {transactions.length} transaction
-                {transactions.length !== 1 ? "s" : ""} to an AI model for
+                {transactions.length !== 1 ? 's' : ''} to an AI model for
                 smarter categorization. You can review and edit the suggestions
                 before saving.
               </DialogDescription>
@@ -242,13 +241,13 @@ export function LlmCategorizeDialog({
                 <label
                   htmlFor="provider-openwire"
                   className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
-                    provider === "openwire"
-                      ? "border-primary bg-primary/5"
-                      : "hover:bg-muted/50"
+                    provider === 'openwire'
+                      ? 'border-primary bg-primary/5'
+                      : 'hover:bg-muted/50'
                   } ${
                     providersQuery.data && !providersQuery.data.openwire
-                      ? "cursor-not-allowed opacity-50"
-                      : ""
+                      ? 'cursor-not-allowed opacity-50'
+                      : ''
                   }`}
                 >
                   <RadioGroupItem
@@ -274,13 +273,13 @@ export function LlmCategorizeDialog({
                 <label
                   htmlFor="provider-gemini"
                   className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
-                    provider === "gemini"
-                      ? "border-primary bg-primary/5"
-                      : "hover:bg-muted/50"
+                    provider === 'gemini'
+                      ? 'border-primary bg-primary/5'
+                      : 'hover:bg-muted/50'
                   } ${
                     providersQuery.data && !providersQuery.data.gemini
-                      ? "cursor-not-allowed opacity-50"
-                      : ""
+                      ? 'cursor-not-allowed opacity-50'
+                      : ''
                   }`}
                 >
                   <RadioGroupItem
@@ -318,13 +317,13 @@ export function LlmCategorizeDialog({
               >
                 <Sparkles className="mr-2 size-4" />
                 Categorize {transactions.length} transaction
-                {transactions.length !== 1 ? "s" : ""}
+                {transactions.length !== 1 ? 's' : ''}
               </Button>
             </DialogFooter>
           </>
         )}
 
-        {step === "processing" && (
+        {step === 'processing' && (
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -333,8 +332,8 @@ export function LlmCategorizeDialog({
               </DialogTitle>
               <DialogDescription>
                 Analyzing {transactions.length} transaction
-                {transactions.length !== 1 ? "s" : ""} with{" "}
-                {provider === "openwire" ? "OpenWire" : "Gemini"}...
+                {transactions.length !== 1 ? 's' : ''} with{' '}
+                {provider === 'openwire' ? 'OpenWire' : 'Gemini'}...
               </DialogDescription>
             </DialogHeader>
 
@@ -344,15 +343,15 @@ export function LlmCategorizeDialog({
                   <p className="text-sm text-destructive">
                     {categorizeMutation.error instanceof Error
                       ? categorizeMutation.error.message
-                      : "An error occurred during categorization"}
+                      : 'An error occurred during categorization'}
                   </p>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setStep("select-provider");
-                        categorizeMutation.reset();
+                        setStep('select-provider')
+                        categorizeMutation.reset()
                       }}
                     >
                       <RotateCcw className="mr-2 size-3.5" />
@@ -375,7 +374,7 @@ export function LlmCategorizeDialog({
           </>
         )}
 
-        {step === "review" && (
+        {step === 'review' && (
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -384,10 +383,10 @@ export function LlmCategorizeDialog({
               </DialogTitle>
               <DialogDescription>
                 {suggestions.length} suggestion
-                {suggestions.length !== 1 ? "s" : ""} returned.{" "}
+                {suggestions.length !== 1 ? 's' : ''} returned.{' '}
                 {changedCount > 0
-                  ? `${changedCount} categor${changedCount !== 1 ? "ies" : "y"} changed.`
-                  : "No category changes suggested."}{" "}
+                  ? `${changedCount} categor${changedCount !== 1 ? 'ies' : 'y'} changed.`
+                  : 'No category changes suggested.'}{' '}
                 Edit or uncheck any you want to skip.
               </DialogDescription>
             </DialogHeader>
@@ -408,15 +407,14 @@ export function LlmCategorizeDialog({
                 </thead>
                 <tbody className="divide-y">
                   {suggestions.map((s) => {
-                    const currentMeta = getCategoryMeta(s.originalCategory);
-                    const suggestedMeta = getCategoryMeta(s.category);
-                    const confidenceInfo = getConfidenceLabel(s.confidence);
-                    const changed = s.category !== s.originalCategory;
+                    const currentMeta = getCategoryMeta(s.originalCategory)
+                    const confidenceInfo = getConfidenceLabel(s.confidence)
+                    const changed = s.category !== s.originalCategory
 
                     return (
                       <tr
                         key={s.id}
-                        className={`${!s.included ? "opacity-40" : ""} transition-opacity`}
+                        className={`${!s.included ? 'opacity-40' : ''} transition-opacity`}
                       >
                         <td className="py-2.5 pr-2">
                           <Checkbox
@@ -430,9 +428,9 @@ export function LlmCategorizeDialog({
                           </span>
                         </td>
                         <td className="py-2.5 pr-3 text-right tabular-nums text-xs">
-                          {s.amount.toLocaleString("en-IN", {
-                            style: "currency",
-                            currency: "INR",
+                          {s.amount.toLocaleString('en-IN', {
+                            style: 'currency',
+                            currency: 'INR',
                             maximumFractionDigits: 0,
                           })}
                         </td>
@@ -446,7 +444,7 @@ export function LlmCategorizeDialog({
                             }}
                           >
                             {currentMeta?.label ??
-                              s.originalCategory.replace(/_/g, " ")}
+                              s.originalCategory.replace(/_/g, ' ')}
                           </Badge>
                         </td>
                         <td className="py-2.5 px-1">
@@ -487,10 +485,7 @@ export function LlmCategorizeDialog({
                           <Input
                             value={s.subcategory}
                             onChange={(e) =>
-                              updateSuggestionSubcategory(
-                                s.id,
-                                e.target.value,
-                              )
+                              updateSuggestionSubcategory(s.id, e.target.value)
                             }
                             className="h-7 w-[120px] text-xs"
                           />
@@ -519,7 +514,7 @@ export function LlmCategorizeDialog({
                           </TooltipProvider>
                         </td>
                       </tr>
-                    );
+                    )
                   })}
                 </tbody>
               </table>
@@ -542,7 +537,7 @@ export function LlmCategorizeDialog({
                   <>
                     <Check className="mr-2 size-4" />
                     Save {includedCount} suggestion
-                    {includedCount !== 1 ? "s" : ""}
+                    {includedCount !== 1 ? 's' : ''}
                   </>
                 )}
               </Button>
@@ -551,5 +546,5 @@ export function LlmCategorizeDialog({
         )}
       </DialogContent>
     </Dialog>
-  );
+  )
 }

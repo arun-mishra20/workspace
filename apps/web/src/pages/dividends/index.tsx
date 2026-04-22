@@ -47,10 +47,10 @@ export default function DividendsPage() {
         <header className="flex flex-col gap-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-col gap-2">
-              <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
+              <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
                 Dividends
               </p>
-              <h1 className="text-2xl font-semibold text-foreground">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
                 Dividend Income
               </h1>
               <p className="max-w-2xl text-sm text-muted-foreground">

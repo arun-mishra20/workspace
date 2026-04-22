@@ -1,0 +1,372 @@
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Caveat:wght@400;500;600;700&family=Indie+Flower&display=swap');
+
+@layer components {
+  /* ═══════════════════════════════════════════════════════════════
+     HANDWRITTEN — "Whimsy"
+     Playful sketchbook aesthetic with pencil-drawn feel,
+     wobbly borders, warm cream tones, and bouncy interactions.
+     ═══════════════════════════════════════════════════════════════ */
+
+  :root[data-theme-preset='handwritten'] {
+    --sketch-wobble: 1;
+    --sketch-rotation: -0.5deg;
+    --sketch-border-style: 2px solid var(--border);
+  }
+
+  .dark[data-theme-preset='handwritten'] {
+    --sketch-wobble: 1;
+    --sketch-rotation: -0.5deg;
+  }
+
+  /* ─── SVG Filter for Wobbly Edges ──────────────────────────── */
+  :root[data-theme-preset='handwritten'] body::after {
+    content: '';
+    position: fixed;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    /* SVG filter reference — injected inline for this theme */
+  }
+
+  /* ─── Typography & Background ──────────────────────────────── */
+  :root[data-theme-preset='handwritten'] body {
+    font-family: var(--font-sans);
+    letter-spacing: var(--tracking-normal);
+    line-height: 1.7;
+    background:
+      url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' seed='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23paper)' opacity='0.025'/%3E%3C/svg%3E"),
+      var(--background);
+  }
+
+  .dark[data-theme-preset='handwritten'] body {
+    background:
+      url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' seed='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23paper)' opacity='0.04'/%3E%3C/svg%3E"),
+      var(--background);
+  }
+
+  /* ─── Headings — Caveat display font ───────────────────────── */
+  :root[data-theme-preset='handwritten'] h1,
+  :root[data-theme-preset='handwritten'] h2,
+  :root[data-theme-preset='handwritten'] h3 {
+    font-family: 'Caveat', var(--font-serif);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  :root[data-theme-preset='handwritten'] h1 {
+    font-size: 2.4em;
+  }
+
+  /* ─── Animations ───────────────────────────────────────────── */
+  @keyframes sketch-wiggle {
+    0%,
+    100% {
+      transform: rotate(-0.5deg);
+    }
+    25% {
+      transform: rotate(0.3deg);
+    }
+    50% {
+      transform: rotate(-0.3deg);
+    }
+    75% {
+      transform: rotate(0.5deg);
+    }
+  }
+
+  @keyframes sketch-bounce-in {
+    0% {
+      transform: scale(0.95) rotate(-1deg);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.02) rotate(0.5deg);
+    }
+    100% {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+    }
+  }
+
+  @keyframes sketch-underline-draw {
+    0% {
+      transform: scaleX(0);
+    }
+    100% {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes sketch-shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    20% {
+      transform: translateX(-2px) rotate(-0.5deg);
+    }
+    40% {
+      transform: translateX(2px) rotate(0.5deg);
+    }
+    60% {
+      transform: translateX(-1px) rotate(-0.3deg);
+    }
+    80% {
+      transform: translateX(1px) rotate(0.3deg);
+    }
+  }
+
+  /* ─── Buttons ──────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='button'] {
+    font-family: 'Patrick Hand', var(--font-sans);
+    font-size: 1.05em;
+    border-radius: 12px 4px 10px 6px;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: rotate(calc(var(--sketch-rotation) * 0.3));
+    position: relative;
+  }
+
+  :root[data-theme-preset='handwritten'] [data-slot='button']:hover {
+    transform: rotate(0.5deg) scale(1.04);
+  }
+
+  :root[data-theme-preset='handwritten'] [data-slot='button']:active {
+    transform: rotate(-0.3deg) scale(0.97);
+  }
+
+  /* ─── Cards ────────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='card'] {
+    border: 2px solid var(--border);
+    border-radius: 14px 6px 12px 8px;
+    transform: rotate(calc(var(--sketch-rotation) * 0.2));
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+  }
+
+  :root[data-theme-preset='handwritten'] [data-slot='card']:hover {
+    transform: rotate(0.2deg) translateY(-3px);
+  }
+
+  /* ─── Inputs ───────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='input'],
+  :root[data-theme-preset='handwritten'] [data-slot='textarea'] {
+    font-family: 'Patrick Hand', var(--font-sans);
+    font-size: 1.05em;
+    border: 2px solid var(--border);
+    border-radius: 10px 4px 8px 6px;
+    transition: all 0.2s ease;
+  }
+
+  :root[data-theme-preset='handwritten'] [data-slot='input']:focus,
+  :root[data-theme-preset='handwritten'] [data-slot='textarea']:focus {
+    border-color: var(--accent);
+    transform: rotate(0.2deg);
+  }
+
+  /* ─── Badges — marker highlight ────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='badge'] {
+    font-family: 'Patrick Hand', var(--font-sans);
+    font-size: 0.92em;
+    border-radius: 8px 3px 6px 4px;
+    transform: rotate(calc(var(--sketch-rotation) * 0.5));
+    position: relative;
+  }
+
+  /* ─── Tabs ─────────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='tabs-list'] {
+    border-bottom: 2px dashed var(--border);
+  }
+
+  :root[data-theme-preset='handwritten'] [data-slot='tabs-trigger'] {
+    font-family: 'Caveat', var(--font-serif);
+    font-size: 1.15em;
+    font-weight: 600;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+  }
+
+  :root[data-theme-preset='handwritten'] [data-slot='tabs-trigger']:hover {
+    transform: rotate(1deg) scale(1.05);
+  }
+
+  :root[data-theme-preset='handwritten']
+    [data-slot='tabs-trigger'][data-state='active']::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--accent);
+    border-radius: 2px;
+    transform-origin: left center;
+    animation: sketch-underline-draw 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)
+      forwards;
+  }
+
+  /* ─── Select ───────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='select-trigger'] {
+    font-family: 'Patrick Hand', var(--font-sans);
+    font-size: 1.05em;
+    border: 2px solid var(--border);
+    border-radius: 10px 4px 8px 6px;
+    transition: all 0.2s ease;
+  }
+
+  :root[data-theme-preset='handwritten'] [data-slot='select-trigger']:hover {
+    transform: rotate(0.3deg);
+  }
+
+  :root[data-theme-preset='handwritten'] [data-slot='select-content'] {
+    border: 2px solid var(--border);
+    border-radius: 10px 6px 12px 4px;
+  }
+
+  /* ─── Dialog / Sheet / Drawer ──────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='dialog-content'],
+  :root[data-theme-preset='handwritten'] [data-slot='sheet-content'],
+  :root[data-theme-preset='handwritten'] [data-slot='drawer-content'] {
+    border: 2px solid var(--border);
+    border-radius: 16px 8px 14px 10px;
+  }
+
+  /* ─── Dropdown / Popover / Tooltip ─────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='dropdown-menu-content'],
+  :root[data-theme-preset='handwritten'] [data-slot='popover-content'] {
+    border: 2px solid var(--border);
+    border-radius: 12px 6px 10px 8px;
+  }
+
+  :root[data-theme-preset='handwritten'] [data-slot='tooltip-content'] {
+    font-family: 'Patrick Hand', var(--font-sans);
+    font-size: 0.95em;
+    border: 2px solid var(--border);
+    border-radius: 8px 4px 6px 5px;
+    transform: rotate(-0.5deg);
+  }
+
+  /* ─── Switch ───────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='switch'] {
+    border-radius: 14px 8px 12px 10px;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  :root[data-theme-preset='handwritten']
+    [data-slot='switch'][data-state='checked'] {
+    transform: rotate(1deg);
+  }
+
+  /* ─── Checkbox ─────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='checkbox'] {
+    border: 2px solid var(--border);
+    border-radius: 6px 3px 5px 4px;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  :root[data-theme-preset='handwritten']
+    [data-slot='checkbox'][data-state='checked'] {
+    transform: rotate(2deg) scale(1.05);
+  }
+
+  /* ─── Separator ────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='separator'] {
+    border: none;
+    height: 2px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--border),
+      var(--border) 6px,
+      transparent 6px,
+      transparent 10px
+    );
+  }
+
+  /* ─── Table ────────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='table-header'] {
+    font-family: 'Caveat', var(--font-serif);
+    font-size: 1.15em;
+    font-weight: 700;
+  }
+
+  :root[data-theme-preset='handwritten'] [data-slot='table-row'] {
+    border-bottom: 2px dashed oklch(0.82 0.015 60 / 0.4);
+  }
+
+  :root[data-theme-preset='handwritten'] [data-slot='table-row']:hover {
+    transform: rotate(0.1deg);
+    background: oklch(0.65 0.12 240 / 0.04);
+  }
+
+  /* ─── Skeleton ─────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='skeleton'] {
+    border-radius: 10px 4px 8px 6px;
+    opacity: 0.6;
+  }
+
+  /* ─── Alert ────────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='alert'] {
+    border: 2px solid var(--border);
+    border-radius: 12px 6px 10px 8px;
+    transform: rotate(calc(var(--sketch-rotation) * 0.15));
+  }
+
+  /* ─── Accordion ────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='accordion-item'] {
+    border-bottom: 2px dashed var(--border);
+  }
+
+  /* ─── Avatar ───────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='avatar'] {
+    border: 2px solid var(--border);
+    border-radius: 50% 45% 48% 52%;
+  }
+
+  /* ─── Toggle ───────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='toggle'] {
+    border-radius: 8px 4px 6px 5px;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  :root[data-theme-preset='handwritten'] [data-slot='toggle']:hover {
+    transform: rotate(1deg);
+  }
+
+  /* ─── Slider ───────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='slider-track'] {
+    border-radius: 6px 3px 5px 4px;
+    height: 6px;
+  }
+
+  :root[data-theme-preset='handwritten'] [data-slot='slider-thumb'] {
+    border: 2px solid var(--primary);
+    border-radius: 50% 45% 48% 52%;
+  }
+
+  /* ─── Progress ─────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='progress'] {
+    border-radius: 8px 4px 6px 5px;
+    border: 2px solid var(--border);
+    overflow: hidden;
+  }
+
+  /* ─── Sidebar ──────────────────────────────────────────────── */
+  :root[data-theme-preset='handwritten'] [data-slot='sidebar'] {
+    border-right: 2px dashed var(--border);
+  }
+
+  /* ─── Reduced motion ───────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    :root[data-theme-preset='handwritten'] [data-slot='button'],
+    :root[data-theme-preset='handwritten'] [data-slot='card'],
+    :root[data-theme-preset='handwritten'] [data-slot='tabs-trigger'],
+    :root[data-theme-preset='handwritten'] [data-slot='switch'],
+    :root[data-theme-preset='handwritten'] [data-slot='checkbox'],
+    :root[data-theme-preset='handwritten'] [data-slot='toggle'],
+    :root[data-theme-preset='handwritten']
+      [data-slot='tabs-trigger'][data-state='active']::after {
+      animation: none;
+      transition: none;
+    }
+  }
+}

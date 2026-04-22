@@ -5,6 +5,7 @@ import { useMemo } from 'react'
 import { useAiPageContext } from '@/features/ai-assistant/ai-assistant-context'
 import { buildPrincipalPageContext } from '@/features/ai-assistant/adapters/principal-context'
 import { usePrincipalAnalytics } from '../api/principal'
+import { EmptyState } from '@/components/empty-state'
 
 import { ImportPrincipalDialog } from './import-principal-dialog'
 import { PrincipalKpiCards } from './principal-kpi-cards'
@@ -20,21 +21,12 @@ import { DistributionTable } from './distribution-table'
 
 function PrincipalEmptyState() {
   return (
-    <Card className="py-16">
-      <CardContent className="flex flex-col items-center justify-center text-center">
-        <Wallet className="text-muted-foreground mb-4 h-12 w-12" />
-        <h3 className="text-lg font-semibold">
-          No principal investment data yet
-        </h3>
-        <p className="text-muted-foreground mt-1 max-w-sm text-sm">
-          Paste your monthly investment contributions and asset distribution to
-          see analytics, charts, and milestone projections.
-        </p>
-        <div className="mt-6">
-          <ImportPrincipalDialog />
-        </div>
-      </CardContent>
-    </Card>
+    <EmptyState
+      icon={Wallet}
+      title="No principal investment data yet"
+      description="Paste your monthly investment contributions and asset distribution to see analytics, charts, and milestone projections."
+      action={<ImportPrincipalDialog />}
+    />
   )
 }
 

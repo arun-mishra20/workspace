@@ -1,0 +1,445 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@layer components {
+  /* ═══════════════════════════════════════════════════════════════
+     CYBERPUNK — "Neon Grid"
+     Neon-soaked digital frontier with glitch aesthetics,
+     grid backgrounds, and high-voltage glow effects.
+     ═══════════════════════════════════════════════════════════════ */
+
+  :root[data-theme-preset='cyberpunk'] {
+    --cyber-glow-intensity: 1;
+    --cyber-grid-opacity: 0.06;
+    --cyber-neon-pulse-duration: 2s;
+    --cyber-glitch-duration: 4s;
+  }
+
+  .dark[data-theme-preset='cyberpunk'] {
+    --cyber-glow-intensity: 1.5;
+    --cyber-grid-opacity: 0.12;
+  }
+
+  /* ─── Typography & Background ──────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] body {
+    font-family: var(--font-sans);
+    letter-spacing: var(--tracking-normal);
+    text-transform: none;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 49px,
+        var(--cyber-neon-cyan) 49px,
+        transparent 50px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 49px,
+        var(--cyber-neon-cyan) 49px,
+        transparent 50px
+      ),
+      var(--background);
+    background-blend-mode: overlay;
+  }
+
+  :root[data-theme-preset='cyberpunk'] body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: var(--cyber-grid-opacity);
+    background:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 49px,
+        oklch(0.78 0.2 195 / 0.3) 49px,
+        transparent 50px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 49px,
+        oklch(0.78 0.2 195 / 0.3) 49px,
+        transparent 50px
+      );
+  }
+
+  .dark[data-theme-preset='cyberpunk'] body {
+    background: var(--background);
+  }
+
+  .dark[data-theme-preset='cyberpunk'] body::before {
+    opacity: var(--cyber-grid-opacity);
+    background:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 49px,
+        oklch(0.78 0.2 195 / 0.15) 49px,
+        transparent 50px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 49px,
+        oklch(0.78 0.2 195 / 0.15) 49px,
+        transparent 50px
+      );
+  }
+
+  /* ─── Headings — Orbitron display font ─────────────────────── */
+  :root[data-theme-preset='cyberpunk'] h1,
+  :root[data-theme-preset='cyberpunk'] h2,
+  :root[data-theme-preset='cyberpunk'] h3 {
+    font-family: 'Orbitron', var(--font-sans);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* ─── Animations ───────────────────────────────────────────── */
+  @keyframes cyber-neon-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  @keyframes cyber-glitch {
+    0%,
+    95%,
+    100% {
+      transform: translate(0);
+      filter: none;
+    }
+    96% {
+      transform: translate(-2px, 1px);
+      filter: hue-rotate(90deg);
+    }
+    97% {
+      transform: translate(2px, -1px);
+      filter: hue-rotate(-90deg);
+    }
+    98% {
+      transform: translate(-1px, -1px);
+      filter: hue-rotate(45deg);
+    }
+    99% {
+      transform: translate(1px, 1px);
+      filter: hue-rotate(-45deg);
+    }
+  }
+
+  @keyframes cyber-scanline {
+    0% {
+      transform: translateY(-100%);
+    }
+    100% {
+      transform: translateY(100vh);
+    }
+  }
+
+  @keyframes cyber-border-flow {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  /* ─── Buttons ──────────────────────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='button'] {
+    font-family: 'Orbitron', var(--font-sans);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.82em;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+    transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+  }
+
+  :root[data-theme-preset='cyberpunk'] [data-slot='button']:hover {
+    filter: brightness(1.15);
+    transform: translateY(-1px);
+  }
+
+  :root[data-theme-preset='cyberpunk'] [data-slot='button']:active {
+    transform: translateY(0px);
+    filter: brightness(0.95);
+  }
+
+  /* ─── Cards ────────────────────────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='card'] {
+    border: 1px solid var(--cyber-neon-cyan);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  :root[data-theme-preset='cyberpunk'] [data-slot='card']::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--cyber-neon-pink),
+      var(--cyber-neon-cyan),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: cyber-border-flow 3s linear infinite;
+  }
+
+  :root[data-theme-preset='cyberpunk'] [data-slot='card']:hover {
+    border-color: var(--cyber-neon-pink);
+    box-shadow:
+      0 0 20px oklch(0.72 0.3 340 / 0.15),
+      inset 0 0 20px oklch(0.78 0.2 195 / 0.05);
+  }
+
+  .dark[data-theme-preset='cyberpunk'] [data-slot='card']:hover {
+    box-shadow:
+      0 0 24px oklch(0.72 0.3 340 / 0.35),
+      inset 0 0 24px oklch(0.78 0.2 195 / 0.08);
+  }
+
+  /* ─── Inputs ───────────────────────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='input'],
+  :root[data-theme-preset='cyberpunk'] [data-slot='textarea'] {
+    font-family: 'JetBrains Mono', var(--font-mono);
+    border: 1px solid oklch(0.78 0.2 195 / 0.3);
+    transition: all 0.2s ease;
+  }
+
+  :root[data-theme-preset='cyberpunk'] [data-slot='input']:focus,
+  :root[data-theme-preset='cyberpunk'] [data-slot='textarea']:focus {
+    border-color: var(--cyber-neon-pink);
+    box-shadow:
+      0 0 10px oklch(0.72 0.3 340 / 0.2),
+      0 0 20px oklch(0.72 0.3 340 / 0.1);
+  }
+
+  .dark[data-theme-preset='cyberpunk'] [data-slot='input']:focus,
+  .dark[data-theme-preset='cyberpunk'] [data-slot='textarea']:focus {
+    box-shadow:
+      0 0 14px oklch(0.72 0.3 340 / 0.4),
+      0 0 28px oklch(0.72 0.3 340 / 0.2);
+  }
+
+  /* ─── Badges ───────────────────────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='badge'] {
+    font-family: 'Orbitron', var(--font-sans);
+    font-size: 0.68em;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+  }
+
+  /* ─── Tabs ─────────────────────────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='tabs-list'] {
+    border-bottom: 1px solid oklch(0.78 0.2 195 / 0.3);
+  }
+
+  :root[data-theme-preset='cyberpunk'] [data-slot='tabs-trigger'] {
+    font-family: 'Orbitron', var(--font-sans);
+    font-size: 0.78em;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+
+  :root[data-theme-preset='cyberpunk']
+    [data-slot='tabs-trigger'][data-state='active']::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      var(--cyber-neon-pink),
+      var(--cyber-neon-cyan)
+    );
+    animation: cyber-neon-pulse var(--cyber-neon-pulse-duration) ease-in-out
+      infinite;
+  }
+
+  /* ─── Select ───────────────────────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='select-trigger'] {
+    border: 1px solid oklch(0.78 0.2 195 / 0.3);
+    transition: all 0.2s ease;
+  }
+
+  :root[data-theme-preset='cyberpunk'] [data-slot='select-trigger']:hover {
+    border-color: var(--cyber-neon-pink);
+  }
+
+  :root[data-theme-preset='cyberpunk'] [data-slot='select-content'] {
+    border: 1px solid oklch(0.78 0.2 195 / 0.3);
+  }
+
+  /* ─── Progress ─────────────────────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='progress'] {
+    overflow: hidden;
+    position: relative;
+  }
+
+  :root[data-theme-preset='cyberpunk'] [data-slot='progress']::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 4px,
+      oklch(0.78 0.2 195 / 0.15) 4px,
+      oklch(0.78 0.2 195 / 0.15) 8px
+    );
+  }
+
+  /* ─── Dialog / Sheet / Drawer ──────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='dialog-content'],
+  :root[data-theme-preset='cyberpunk'] [data-slot='sheet-content'],
+  :root[data-theme-preset='cyberpunk'] [data-slot='drawer-content'] {
+    border: 1px solid var(--cyber-neon-cyan);
+    position: relative;
+    overflow: hidden;
+  }
+
+  :root[data-theme-preset='cyberpunk'] [data-slot='dialog-content']::before,
+  :root[data-theme-preset='cyberpunk'] [data-slot='sheet-content']::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--cyber-neon-pink),
+      var(--cyber-neon-cyan),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: cyber-border-flow 3s linear infinite;
+  }
+
+  /* ─── Dropdown / Popover / Tooltip ─────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='dropdown-menu-content'],
+  :root[data-theme-preset='cyberpunk'] [data-slot='popover-content'] {
+    border: 1px solid oklch(0.78 0.2 195 / 0.3);
+  }
+
+  :root[data-theme-preset='cyberpunk'] [data-slot='tooltip-content'] {
+    font-family: 'JetBrains Mono', var(--font-mono);
+    font-size: 0.75em;
+    letter-spacing: 0.04em;
+    border: 1px solid var(--cyber-neon-cyan);
+  }
+
+  /* ─── Switch ───────────────────────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='switch'] {
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  :root[data-theme-preset='cyberpunk']
+    [data-slot='switch'][data-state='checked'] {
+    box-shadow:
+      0 0 10px var(--cyber-neon-pink),
+      0 0 20px oklch(0.72 0.3 340 / 0.3);
+  }
+
+  .dark[data-theme-preset='cyberpunk']
+    [data-slot='switch'][data-state='checked'] {
+    box-shadow:
+      0 0 14px var(--cyber-neon-pink),
+      0 0 28px oklch(0.72 0.3 340 / 0.4);
+  }
+
+  /* ─── Separator ────────────────────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='separator'] {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--cyber-neon-cyan),
+      transparent
+    );
+    height: 1px;
+  }
+
+  /* ─── Table ────────────────────────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='table-header'] {
+    font-family: 'Orbitron', var(--font-sans);
+    font-size: 0.72em;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  :root[data-theme-preset='cyberpunk'] [data-slot='table-row']:hover {
+    background: oklch(0.78 0.2 195 / 0.05);
+  }
+
+  .dark[data-theme-preset='cyberpunk'] [data-slot='table-row']:hover {
+    background: oklch(0.78 0.2 195 / 0.08);
+  }
+
+  /* ─── Sidebar ──────────────────────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='sidebar'] {
+    border-right: 1px solid oklch(0.78 0.2 195 / 0.2);
+  }
+
+  /* ─── Skeleton ─────────────────────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='skeleton'] {
+    background: linear-gradient(
+      90deg,
+      oklch(0.78 0.2 195 / 0.06),
+      oklch(0.72 0.3 340 / 0.08),
+      oklch(0.78 0.2 195 / 0.06)
+    );
+    background-size: 200% 100%;
+    animation: cyber-border-flow 2s linear infinite;
+  }
+
+  /* ─── Alert ────────────────────────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='alert'] {
+    border: 1px solid oklch(0.78 0.2 195 / 0.3);
+    position: relative;
+  }
+
+  /* ─── Accordion ────────────────────────────────────────────── */
+  :root[data-theme-preset='cyberpunk'] [data-slot='accordion-item'] {
+    border-bottom: 1px solid oklch(0.78 0.2 195 / 0.2);
+  }
+
+  /* ─── Reduced motion ───────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    :root[data-theme-preset='cyberpunk'] [data-slot='card']::before,
+    :root[data-theme-preset='cyberpunk'] [data-slot='dialog-content']::before,
+    :root[data-theme-preset='cyberpunk'] [data-slot='sheet-content']::before,
+    :root[data-theme-preset='cyberpunk']
+      [data-slot='tabs-trigger'][data-state='active']::after,
+    :root[data-theme-preset='cyberpunk'] [data-slot='skeleton'],
+    :root[data-theme-preset='cyberpunk'] [data-slot='switch'] {
+      animation: none;
+    }
+  }
+}

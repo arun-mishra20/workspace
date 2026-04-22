@@ -270,8 +270,8 @@ const buildExpenseColumns = (
       <div
         className={
           row.original.transactionType === 'debited'
-            ? 'font-medium text-red-600'
-            : 'font-medium text-emerald-600'
+            ? 'font-medium text-negative'
+            : 'font-medium text-positive'
         }
       >
         {formatAmount(row.original)}
@@ -619,10 +619,12 @@ const ExpenseEmailsPage = () => {
       <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
         <header className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
+            <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
               Expenses
             </p>
-            <h1 className="text-2xl font-semibold text-foreground">Expenses</h1>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+              Expenses
+            </h1>
             <p className="max-w-2xl text-sm text-muted-foreground">
               View derived expense transactions and source emails.
             </p>
@@ -993,11 +995,9 @@ const ExpenseEmailsPage = () => {
                     )}
                     <BulkActionsToolbar
                       selectedIds={Object.keys(rowSelection)}
-                      selectedTransactions={
-                        (expensesData?.data ?? []).filter(
-                          (t) => rowSelection[t.id as keyof typeof rowSelection],
-                        )
-                      }
+                      selectedTransactions={(expensesData?.data ?? []).filter(
+                        (t) => rowSelection[t.id as keyof typeof rowSelection],
+                      )}
                       onClearSelection={() => setRowSelection({})}
                     />
                   </div>

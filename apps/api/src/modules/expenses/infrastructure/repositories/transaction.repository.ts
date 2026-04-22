@@ -1019,13 +1019,17 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     const WINDOW = 7
     const dailyAmounts = rows.map((r) => ({ date: r.date, amount: Number(r.daily) }))
 
+    // Sliding window sum to avoid repeated slice + reduce
+    let windowSum = 0
     return dailyAmounts.map((item, index) => {
-      const windowStart = Math.max(0, index - WINDOW + 1)
-      const window = dailyAmounts.slice(windowStart, index + 1)
-      const avg = window.reduce((sum, w) => sum + w.amount, 0) / window.length
+      windowSum += item.amount
+      if (index >= WINDOW) {
+        windowSum -= dailyAmounts[index - WINDOW]!.amount
+      }
+      const windowSize = Math.min(index + 1, WINDOW)
       return {
         date: item.date,
-        velocity: Math.round(avg * 100) / 100,
+        velocity: Math.round((windowSum / windowSize) * 100) / 100,
       }
     })
   }

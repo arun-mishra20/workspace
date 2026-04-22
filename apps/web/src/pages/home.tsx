@@ -1,10 +1,12 @@
-import { MainLayout } from "@/components/layouts";
-import { Hero } from "@/features/home/components/hero";
+import { BlankLayout } from '@/components/layouts'
+import { Nav } from '@/components/nav/nav'
+import { Hero } from '@/features/home/components/hero'
 
 export const HomePage = () => {
   return (
-    <MainLayout>
+    <BlankLayout>
+      <Nav />
       <Hero />
-    </MainLayout>
-  );
-};
+    </BlankLayout>
+  )
+}

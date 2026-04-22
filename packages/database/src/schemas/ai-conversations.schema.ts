@@ -7,6 +7,7 @@ export const aiConversationsTable = pgTable('ai_conversations', {
   userId: uuid('user_id').notNull().references(() => usersTable.id, { onDelete: 'cascade' }),
   title: text('title').notNull().default('New conversation'),
   model: text('model'),
+  pinnedAt: timestamp('pinned_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 })

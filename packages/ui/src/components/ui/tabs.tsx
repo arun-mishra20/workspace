@@ -8,7 +8,13 @@ function Tabs({ ...props }: React.ComponentProps<typeof TabsPrimitive.Root>) {
 }
 Tabs.displayName = 'Tabs'
 
-const TabsList = ({ ref, className, ...props }: React.ComponentPropsWithoutRef<typeof TabsPrimitive.List> & { ref?: React.RefObject<React.ElementRef<typeof TabsPrimitive.List> | null> }) => (
+const TabsList = ({
+  ref,
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof TabsPrimitive.List> & {
+  ref?: React.RefObject<React.ElementRef<typeof TabsPrimitive.List> | null>
+}) => (
   <TabsPrimitive.List
     ref={ref}
     data-slot="tabs-list"
@@ -21,7 +27,13 @@ const TabsList = ({ ref, className, ...props }: React.ComponentPropsWithoutRef<t
 )
 TabsList.displayName = TabsPrimitive.List.displayName
 
-const TabsTrigger = ({ ref, className, ...props }: React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger> & { ref?: React.RefObject<React.ElementRef<typeof TabsPrimitive.Trigger> | null> }) => (
+const TabsTrigger = ({
+  ref,
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger> & {
+  ref?: React.RefObject<React.ElementRef<typeof TabsPrimitive.Trigger> | null>
+}) => (
   <TabsPrimitive.Trigger
     ref={ref}
     data-slot="tabs-trigger"
@@ -34,12 +46,18 @@ const TabsTrigger = ({ ref, className, ...props }: React.ComponentPropsWithoutRe
 )
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
 
-const TabsContent = ({ ref, className, ...props }: React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content> & { ref?: React.RefObject<React.ElementRef<typeof TabsPrimitive.Content> | null> }) => (
+const TabsContent = ({
+  ref,
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content> & {
+  ref?: React.RefObject<React.ElementRef<typeof TabsPrimitive.Content> | null>
+}) => (
   <TabsPrimitive.Content
     ref={ref}
     data-slot="tabs-content"
     className={cn(
-      'mt-2 ring-offset-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+      'mt-2 ring-offset-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-150',
       className,
     )}
     {...props}

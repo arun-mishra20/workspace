@@ -5,9 +5,11 @@
  */
 
 import { DEFAULT_PRESET_NAME } from './presets'
-import type { ThemeConfig } from './types'
+import { NAVIGATION_LAYOUT_IDS, type NavigationLayoutId, type ThemeConfig } from './types'
 
 const STORAGE_KEY = 'workspace-theme'
+export const SIDEBAR_COLLAPSED_STORAGE_KEY = 'workspace-sidebar-collapsed'
+export const DEFAULT_NAVIGATION_LAYOUT: NavigationLayoutId = 'sidebar'
 
 /**
  * Load theme configuration from localStorage
@@ -29,6 +31,16 @@ export function loadThemeConfig(): ThemeConfig | null {
       console.warn('Invalid theme config: missing or invalid overrides')
       return null
     }
+
+    if (
+      parsed.navigationLayout
+      && !(NAVIGATION_LAYOUT_IDS as readonly string[]).includes(parsed.navigationLayout)
+    ) {
+      console.warn('Invalid theme config: invalid navigation layout')
+      return null
+    }
+
+    parsed.navigationLayout ??= DEFAULT_NAVIGATION_LAYOUT
 
     return parsed
   } catch (error) {
@@ -65,6 +77,7 @@ export function clearThemeConfig(): void {
 export function getDefaultConfig(): ThemeConfig {
   return {
     preset: DEFAULT_PRESET_NAME,
+    navigationLayout: DEFAULT_NAVIGATION_LAYOUT,
     overrides: {
       light: {},
       dark: {},

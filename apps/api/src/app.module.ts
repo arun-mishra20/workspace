@@ -32,6 +32,7 @@ import { PrincipalModule } from '@/modules/principal/principal.module'
 import { TodoModule } from '@/modules/todo/todo.module'
 import { DrizzleModule } from '@/shared/infrastructure/db/db.module'
 import { DomainEventsModule } from '@/shared/infrastructure/events/domain-events.module'
+import { JobManagerModule } from '@/shared/infrastructure/utils/job-manager.module'
 
 import type { NestModule, MiddlewareConsumer } from '@nestjs/common'
 
@@ -59,7 +60,7 @@ import type { NestModule, MiddlewareConsumer } from '@nestjs/common'
     EventEmitterModule.forRoot({
       wildcard: true, // Support wildcard event listeners (e.g., 'user.*')
       delimiter: '.', // Event name delimiter
-      maxListeners: 10, // Max listeners per event
+      maxListeners: 25, // Max listeners per event
       verboseMemoryLeak: true, // Warn when exceeding maxListeners
       ignoreErrors: false, // Don't ignore event handler errors
     }),
@@ -67,6 +68,8 @@ import type { NestModule, MiddlewareConsumer } from '@nestjs/common'
     DrizzleModule.forRoot(),
     // Domain events module: global domain event publisher
     DomainEventsModule,
+    // Job manager module: in-memory job queue with concurrency control
+    JobManagerModule,
     // Rate limiting module: prevent API abuse
     ThrottlerModule.forRoot([
       {

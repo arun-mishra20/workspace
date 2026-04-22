@@ -1,14 +1,17 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  Bot,
+  Briefcase,
+  Compass,
   CornerDownLeft,
   LoaderCircle,
   PanelLeftClose,
   PanelLeftOpen,
+  Plane,
   Plus,
   Sparkles,
+  TrendingUp,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { type ComponentType, useEffect, useRef, useState } from 'react'
 
 import {
   getAiAssistantStatus,
@@ -19,7 +22,6 @@ import { AssistantAnalysisTrace } from '@/features/ai-assistant/components/assis
 import { AssistantFeedback } from '@/features/ai-assistant/components/assistant-feedback'
 import { AssistantMessage } from '@/features/ai-assistant/components/assistant-message'
 import { ConversationSidebar } from '@/features/ai-assistant/components/conversation-sidebar'
-import { Badge } from '@workspace/ui/components/ui/badge'
 import { Button } from '@workspace/ui/components/ui/button'
 import {
   Select,
@@ -28,16 +30,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/ui/select'
-import { ScrollArea } from '@workspace/ui/components/ui/scroll-area'
 import { Textarea } from '@workspace/ui/components/ui/textarea'
 import { cn } from '@workspace/ui/lib/utils'
 
-const QUICK_PROMPTS = [
-  'How much have I invested in gold?',
-  'What are my top three holdings by current value?',
-  'Infer the strongest travel operating pattern from flights and hotels together.',
-  'Which platform has the highest allocation and what does that imply?',
-  'What should I investigate next across my finances and travel data?',
+type PromptCard = {
+  category: string
+  Icon: ComponentType<{ className?: string }>
+  prompt: string
+}
+
+const PROMPT_CARDS: PromptCard[] = [
+  {
+    category: 'Holdings',
+    Icon: Briefcase,
+    prompt:
+      'What are my top three holdings by current value and how are they allocated?',
+  },
+  {
+    category: 'Travel',
+    Icon: Plane,
+    prompt:
+      'Infer the strongest travel operating pattern from flights and hotels together.',
+  },
+  {
+    category: 'Finance',
+    Icon: TrendingUp,
+    prompt:
+      'Which platform has the highest allocation and what does that imply?',
+  },
+  {
+    category: 'Explore',
+    Icon: Compass,
+    prompt:
+      'What should I investigate next across my finances and travel data?',
+  },
 ]
 
 export function DashboardChat() {
@@ -46,6 +72,7 @@ export function DashboardChat() {
   const [draft, setDraft] = useState('')
   const [selectedModel, setSelectedModel] = useState<string>('')
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
   const prevSendingRef = useRef(isSending)
@@ -89,7 +116,10 @@ export function DashboardChat() {
   }, [statusQuery.data])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = scrollContainerRef.current
+    if (el) {
+      el.scrollTop = el.scrollHeight
+    }
   }, [messages, isSending])
 
   const available = statusQuery.data?.available ?? false
@@ -114,62 +144,87 @@ export function DashboardChat() {
     return (
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {sidebarOpen && <ConversationSidebar />}
-        <div
-          data-slot="badge"
-          className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-card"
-        >
-          <div className="absolute left-3 top-3 z-10">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              onClick={() => setSidebarOpen((o) => !o)}
-              aria-label={sidebarOpen ? 'Hide threads' : 'Show threads'}
-            >
-              {sidebarOpen ? (
-                <PanelLeftClose className="size-4" />
-              ) : (
-                <PanelLeftOpen className="size-4" />
-              )}
-            </Button>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card">
+          {/* Page header */}
+          <div className="shrink-0 border-b border-border/60 px-6 pt-8 pb-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1.5">
+                <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
+                  AI Assistant
+                </p>
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+                  What would you like to explore?
+                </h1>
+                <p className="max-w-2xl text-sm text-muted-foreground">
+                  Ask about your holdings, expenses, flights, hotels, or uncover
+                  patterns across your personal data.
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1 pt-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  onClick={() => setSidebarOpen((o) => !o)}
+                  aria-label={sidebarOpen ? 'Hide threads' : 'Show threads'}
+                >
+                  {sidebarOpen ? (
+                    <PanelLeftClose className="size-4" />
+                  ) : (
+                    <PanelLeftOpen className="size-4" />
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  onClick={startNewConversation}
+                  aria-label="New conversation"
+                >
+                  <Plus className="size-3.5" />
+                </Button>
+              </div>
+            </div>
           </div>
 
-          <div className="flex min-h-0 flex-1 items-center justify-center px-4 pb-48 pt-8 sm:px-6 lg:px-8">
-            <div className="max-w-xl space-y-2 text-center">
-              <div className="mb-4 flex items-center justify-center gap-2">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
-                  <Bot className="size-5 text-primary" />
+          <div className="flex min-h-0 flex-1 items-center justify-center px-4 pb-44 pt-8 sm:px-6">
+            <div className="w-full max-w-xl space-y-8 text-center">
+              <div className="space-y-3">
+                <div className="flex items-center justify-center">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+                    <Sparkles className="size-5 text-primary" />
+                  </div>
                 </div>
-              </div>
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                What would you like to explore?
-              </h1>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Ask about holdings, expenses, flights, hotels, or any pattern
-                across your personal data.
-              </p>
-
-              <div className="space-y-2 pt-6">
-                <p className="px-1 text-xs text-muted-foreground">
-                  Try asking…
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Choose a prompt below or type your own question to get
+                  started.
                 </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {QUICK_PROMPTS.map((prompt) => (
-                    <button
-                      key={prompt}
-                      type="button"
-                      onClick={() =>
-                        void sendMessage(prompt, selectedModel || undefined)
-                      }
-                      disabled={isSending || !available}
-                      className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-border hover:bg-muted/60 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <Sparkles className="size-3 shrink-0" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {PROMPT_CARDS.map(({ category, Icon, prompt }) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    onClick={() =>
+                      void sendMessage(prompt, selectedModel || undefined)
+                    }
+                    disabled={isSending || !available}
+                    className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/60 p-4 text-left transition-colors hover:border-border hover:bg-card disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {category}
+                      </span>
+                      <Icon className="ml-auto size-3.5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm leading-snug text-foreground">
                       {prompt}
-                    </button>
-                  ))}
-                </div>
+                    </p>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -195,92 +250,76 @@ export function DashboardChat() {
     <div className="flex min-h-0 flex-1 overflow-hidden">
       {sidebarOpen && <ConversationSidebar />}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
-        <div className="border-b bg-background/95 px-4 py-3 backdrop-blur-sm sm:px-6">
-          <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-8"
-                onClick={() => setSidebarOpen((o) => !o)}
-                aria-label={sidebarOpen ? 'Hide threads' : 'Show threads'}
-              >
-                {sidebarOpen ? (
-                  <PanelLeftClose className="size-4" />
-                ) : (
-                  <PanelLeftOpen className="size-4" />
-                )}
-              </Button>
-              <Bot className="size-4 text-muted-foreground" />
-              <span className="text-sm font-medium">AI Assistant</span>
-              <Badge
-                variant={statusQuery.data?.available ? 'secondary' : 'outline'}
-                className="text-xs"
-              >
-                {statusQuery.data?.available ? 'OpenWire ready' : 'Unavailable'}
-              </Badge>
-            </div>
+        <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/60 px-4">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={() => setSidebarOpen((o) => !o)}
+            aria-label={sidebarOpen ? 'Hide threads' : 'Show threads'}
+          >
+            {sidebarOpen ? (
+              <PanelLeftClose className="size-4" />
+            ) : (
+              <PanelLeftOpen className="size-4" />
+            )}
+          </Button>
 
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              {statusQuery.data?.available &&
-                statusQuery.data.models.length > 0 && (
-                  <Select
-                    value={selectedModel}
-                    onValueChange={setSelectedModel}
-                    disabled={isSending}
-                  >
-                    <SelectTrigger className="h-8 w-34 border-border/50 bg-muted/40 text-xs sm:h-7 sm:w-auto sm:max-w-50">
-                      <SelectValue placeholder="Model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statusQuery.data.models.map((model) => (
-                        <SelectItem
-                          key={model}
-                          value={model}
-                          className="text-xs"
-                        >
-                          {model}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-8"
-                onClick={startNewConversation}
-                aria-label="New conversation"
-              >
-                <Plus className="size-3.5" />
-              </Button>
-            </div>
+          <div className="flex items-center gap-2">
+            {statusQuery.data?.available &&
+              statusQuery.data.models.length > 0 && (
+                <Select
+                  value={selectedModel}
+                  onValueChange={setSelectedModel}
+                  disabled={isSending}
+                >
+                  <SelectTrigger className="h-7 w-auto max-w-[180px] border-border/50 bg-muted/40 text-xs">
+                    <SelectValue placeholder="Model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusQuery.data.models.map((model) => (
+                      <SelectItem key={model} value={model} className="text-xs">
+                        {model}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={startNewConversation}
+              aria-label="New conversation"
+            >
+              <Plus className="size-3.5" />
+            </Button>
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-hidden pb-44 sm:pb-48">
-          <ScrollArea className="h-full px-4 py-4 sm:px-6 sm:py-6">
-            <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col gap-4 pb-6">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={
-                    message.role === 'user'
-                      ? 'flex justify-end'
-                      : 'flex justify-start'
-                  }
-                >
-                  <div
-                    data-slot="badge"
-                    className={
-                      message.role === 'user'
-                        ? 'max-w-[88%] rounded-2xl bg-primary px-4 py-3 text-sm text-primary-foreground sm:max-w-[80%]'
-                        : 'max-w-[94%] rounded-2xl border border-border/60 bg-muted/35 px-4 py-3 text-sm sm:max-w-[88%]'
-                    }
-                  >
-                    {message.role === 'assistant' ? (
+        <div
+          ref={scrollContainerRef}
+          className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-44 sm:px-6 sm:py-6 sm:pb-48"
+        >
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 pb-6">
+            {messages.map((message) => (
+              <div key={message.id}>
+                {message.role === 'user' ? (
+                  <div className="flex justify-end">
+                    <div className="max-w-[88%] rounded-2xl bg-primary px-4 py-3 text-sm text-primary-foreground sm:max-w-[80%]">
+                      <div className="whitespace-pre-wrap leading-6">
+                        {message.content}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <div className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card">
+                      <Sparkles className="size-3.5 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-3 pt-0.5 text-sm">
                       <AssistantMessage
                         content={message.content}
                         isStreaming={message.isStreaming}
@@ -289,33 +328,29 @@ export function DashboardChat() {
                           void sendMessage(action, selectedModel || undefined)
                         }
                       />
-                    ) : (
-                      <div className="whitespace-pre-wrap leading-6">
-                        {message.content}
-                      </div>
-                    )}
-                    {message.role === 'assistant' && !message.isStreaming ? (
-                      <>
-                        <AssistantFeedback messageId={message.id} />
-                        <AssistantAnalysisTrace
-                          analysis={message.analysis}
-                          toolsUsed={message.toolsUsed}
-                        />
-                      </>
-                    ) : null}
+                      {!message.isStreaming && (
+                        <>
+                          <AssistantFeedback messageId={message.id} />
+                          <AssistantAnalysisTrace
+                            analysis={message.analysis}
+                            toolsUsed={message.toolsUsed}
+                          />
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )}
+              </div>
+            ))}
 
-              {error && (
-                <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                  {error}
-                </div>
-              )}
+            {error && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
 
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
+            <div ref={messagesEndRef} />
+          </div>
         </div>
 
         <DashboardComposer
@@ -373,76 +408,67 @@ function DashboardComposer({
         sidebarOpen ? 'left-64' : 'left-0',
       )}
     >
-      {/* <div className="absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-background via-background/92 to-transparent" /> */}
       <div className="pointer-events-auto relative mx-auto max-w-3xl">
-        <div className="rounded-3xl border border-border/70 bg-background/90 p-2 shadow-[0_-10px_40px_rgba(0,0,0,0.08)] backdrop-blur-xl sm:p-3">
-          <div className="relative rounded-2xl border border-border/70 bg-card shadow-sm transition-all focus-within:border-border focus-within:ring-1 focus-within:ring-ring/20">
-            <Textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder={
-                compact
-                  ? 'Ask a follow-up question…'
-                  : 'Ask anything about your data...'
-              }
-              rows={compact ? 2 : 3}
-              disabled={isSending || !available}
-              className="min-h-24 resize-none rounded-2xl border-0 bg-transparent px-4 pt-4 pb-16 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:px-5"
-            />
-            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
-              {statusQuery.data?.available &&
-              statusQuery.data.models.length > 0 ? (
-                <Select
-                  value={selectedModel}
-                  onValueChange={setSelectedModel}
-                  disabled={isSending}
-                >
-                  <SelectTrigger className="h-8 w-34 border-border/50 bg-muted/40 text-xs sm:w-auto sm:max-w-45">
-                    <SelectValue placeholder="Model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusQuery.data.models.map((model) => (
-                      <SelectItem key={model} value={model} className="text-xs">
-                        {model}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Badge
-                  variant={
-                    statusQuery.data?.available ? 'secondary' : 'outline'
-                  }
-                  className="text-xs"
-                >
-                  {statusQuery.isLoading
-                    ? 'Checking OpenWire…'
-                    : statusQuery.data?.available
-                      ? `OpenWire ready · ${statusQuery.data.defaultModel}`
-                      : 'OpenWire unavailable'}
-                </Badge>
-              )}
+        <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/95 shadow-[0_-10px_40px_rgba(0,0,0,0.08)] backdrop-blur-xl">
+          <Textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder={
+              compact
+                ? 'Ask a follow-up question…'
+                : 'Ask anything about your data…'
+            }
+            rows={compact ? 2 : 3}
+            disabled={isSending || !available}
+            className="min-h-[80px] resize-none border-0 bg-transparent px-4 pb-2 pt-4 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:px-5"
+          />
+          <div className="flex items-center justify-between border-t border-border/60 px-3 py-2.5">
+            {statusQuery.data?.available &&
+            statusQuery.data.models.length > 0 ? (
+              <Select
+                value={selectedModel}
+                onValueChange={setSelectedModel}
+                disabled={isSending}
+              >
+                <SelectTrigger className="h-7 w-auto max-w-[180px] border-border/50 bg-muted/40 text-xs">
+                  <SelectValue placeholder="Model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusQuery.data.models.map((model) => (
+                    <SelectItem key={model} value={model} className="text-xs">
+                      {model}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                {statusQuery.isLoading
+                  ? 'Checking OpenWire…'
+                  : statusQuery.data?.available
+                    ? `OpenWire ready · ${statusQuery.data.defaultModel}`
+                    : 'OpenWire unavailable'}
+              </span>
+            )}
 
-              <div className="flex items-center gap-2">
-                <p className="hidden text-xs text-muted-foreground sm:block">
-                  ⌘ Enter to send
-                </p>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => void onSubmit()}
-                  disabled={!draft.trim() || isSending || !available}
-                  className="h-8 gap-1.5 rounded-xl px-3 text-xs"
-                >
-                  {isSending ? (
-                    <LoaderCircle className="size-3.5 animate-spin" />
-                  ) : (
-                    <CornerDownLeft className="size-3.5" />
-                  )}
-                  {isSending ? 'Thinking…' : 'Send'}
-                </Button>
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="hidden text-xs text-muted-foreground sm:block">
+                ⌘↵
+              </span>
+              <Button
+                type="button"
+                size="icon"
+                onClick={() => void onSubmit()}
+                disabled={!draft.trim() || isSending || !available}
+                className="size-8 rounded-xl"
+              >
+                {isSending ? (
+                  <LoaderCircle className="size-3.5 animate-spin" />
+                ) : (
+                  <CornerDownLeft className="size-3.5" />
+                )}
+              </Button>
             </div>
           </div>
         </div>

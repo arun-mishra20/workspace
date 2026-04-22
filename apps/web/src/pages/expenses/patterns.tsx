@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { format, parseISO } from "date-fns";
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { format, parseISO } from 'date-fns'
 import {
   Bar,
   BarChart,
@@ -12,28 +12,29 @@ import {
   PieChart,
   XAxis,
   YAxis,
-} from "recharts";
+} from 'recharts'
 
-import { MainLayout } from "@/components/layouts";
-import { fetchBusAnalytics } from "@/features/expenses/api/bus-analytics";
-import { fetchInvestmentAnalytics } from "@/features/expenses/api/investment-analytics";
-import { PrincipalInvestmentTab } from "@/features/principal/components/principal-tab";
+import { EmptyState } from '@/components/empty-state'
+import { MainLayout } from '@/components/layouts'
+import { fetchBusAnalytics } from '@/features/expenses/api/bus-analytics'
+import { fetchInvestmentAnalytics } from '@/features/expenses/api/investment-analytics'
+import { PrincipalInvestmentTab } from '@/features/principal/components/principal-tab'
 
 import type {
   AnalyticsPeriod,
   BusAnalytics,
   InvestmentAnalytics,
-} from "@workspace/domain";
+} from '@workspace/domain'
 
-import { Badge } from "@workspace/ui/components/ui/badge";
-import { Button } from "@workspace/ui/components/ui/button";
+import { Badge } from '@workspace/ui/components/ui/badge'
+import { Button } from '@workspace/ui/components/ui/button'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@workspace/ui/components/ui/card";
+} from '@workspace/ui/components/ui/card'
 import {
   type ChartConfig,
   ChartContainer,
@@ -41,8 +42,8 @@ import {
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-} from "@workspace/ui/components/ui/chart";
-import { Skeleton } from "@workspace/ui/components/ui/skeleton";
+} from '@workspace/ui/components/ui/chart'
+import { Skeleton } from '@workspace/ui/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -50,13 +51,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@workspace/ui/components/ui/table";
+} from '@workspace/ui/components/ui/table'
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@workspace/ui/components/ui/tabs";
+} from '@workspace/ui/components/ui/tabs'
 import {
   Bus,
   Calendar,
@@ -68,52 +69,74 @@ import {
   Activity,
   Repeat,
   Wallet,
-} from "lucide-react";
-import { Separator } from "@workspace/ui/components/ui/separator";
+} from 'lucide-react'
+import { Separator } from '@workspace/ui/components/ui/separator'
 
 // ── Helpers ──
 
 const PERIODS: { label: string; value: AnalyticsPeriod }[] = [
-  { label: "30 days", value: "month" },
-  { label: "90 days", value: "quarter" },
-  { label: "1 year", value: "year" },
-];
+  { label: '30 days', value: 'month' },
+  { label: '90 days', value: 'quarter' },
+  { label: '1 year', value: 'year' },
+]
 
 const fmtCurrency = (n: number) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
     maximumFractionDigits: 0,
-  }).format(n);
+  }).format(n)
 
 const DAY_COLORS: Record<string, string> = {
-  Mon: "var(--color-chart-1)",
-  Tue: "var(--color-chart-2)",
-  Wed: "var(--color-chart-3)",
-  Thu: "var(--color-chart-4)",
-  Fri: "var(--color-chart-5)",
-  Sat: "var(--color-chart-1)",
-  Sun: "var(--color-chart-2)",
-};
+  Mon: 'var(--color-chart-1)',
+  Tue: 'var(--color-chart-2)',
+  Wed: 'var(--color-chart-3)',
+  Thu: 'var(--color-chart-4)',
+  Fri: 'var(--color-chart-5)',
+  Sat: 'var(--color-chart-1)',
+  Sun: 'var(--color-chart-2)',
+}
 
 // ── Chart Configs ──
 
 const monthlyChartConfig: ChartConfig = {
-  trips: { label: "Trips", color: "var(--color-chart-1)" },
-  amount: { label: "Spent", color: "var(--color-chart-2)" },
-};
+  trips: { label: 'Trips', color: 'var(--color-chart-1)' },
+  amount: { label: 'Spent', color: 'var(--color-chart-2)' },
+}
 
 const dayOfWeekChartConfig: ChartConfig = {
-  trips: { label: "Trips", color: "var(--color-chart-1)" },
-};
+  trips: { label: 'Trips', color: 'var(--color-chart-1)' },
+}
 
 const timeOfDayChartConfig: ChartConfig = {
-  trips: { label: "Trips", color: "var(--color-chart-3)" },
-};
+  trips: { label: 'Trips', color: 'var(--color-chart-3)' },
+}
 
 const dailyFrequencyChartConfig: ChartConfig = {
-  trips: { label: "Trips", color: "var(--color-chart-4)" },
-};
+  trips: { label: 'Trips', color: 'var(--color-chart-4)' },
+}
+
+// ── Section Header ──
+
+function SectionHeader({
+  title,
+  description,
+}: {
+  title: string
+  description?: string
+}) {
+  return (
+    <div className="space-y-1 pt-2">
+      <Separator />
+      <h2 className="pt-2 text-lg font-semibold tracking-tight text-foreground">
+        {title}
+      </h2>
+      {description && (
+        <p className="text-sm text-muted-foreground">{description}</p>
+      )}
+    </div>
+  )
+}
 
 // ── Summary Cards ──
 
@@ -172,23 +195,23 @@ function SummaryCards({ data }: { data: BusAnalytics }) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {data.firstTrip ? format(parseISO(data.firstTrip), "dd MMM") : "—"}
+            {data.firstTrip ? format(parseISO(data.firstTrip), 'dd MMM') : '—'}
           </div>
           <p className="text-muted-foreground text-xs">
             {data.lastTrip
-              ? `to ${format(parseISO(data.lastTrip), "dd MMM yyyy")}`
-              : "no trips yet"}
+              ? `to ${format(parseISO(data.lastTrip), 'dd MMM yyyy')}`
+              : 'no trips yet'}
           </p>
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
 
 // ── Top Bus Routes Table ──
 
-function TopRoutesTable({ routes }: { routes: BusAnalytics["routes"] }) {
-  if (routes.length === 0) return null;
+function TopRoutesTable({ routes }: { routes: BusAnalytics['routes'] }) {
+  if (routes.length === 0) return null
 
   return (
     <Card className="gap-4">
@@ -229,7 +252,7 @@ function TopRoutesTable({ routes }: { routes: BusAnalytics["routes"] }) {
                   {fmtCurrency(r.avgFare)}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-right text-sm">
-                  {format(parseISO(r.lastTrip), "dd MMM yyyy")}
+                  {format(parseISO(r.lastTrip), 'dd MMM yyyy')}
                 </TableCell>
               </TableRow>
             ))}
@@ -237,18 +260,18 @@ function TopRoutesTable({ routes }: { routes: BusAnalytics["routes"] }) {
         </Table>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // ── Monthly Trend Chart ──
 
-function MonthlyTrendChart({ data }: { data: BusAnalytics["monthlyTrend"] }) {
-  if (data.length === 0) return null;
+function MonthlyTrendChart({ data }: { data: BusAnalytics['monthlyTrend'] }) {
+  if (data.length === 0) return null
 
   const chartData = data.map((d) => ({
     ...d,
-    label: format(parseISO(d.month + "-01"), "MMM yy"),
-  }));
+    label: format(parseISO(d.month + '-01'), 'MMM yy'),
+  }))
 
   return (
     <Card>
@@ -286,10 +309,10 @@ function MonthlyTrendChart({ data }: { data: BusAnalytics["monthlyTrend"] }) {
                   formatter={(value, name) => (
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-muted-foreground">
-                        {name === "amount" ? "Amount" : "Trips"}
+                        {name === 'amount' ? 'Amount' : 'Trips'}
                       </span>
                       <span className="font-mono font-medium tabular-nums">
-                        {name === "amount"
+                        {name === 'amount'
                           ? fmtCurrency(value as number)
                           : `${value} trips`}
                       </span>
@@ -314,13 +337,13 @@ function MonthlyTrendChart({ data }: { data: BusAnalytics["monthlyTrend"] }) {
         </ChartContainer>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // ── Day of Week Chart ──
 
-function DayOfWeekChart({ data }: { data: BusAnalytics["dayOfWeek"] }) {
-  if (data.length === 0) return null;
+function DayOfWeekChart({ data }: { data: BusAnalytics['dayOfWeek'] }) {
+  if (data.length === 0) return null
 
   return (
     <Card>
@@ -346,10 +369,10 @@ function DayOfWeekChart({ data }: { data: BusAnalytics["dayOfWeek"] }) {
                   formatter={(value, name) => (
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-muted-foreground">
-                        {name === "trips" ? "Trips" : "Amount"}
+                        {name === 'trips' ? 'Trips' : 'Amount'}
                       </span>
                       <span className="font-mono font-medium tabular-nums">
-                        {name === "trips"
+                        {name === 'trips'
                           ? `${value} trips`
                           : fmtCurrency(value as number)}
                       </span>
@@ -362,7 +385,7 @@ function DayOfWeekChart({ data }: { data: BusAnalytics["dayOfWeek"] }) {
               {data.map((entry) => (
                 <rect
                   key={entry.dayName}
-                  fill={DAY_COLORS[entry.dayName] ?? "var(--color-chart-1)"}
+                  fill={DAY_COLORS[entry.dayName] ?? 'var(--color-chart-1)'}
                 />
               ))}
             </Bar>
@@ -370,18 +393,18 @@ function DayOfWeekChart({ data }: { data: BusAnalytics["dayOfWeek"] }) {
         </ChartContainer>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // ── Time of Day Chart ──
 
-function TimeOfDayChart({ data }: { data: BusAnalytics["timeOfDay"] }) {
-  if (data.length === 0) return null;
+function TimeOfDayChart({ data }: { data: BusAnalytics['timeOfDay'] }) {
+  if (data.length === 0) return null
 
   const chartData = data.map((d) => ({
     ...d,
-    label: `${d.hour.toString().padStart(2, "0")}:00`,
-  }));
+    label: `${d.hour.toString().padStart(2, '0')}:00`,
+  }))
 
   return (
     <Card>
@@ -424,7 +447,7 @@ function TimeOfDayChart({ data }: { data: BusAnalytics["timeOfDay"] }) {
         </ChartContainer>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // ── Daily Frequency Timeline ──
@@ -432,14 +455,14 @@ function TimeOfDayChart({ data }: { data: BusAnalytics["timeOfDay"] }) {
 function DailyFrequencyChart({
   data,
 }: {
-  data: BusAnalytics["dailyFrequency"];
+  data: BusAnalytics['dailyFrequency']
 }) {
-  if (data.length === 0) return null;
+  if (data.length === 0) return null
 
   const chartData = data.map((d) => ({
     ...d,
-    label: format(parseISO(d.date), "dd MMM"),
-  }));
+    label: format(parseISO(d.date), 'dd MMM'),
+  }))
 
   return (
     <Card>
@@ -487,7 +510,7 @@ function DailyFrequencyChart({
         </ChartContainer>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // ── Loading Skeleton ──
@@ -517,74 +540,58 @@ function BusTabSkeleton() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-// ── Empty State ──
-
-function BusEmptyState() {
-  return (
-    <Card className="py-16">
-      <CardContent className="flex flex-col items-center justify-center text-center">
-        <Bus className="text-muted-foreground mb-4 h-12 w-12" />
-        <h3 className="text-lg font-semibold">No bus transactions found</h3>
-        <p className="text-muted-foreground mt-1 max-w-sm text-sm">
-          Bus transactions are identified by merchant names matching vehicle
-          registration patterns (e.g., KA01AR4188, BMTC BUS KA57F0015).
-        </p>
-      </CardContent>
-    </Card>
-  );
+  )
 }
 
 // ── Bus Tab ──
 
-function BusPatternTab() {
-  const [period, setPeriod] = useState<AnalyticsPeriod>("year");
-
+function BusPatternTab({ period }: { period: AnalyticsPeriod }) {
   const { data, isLoading } = useQuery({
-    queryKey: ["patterns", "bus", period],
+    queryKey: ['patterns', 'bus', period],
     queryFn: () => fetchBusAnalytics(period),
-  });
+  })
 
   return (
     <div className="space-y-6">
-      {/* Period Selector */}
-      <div className="flex items-center gap-2">
-        {PERIODS.map((p) => (
-          <Button
-            key={p.value}
-            size="sm"
-            variant={period === p.value ? "default" : "outline"}
-            onClick={() => setPeriod(p.value)}
-          >
-            {p.label}
-          </Button>
-        ))}
-      </div>
-
       {isLoading && <BusTabSkeleton />}
 
-      {!isLoading && (!data || data.totalTrips === 0) && <BusEmptyState />}
+      {!isLoading && (!data || data.totalTrips === 0) && (
+        <EmptyState
+          icon={Bus}
+          title="No bus transactions found"
+          description="Bus transactions are identified by merchant names matching vehicle registration patterns (e.g., KA01AR4188, BMTC BUS KA57F0015)."
+        />
+      )}
 
       {!isLoading && data && data.totalTrips > 0 && (
         <div className="space-y-6">
           <SummaryCards data={data} />
+
+          <SectionHeader
+            title="Trends"
+            description="Spending and trip frequency over time"
+          />
+          <MonthlyTrendChart data={data.monthlyTrend} />
+
+          <SectionHeader
+            title="Routes"
+            description="Most frequently taken buses"
+          />
           <TopRoutesTable routes={data.routes} />
 
-          <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-            <MonthlyTrendChart data={data.monthlyTrend} />
+          <SectionHeader
+            title="Patterns"
+            description="When you typically ride"
+          />
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
             <DayOfWeekChart data={data.dayOfWeek} />
-          </div>
-
-          <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
             <TimeOfDayChart data={data.timeOfDay} />
             <DailyFrequencyChart data={data.dailyFrequency} />
           </div>
         </div>
       )}
     </div>
-  );
+  )
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -592,16 +599,16 @@ function BusPatternTab() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 const ASSET_TYPE_LABELS: Record<string, string> = {
-  stocks: "Stocks",
-  mutual_funds: "Mutual Funds",
-  gold: "Gold",
-};
+  stocks: 'Stocks',
+  mutual_funds: 'Mutual Funds',
+  gold: 'Gold',
+}
 
 const ASSET_TYPE_COLORS: Record<string, string> = {
-  stocks: "var(--color-chart-1)",
-  mutual_funds: "var(--color-chart-2)",
-  gold: "var(--color-chart-3)",
-};
+  stocks: 'var(--color-chart-1)',
+  mutual_funds: 'var(--color-chart-2)',
+  gold: 'var(--color-chart-3)',
+}
 
 // ── Investment Summary Cards ──
 
@@ -635,7 +642,7 @@ function InvestmentSummaryCards({ data }: { data: InvestmentAnalytics }) {
           <p className="text-muted-foreground text-xs">
             {data.avgDaysBetweenInvestments
               ? `every ${Math.round(data.avgDaysBetweenInvestments)} days`
-              : "per transaction"}
+              : 'per transaction'}
           </p>
         </CardContent>
       </Card>
@@ -666,17 +673,17 @@ function InvestmentSummaryCards({ data }: { data: InvestmentAnalytics }) {
           <div className="text-2xl font-bold">
             {data.daysSinceLastInvestment !== null
               ? `${data.daysSinceLastInvestment}d`
-              : "—"}
+              : '—'}
           </div>
           <p className="text-muted-foreground text-xs">
             {data.lastInvestment
-              ? `since ${format(parseISO(data.lastInvestment), "dd MMM")}`
-              : "no investments yet"}
+              ? `since ${format(parseISO(data.lastInvestment), 'dd MMM')}`
+              : 'no investments yet'}
           </p>
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
 
 // ── Asset Allocation Pie Chart ──
@@ -684,26 +691,26 @@ function InvestmentSummaryCards({ data }: { data: InvestmentAnalytics }) {
 function AssetAllocationChart({
   data,
 }: {
-  data: InvestmentAnalytics["assetTypeBreakdown"];
+  data: InvestmentAnalytics['assetTypeBreakdown']
 }) {
-  if (data.length === 0) return null;
+  if (data.length === 0) return null
 
   const chartData = data.map((asset) => ({
     name: ASSET_TYPE_LABELS[asset.assetType] ?? asset.assetType,
     value: asset.totalInvested,
-    fill: ASSET_TYPE_COLORS[asset.assetType] ?? "var(--color-chart-1)",
+    fill: ASSET_TYPE_COLORS[asset.assetType] ?? 'var(--color-chart-1)',
     percentage: asset.percentageOfTotal,
-  }));
+  }))
 
   const chartConfig: ChartConfig = Object.fromEntries(
     data.map((asset) => [
       ASSET_TYPE_LABELS[asset.assetType] ?? asset.assetType,
       {
         label: ASSET_TYPE_LABELS[asset.assetType] ?? asset.assetType,
-        color: ASSET_TYPE_COLORS[asset.assetType] ?? "var(--color-chart-1)",
+        color: ASSET_TYPE_COLORS[asset.assetType] ?? 'var(--color-chart-1)',
       },
     ]),
-  );
+  )
 
   return (
     <Card>
@@ -751,7 +758,7 @@ function AssetAllocationChart({
               innerRadius={60}
               outerRadius={100}
               label={(entry) =>
-                entry.percent ? `${(entry.percent * 100).toFixed(0)}%` : ""
+                entry.percent ? `${(entry.percent * 100).toFixed(0)}%` : ''
               }
             >
               {chartData.map((entry, index) => (
@@ -763,7 +770,7 @@ function AssetAllocationChart({
         </ChartContainer>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // ── Asset Type Breakdown Table ──
@@ -771,9 +778,9 @@ function AssetAllocationChart({
 function AssetBreakdownTable({
   data,
 }: {
-  data: InvestmentAnalytics["assetTypeBreakdown"];
+  data: InvestmentAnalytics['assetTypeBreakdown']
 }) {
-  if (data.length === 0) return null;
+  if (data.length === 0) return null
 
   return (
     <Card className="gap-4">
@@ -827,7 +834,7 @@ function AssetBreakdownTable({
         </Table>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // ── Platform Breakdown Table ──
@@ -835,9 +842,9 @@ function AssetBreakdownTable({
 function PlatformBreakdownTable({
   data,
 }: {
-  data: InvestmentAnalytics["platformBreakdown"];
+  data: InvestmentAnalytics['platformBreakdown']
 }) {
-  if (data.length === 0) return null;
+  if (data.length === 0) return null
 
   return (
     <Card className="gap-4">
@@ -878,7 +885,7 @@ function PlatformBreakdownTable({
                   {platform.primaryAssetType
                     ? (ASSET_TYPE_LABELS[platform.primaryAssetType] ??
                       platform.primaryAssetType)
-                    : "—"}
+                    : '—'}
                 </TableCell>
               </TableRow>
             ))}
@@ -886,7 +893,7 @@ function PlatformBreakdownTable({
         </Table>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // ── Monthly Investment Trend (Stacked) ──
@@ -894,20 +901,20 @@ function PlatformBreakdownTable({
 function MonthlyInvestmentTrendChart({
   data,
 }: {
-  data: InvestmentAnalytics["monthlyTrend"];
+  data: InvestmentAnalytics['monthlyTrend']
 }) {
-  if (data.length === 0) return null;
+  if (data.length === 0) return null
 
   const chartData = data.map((d) => ({
     ...d,
-    label: format(parseISO(d.month + "-01"), "MMM yy"),
-  }));
+    label: format(parseISO(d.month + '-01'), 'MMM yy'),
+  }))
 
   const chartConfig: ChartConfig = {
-    stocks: { label: "Stocks", color: "var(--color-chart-1)" },
-    mutualFunds: { label: "Mutual Funds", color: "var(--color-chart-2)" },
-    gold: { label: "Gold", color: "var(--color-chart-3)" },
-  };
+    stocks: { label: 'Stocks', color: 'var(--color-chart-1)' },
+    mutualFunds: { label: 'Mutual Funds', color: 'var(--color-chart-2)' },
+    gold: { label: 'Gold', color: 'var(--color-chart-3)' },
+  }
 
   return (
     <Card>
@@ -936,11 +943,11 @@ function MonthlyInvestmentTrendChart({
                   formatter={(value, name) => (
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-muted-foreground">
-                        {name === "stocks"
-                          ? "Stocks"
-                          : name === "mutualFunds"
-                            ? "Mutual Funds"
-                            : "Gold"}
+                        {name === 'stocks'
+                          ? 'Stocks'
+                          : name === 'mutualFunds'
+                            ? 'Mutual Funds'
+                            : 'Gold'}
                       </span>
                       <span className="font-mono font-medium tabular-nums">
                         {fmtCurrency(value as number)}
@@ -973,7 +980,7 @@ function MonthlyInvestmentTrendChart({
         </ChartContainer>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // ── Largest Investments Table ──
@@ -981,9 +988,9 @@ function MonthlyInvestmentTrendChart({
 function LargestInvestmentsTable({
   data,
 }: {
-  data: InvestmentAnalytics["largestInvestments"];
+  data: InvestmentAnalytics['largestInvestments']
 }) {
-  if (data.length === 0) return null;
+  if (data.length === 0) return null
 
   return (
     <Card className="gap-4">
@@ -1006,7 +1013,7 @@ function LargestInvestmentsTable({
             {data.map((inv) => (
               <TableRow key={inv.id}>
                 <TableCell className="text-muted-foreground text-sm">
-                  {format(parseISO(inv.date), "dd MMM yyyy")}
+                  {format(parseISO(inv.date), 'dd MMM yyyy')}
                 </TableCell>
                 <TableCell className="font-medium">{inv.merchant}</TableCell>
                 <TableCell>
@@ -1023,7 +1030,7 @@ function LargestInvestmentsTable({
         </Table>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // ── SIP Detection Table ──
@@ -1031,9 +1038,9 @@ function LargestInvestmentsTable({
 function SipDetectionTable({
   data,
 }: {
-  data: InvestmentAnalytics["detectedSips"];
+  data: InvestmentAnalytics['detectedSips']
 }) {
-  if (data.length === 0) return null;
+  if (data.length === 0) return null
 
   return (
     <Card className="gap-4">
@@ -1077,12 +1084,12 @@ function SipDetectionTable({
                 </TableCell>
                 <TableCell>{sip.frequency}</TableCell>
                 <TableCell className="text-muted-foreground text-right text-sm">
-                  {format(parseISO(sip.lastInvestment), "dd MMM yyyy")}
+                  {format(parseISO(sip.lastInvestment), 'dd MMM yyyy')}
                 </TableCell>
                 <TableCell className="text-right text-sm">
                   {sip.estimatedNext
-                    ? format(parseISO(sip.estimatedNext), "dd MMM yyyy")
-                    : "—"}
+                    ? format(parseISO(sip.estimatedNext), 'dd MMM yyyy')
+                    : '—'}
                 </TableCell>
               </TableRow>
             ))}
@@ -1090,7 +1097,7 @@ function SipDetectionTable({
         </Table>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // ── Investment Day of Week Chart ──
@@ -1098,13 +1105,13 @@ function SipDetectionTable({
 function InvestmentDayOfWeekChart({
   data,
 }: {
-  data: InvestmentAnalytics["dayOfWeek"];
+  data: InvestmentAnalytics['dayOfWeek']
 }) {
-  if (data.length === 0) return null;
+  if (data.length === 0) return null
 
   const chartConfig: ChartConfig = {
-    transactionCount: { label: "Investments", color: "var(--color-chart-1)" },
-  };
+    transactionCount: { label: 'Investments', color: 'var(--color-chart-1)' },
+  }
 
   return (
     <Card>
@@ -1127,10 +1134,10 @@ function InvestmentDayOfWeekChart({
                   formatter={(value, name) => (
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-muted-foreground">
-                        {name === "transactionCount" ? "Investments" : "Amount"}
+                        {name === 'transactionCount' ? 'Investments' : 'Amount'}
                       </span>
                       <span className="font-mono font-medium tabular-nums">
-                        {name === "transactionCount"
+                        {name === 'transactionCount'
                           ? `${value} investments`
                           : fmtCurrency(value as number)}
                       </span>
@@ -1147,7 +1154,7 @@ function InvestmentDayOfWeekChart({
               {data.map((entry) => (
                 <rect
                   key={entry.dayName}
-                  fill={DAY_COLORS[entry.dayName] ?? "var(--color-chart-1)"}
+                  fill={DAY_COLORS[entry.dayName] ?? 'var(--color-chart-1)'}
                 />
               ))}
             </Bar>
@@ -1155,7 +1162,7 @@ function InvestmentDayOfWeekChart({
         </ChartContainer>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // ── Investment Time of Day Chart ──
@@ -1163,18 +1170,18 @@ function InvestmentDayOfWeekChart({
 function InvestmentTimeOfDayChart({
   data,
 }: {
-  data: InvestmentAnalytics["timeOfDay"];
+  data: InvestmentAnalytics['timeOfDay']
 }) {
-  if (data.length === 0) return null;
+  if (data.length === 0) return null
 
   const chartData = data.map((d) => ({
     ...d,
-    label: `${d.hour.toString().padStart(2, "0")}:00`,
-  }));
+    label: `${d.hour.toString().padStart(2, '0')}:00`,
+  }))
 
   const chartConfig: ChartConfig = {
-    transactionCount: { label: "Investments", color: "var(--color-chart-4)" },
-  };
+    transactionCount: { label: 'Investments', color: 'var(--color-chart-4)' },
+  }
 
   return (
     <Card>
@@ -1216,7 +1223,7 @@ function InvestmentTimeOfDayChart({
         </ChartContainer>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // ── Investment Loading Skeleton ──
@@ -1246,78 +1253,71 @@ function InvestmentTabSkeleton() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-// ── Investment Empty State ──
-
-function InvestmentEmptyState() {
-  return (
-    <Card className="py-16">
-      <CardContent className="flex flex-col items-center justify-center text-center">
-        <Coins className="text-muted-foreground mb-4 h-12 w-12" />
-        <h3 className="text-lg font-semibold">
-          No investment transactions found
-        </h3>
-        <p className="text-muted-foreground mt-1 max-w-sm text-sm">
-          Investment transactions from platforms like Groww, Zerodha, ICCL
-          Mutual Funds, and MMTC-PAMP will appear here.
-        </p>
-      </CardContent>
-    </Card>
-  );
+  )
 }
 
 // ── Investments Tab Component ──
 
-function InvestmentsPatternTab() {
-  const [period, setPeriod] = useState<AnalyticsPeriod>("year");
-
+function InvestmentsPatternTab({ period }: { period: AnalyticsPeriod }) {
   const { data, isLoading } = useQuery({
-    queryKey: ["patterns", "investments", period],
+    queryKey: ['patterns', 'investments', period],
     queryFn: () => fetchInvestmentAnalytics(period),
-  });
+  })
 
   return (
     <div className="space-y-6">
-      {/* Period Selector */}
-      <div className="flex items-center gap-2">
-        {PERIODS.map((p) => (
-          <Button
-            key={p.value}
-            size="sm"
-            variant={period === p.value ? "default" : "outline"}
-            onClick={() => setPeriod(p.value)}
-          >
-            {p.label}
-          </Button>
-        ))}
-      </div>
-
       {isLoading && <InvestmentTabSkeleton />}
 
       {!isLoading && (!data || data.transactionCount === 0) && (
-        <InvestmentEmptyState />
+        <EmptyState
+          icon={Coins}
+          title="No investment transactions found"
+          description="Investment transactions from platforms like Groww, Zerodha, ICCL Mutual Funds, and MMTC-PAMP will appear here."
+        />
       )}
 
       {!isLoading && data && data.transactionCount > 0 && (
         <div className="space-y-6">
           <InvestmentSummaryCards data={data} />
 
-          <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+          <SectionHeader
+            title="Trends"
+            description="Allocation and investment activity over time"
+          />
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
             <AssetAllocationChart data={data.assetTypeBreakdown} />
-            <MonthlyInvestmentTrendChart data={data.monthlyTrend} />
+            <div className="lg:col-span-2">
+              <MonthlyInvestmentTrendChart data={data.monthlyTrend} />
+            </div>
           </div>
 
-          <AssetBreakdownTable data={data.assetTypeBreakdown} />
-          <PlatformBreakdownTable data={data.platformBreakdown} />
+          <SectionHeader
+            title="Breakdown"
+            description="Asset types and platform usage"
+          />
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+            <AssetBreakdownTable data={data.assetTypeBreakdown} />
+            <PlatformBreakdownTable data={data.platformBreakdown} />
+          </div>
 
-          {data.detectedSips.length > 0 && (
-            <SipDetectionTable data={data.detectedSips} />
+          {(data.detectedSips.length > 0 ||
+            data.largestInvestments.length > 0) && (
+            <>
+              <SectionHeader
+                title="Details"
+                description="Recurring patterns and notable transactions"
+              />
+              {data.detectedSips.length > 0 && (
+                <SipDetectionTable data={data.detectedSips} />
+              )}
+              <LargestInvestmentsTable data={data.largestInvestments} />
+            </>
           )}
 
-          <LargestInvestmentsTable data={data.largestInvestments} />
-
+          <SectionHeader
+            title="Patterns"
+            description="When you typically invest"
+          />
           <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
             <InvestmentDayOfWeekChart data={data.dayOfWeek} />
             <InvestmentTimeOfDayChart data={data.timeOfDay} />
@@ -1325,7 +1325,7 @@ function InvestmentsPatternTab() {
         </div>
       )}
     </div>
-  );
+  )
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1333,20 +1333,36 @@ function InvestmentsPatternTab() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 const PatternsPage = () => {
+  const [period, setPeriod] = useState<AnalyticsPeriod>('year')
+
   return (
     <MainLayout>
       <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
         <header className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
-              Patterns
-            </p>
-            <h1 className="text-2xl font-semibold text-foreground">
-              Spending Patterns
-            </h1>
-            <p className="max-w-2xl text-sm text-muted-foreground">
-              Discover insights from your recurring spending habits
-            </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-2">
+              <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
+                Patterns
+              </p>
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+                Spending Patterns
+              </h1>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                Discover insights from your recurring spending habits
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {PERIODS.map((p) => (
+                <Button
+                  key={p.value}
+                  size="sm"
+                  variant={period === p.value ? 'default' : 'outline'}
+                  onClick={() => setPeriod(p.value)}
+                >
+                  {p.label}
+                </Button>
+              ))}
+            </div>
           </div>
         </header>
 
@@ -1364,15 +1380,14 @@ const PatternsPage = () => {
               <Wallet className="h-4 w-4" />
               Principal
             </TabsTrigger>
-            {/* Future tabs: Auto, Food, Subscriptions, etc. */}
           </TabsList>
 
           <TabsContent value="bus" className="mt-6">
-            <BusPatternTab />
+            <BusPatternTab period={period} />
           </TabsContent>
 
           <TabsContent value="investments" className="mt-6">
-            <InvestmentsPatternTab />
+            <InvestmentsPatternTab period={period} />
           </TabsContent>
 
           <TabsContent value="principal" className="mt-6">
@@ -1381,7 +1396,7 @@ const PatternsPage = () => {
         </Tabs>
       </div>
     </MainLayout>
-  );
-};
+  )
+}
 
-export default PatternsPage;
+export default PatternsPage

@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback } from 'react'
 import {
   ArrowDown,
   ArrowUp,
@@ -8,7 +8,8 @@ import {
   Trash2,
   TrendingUp,
   TrendingDown,
-} from "lucide-react";
+  Briefcase,
+} from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -16,15 +17,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@workspace/ui/components/ui/table";
-import { Badge } from "@workspace/ui/components/ui/badge";
-import { Button } from "@workspace/ui/components/ui/button";
+} from '@workspace/ui/components/ui/table'
+import { Badge } from '@workspace/ui/components/ui/badge'
+import { Button } from '@workspace/ui/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@workspace/ui/components/ui/dropdown-menu";
+} from '@workspace/ui/components/ui/dropdown-menu'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,96 +35,97 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@workspace/ui/components/ui/alert-dialog";
-import { Skeleton } from "@workspace/ui/components/ui/skeleton";
-import { useDeleteHolding } from "@/features/holdings/api/holdings";
-import { formatCurrency } from "@/lib/utils";
-import type { Holding } from "@workspace/domain";
-import { toast } from "sonner";
-import { HoldingFormDialog } from "./holding-form-dialog";
+} from '@workspace/ui/components/ui/alert-dialog'
+import { Skeleton } from '@workspace/ui/components/ui/skeleton'
+import { useDeleteHolding } from '@/features/holdings/api/holdings'
+import { formatCurrency } from '@/lib/utils'
+import type { Holding } from '@workspace/domain'
+import { toast } from 'sonner'
+import { EmptyState } from '@/components/empty-state'
+import { HoldingFormDialog } from './holding-form-dialog'
 
 // --- Types & Constants ---
 
 type SortKey =
-  | "name"
-  | "symbol"
-  | "quantity"
-  | "avgBuyPrice"
-  | "currentPrice"
-  | "investedValue"
-  | "currentValue"
-  | "totalReturns"
-  | "returnsPercentage";
+  | 'name'
+  | 'symbol'
+  | 'quantity'
+  | 'avgBuyPrice'
+  | 'currentPrice'
+  | 'investedValue'
+  | 'currentValue'
+  | 'totalReturns'
+  | 'returnsPercentage'
 
-type SortDir = "asc" | "desc";
-type AssetType = "stock" | "mutual_fund" | "gold" | "etf" | "pf";
+type SortDir = 'asc' | 'desc'
+type AssetType = 'stock' | 'mutual_fund' | 'gold' | 'etf' | 'pf'
 
 interface AssetConfig {
-  label: string; // plural label for empty state
-  symbolLabel: string;
-  qtyLabel: string;
-  avgPriceLabel: string;
-  cmpLabel: string;
-  qtyDecimals: number;
+  label: string // plural label for empty state
+  symbolLabel: string
+  qtyLabel: string
+  avgPriceLabel: string
+  cmpLabel: string
+  qtyDecimals: number
 }
 
 const ASSET_CONFIG: Record<AssetType, AssetConfig> = {
   stock: {
-    label: "stocks",
-    symbolLabel: "Symbol",
-    qtyLabel: "Qty",
-    avgPriceLabel: "Avg Price",
-    cmpLabel: "CMP",
+    label: 'stocks',
+    symbolLabel: 'Symbol',
+    qtyLabel: 'Qty',
+    avgPriceLabel: 'Avg Price',
+    cmpLabel: 'CMP',
     qtyDecimals: 0,
   },
   mutual_fund: {
-    label: "mutual funds",
-    symbolLabel: "Scheme",
-    qtyLabel: "Units",
-    avgPriceLabel: "Avg NAV",
-    cmpLabel: "Current NAV",
+    label: 'mutual funds',
+    symbolLabel: 'Scheme',
+    qtyLabel: 'Units',
+    avgPriceLabel: 'Avg NAV',
+    cmpLabel: 'Current NAV',
     qtyDecimals: 3,
   },
   gold: {
-    label: "gold holdings",
-    symbolLabel: "Type",
-    qtyLabel: "Grams/Units",
-    avgPriceLabel: "Avg Buy Price",
-    cmpLabel: "Current Price",
+    label: 'gold holdings',
+    symbolLabel: 'Type',
+    qtyLabel: 'Grams/Units',
+    avgPriceLabel: 'Avg Buy Price',
+    cmpLabel: 'Current Price',
     qtyDecimals: 3,
   },
   etf: {
-    label: "ETFs",
-    symbolLabel: "Symbol",
-    qtyLabel: "Qty",
-    avgPriceLabel: "Avg Price",
-    cmpLabel: "CMP",
+    label: 'ETFs',
+    symbolLabel: 'Symbol',
+    qtyLabel: 'Qty',
+    avgPriceLabel: 'Avg Price',
+    cmpLabel: 'CMP',
     qtyDecimals: 0,
   },
   pf: {
-    label: "provident fund entries",
-    symbolLabel: "Account",
-    qtyLabel: "Balance",
-    avgPriceLabel: "Total Contrib.",
-    cmpLabel: "Current Value",
+    label: 'provident fund entries',
+    symbolLabel: 'Account',
+    qtyLabel: 'Balance',
+    avgPriceLabel: 'Total Contrib.',
+    cmpLabel: 'Current Value',
     qtyDecimals: 2,
   },
-};
+}
 
 // --- Utility Functions ---
 
 const parseNum = (val: string | null | undefined): number =>
-  val ? parseFloat(val) : 0;
+  val ? parseFloat(val) : 0
 
 // --- Sub-Components ---
 
 interface SortableHeaderProps {
-  label: string;
-  sortKey: SortKey;
-  currentKey: SortKey;
-  direction: SortDir;
-  onSort: (key: SortKey) => void;
-  className?: string;
+  label: string
+  sortKey: SortKey
+  currentKey: SortKey
+  direction: SortDir
+  onSort: (key: SortKey) => void
+  className?: string
 }
 
 const SortableHeader = ({
@@ -134,39 +136,39 @@ const SortableHeader = ({
   onSort,
   className,
 }: SortableHeaderProps) => {
-  const isActive = sortKey === currentKey;
+  const isActive = sortKey === currentKey
   const Icon = isActive
-    ? direction === "asc"
+    ? direction === 'asc'
       ? ArrowUp
       : ArrowDown
-    : ArrowUpDown;
+    : ArrowUpDown
 
   return (
     <TableHead
-      className={`cursor-pointer select-none ${className || ""}`}
+      className={`cursor-pointer select-none ${className || ''}`}
       onClick={() => onSort(sortKey)}
     >
       <span className="inline-flex items-center">
         {label}
         <Icon
-          className={`ml-1.5 h-3.5 w-3.5 ${isActive ? "" : "opacity-40"}`}
+          className={`ml-1.5 h-3.5 w-3.5 ${isActive ? '' : 'opacity-40'}`}
         />
       </span>
     </TableHead>
-  );
-};
+  )
+}
 
 interface HoldingRowProps {
-  holding: Holding;
-  config: AssetConfig;
-  onEdit: (holding: Holding) => void;
-  onDelete: (id: string) => void;
+  holding: Holding
+  config: AssetConfig
+  onEdit: (holding: Holding) => void
+  onDelete: (id: string) => void
 }
 
 const HoldingRow = ({ holding, config, onEdit, onDelete }: HoldingRowProps) => {
-  const returns = parseNum(holding.totalReturns);
-  const returnsPct = parseNum(holding.returnsPercentage);
-  const isPositive = returns >= 0;
+  const returns = parseNum(holding.totalReturns)
+  const returnsPct = parseNum(holding.returnsPercentage)
+  const isPositive = returns >= 0
 
   return (
     <TableRow key={holding.id}>
@@ -197,7 +199,7 @@ const HoldingRow = ({ holding, config, onEdit, onDelete }: HoldingRowProps) => {
       <TableCell className="text-right tabular-nums">
         {holding.currentPrice
           ? formatCurrency(parseNum(holding.currentPrice))
-          : "—"}
+          : '—'}
       </TableCell>
       <TableCell className="text-right tabular-nums">
         {formatCurrency(parseNum(holding.investedValue))}
@@ -205,12 +207,12 @@ const HoldingRow = ({ holding, config, onEdit, onDelete }: HoldingRowProps) => {
       <TableCell className="text-right tabular-nums">
         {holding.currentValue
           ? formatCurrency(parseNum(holding.currentValue))
-          : "—"}
+          : '—'}
       </TableCell>
       <TableCell className="text-right">
         <span
           className={`inline-flex items-center gap-1 tabular-nums font-medium ${
-            isPositive ? "text-green-600" : "text-red-600"
+            isPositive ? 'text-positive' : 'text-negative'
           }`}
         >
           {isPositive ? (
@@ -223,10 +225,10 @@ const HoldingRow = ({ holding, config, onEdit, onDelete }: HoldingRowProps) => {
       </TableCell>
       <TableCell className="text-right">
         <Badge
-          variant={isPositive ? "default" : "destructive"}
+          variant={isPositive ? 'default' : 'destructive'}
           className="tabular-nums font-mono text-xs"
         >
-          {isPositive ? "+" : ""}
+          {isPositive ? '+' : ''}
           {returnsPct.toFixed(2)}%
         </Badge>
       </TableCell>
@@ -253,15 +255,15 @@ const HoldingRow = ({ holding, config, onEdit, onDelete }: HoldingRowProps) => {
         </DropdownMenu>
       </TableCell>
     </TableRow>
-  );
-};
+  )
+}
 
 // --- Main Component ---
 
 interface HoldingsTableProps {
-  holdings: Holding[];
-  isLoading?: boolean;
-  assetType: AssetType;
+  holdings: Holding[]
+  isLoading?: boolean
+  assetType: AssetType
 }
 
 export function HoldingsTable({
@@ -269,65 +271,65 @@ export function HoldingsTable({
   isLoading,
   assetType,
 }: HoldingsTableProps) {
-  const config = ASSET_CONFIG[assetType];
+  const config = ASSET_CONFIG[assetType]
 
   // State
-  const [editHolding, setEditHolding] = useState<Holding | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<SortKey>("investedValue");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [editHolding, setEditHolding] = useState<Holding | null>(null)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [sortKey, setSortKey] = useState<SortKey>('investedValue')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   // API
-  const deleteMutation = useDeleteHolding();
+  const deleteMutation = useDeleteHolding()
 
   // Derived State
   const filtered = useMemo(
     () => holdings.filter((h) => h.assetType === assetType),
     [holdings, assetType],
-  );
+  )
 
   const sorted = useMemo(() => {
-    const sortedData = [...filtered];
+    const sortedData = [...filtered]
     sortedData.sort((a, b) => {
-      const key = sortKey;
-      let cmp = 0;
+      const key = sortKey
+      let cmp = 0
 
-      if (key === "name" || key === "symbol") {
-        cmp = (a[key] ?? "").localeCompare(b[key] ?? "");
+      if (key === 'name' || key === 'symbol') {
+        cmp = (a[key] ?? '').localeCompare(b[key] ?? '')
       } else {
-        cmp = parseNum(a[key]) - parseNum(b[key]);
+        cmp = parseNum(a[key]) - parseNum(b[key])
       }
 
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-    return sortedData;
-  }, [filtered, sortKey, sortDir]);
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+    return sortedData
+  }, [filtered, sortKey, sortDir])
 
   // Handlers
   const toggleSort = useCallback(
     (key: SortKey) => {
       if (sortKey === key) {
-        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
       } else {
-        setSortKey(key);
-        setSortDir(key === "name" || key === "symbol" ? "asc" : "desc");
+        setSortKey(key)
+        setSortDir(key === 'name' || key === 'symbol' ? 'asc' : 'desc')
       }
     },
     [sortKey],
-  );
+  )
 
   const handleDelete = useCallback(() => {
-    if (!deleteId) return;
+    if (!deleteId) return
     deleteMutation.mutate(deleteId, {
       onSuccess: () => {
-        toast.success("Holding deleted");
-        setDeleteId(null);
+        toast.success('Holding deleted')
+        setDeleteId(null)
       },
       onError: () => {
-        toast.error("Failed to delete holding");
+        toast.error('Failed to delete holding')
       },
-    });
-  }, [deleteId, deleteMutation]);
+    })
+  }, [deleteId, deleteMutation])
 
   // UI States
   if (isLoading) {
@@ -337,20 +339,17 @@ export function HoldingsTable({
           <Skeleton key={i} className="h-12 w-full" />
         ))}
       </div>
-    );
+    )
   }
 
   if (filtered.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <p className="text-muted-foreground">
-          No {config.label} in your portfolio yet.
-        </p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Import from Groww or add manually using the buttons above.
-        </p>
-      </div>
-    );
+      <EmptyState
+        icon={Briefcase}
+        title={`No ${config.label} in your portfolio yet`}
+        description="Import from Groww or add manually using the buttons above."
+      />
+    )
   }
 
   return (
@@ -474,11 +473,11 @@ export function HoldingsTable({
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteMutation.isPending ? "Deleting…" : "Delete"}
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
+  )
 }
