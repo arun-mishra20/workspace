@@ -3,6 +3,7 @@ import type {
   UpdateTransactionInput,
   SpendingSummary,
   SpendingByCategoryItem,
+  SpendingBySubcategoryItem,
   SpendingByModeItem,
   SpendingByMerchantItem,
   DailySpendingItem,
@@ -32,6 +33,7 @@ export interface TransactionFilters {
   dateFrom?: Date
   dateTo?: Date
   search?: string
+  cardLast4?: string
 }
 
 /**
@@ -71,6 +73,10 @@ export interface TransactionRepository {
     userId: string
     range: DateRange
   }): Promise<SpendingByCategoryItem[]>
+  getSpendingBySubcategory(params: {
+    userId: string
+    range: DateRange
+  }): Promise<SpendingBySubcategoryItem[]>
   getSpendingByMode(params: { userId: string, range: DateRange }): Promise<SpendingByModeItem[]>
   getTopMerchants(params: {
     userId: string
@@ -175,6 +181,13 @@ export interface TransactionRepository {
       requiresReview?: boolean
     }
   }): Promise<number>
+
+  listAllForUser(userId: string): Promise<Transaction[]>
+
+  updateTransactionAttributesBatch(params: {
+    userId: string
+    updates: { id: string, transactionAttributes: Transaction['transactionAttributes'] }[]
+  }): Promise<void>
 }
 
 export const TRANSACTION_REPOSITORY = Symbol('TRANSACTION_REPOSITORY')

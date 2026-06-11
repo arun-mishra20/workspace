@@ -235,3 +235,48 @@ export const CATEGORY_OPTIONS = [
     parent: "finance",
   },
 ] as const;
+
+export const SUBCATEGORY_OPTIONS = [
+  { value: "delivery", label: "Delivery", parent: "food_dining" },
+  { value: "restaurant", label: "Restaurant", parent: "food_dining" },
+  { value: "cafe", label: "Cafe", parent: "food_dining" },
+  { value: "quick_commerce", label: "Quick Commerce", parent: "groceries" },
+  { value: "grocery_delivery", label: "Grocery Delivery", parent: "groceries" },
+  { value: "bus", label: "Bus", parent: "transport" },
+  { value: "metro", label: "Metro", parent: "transport" },
+  { value: "cab", label: "Cab", parent: "transport" },
+  { value: "bike_taxi", label: "Bike Taxi", parent: "transport" },
+  { value: "train", label: "Train", parent: "transport" },
+  { value: "fuel", label: "Fuel", parent: "transport" },
+  { value: "stocks", label: "Stocks", parent: "investments" },
+  { value: "mutual_funds", label: "Mutual Funds", parent: "investments" },
+  { value: "gold", label: "Gold", parent: "investments" },
+  { value: "sip", label: "SIP", parent: "investments" },
+  { value: "fd_rd", label: "FD / RD", parent: "investments" },
+  { value: "subscription", label: "Subscription", parent: "apps_and_software" },
+  { value: "one_time", label: "One-time", parent: "apps_and_software" },
+  { value: "health", label: "Health", parent: "insurance" },
+  { value: "life", label: "Life", parent: "insurance" },
+  { value: "vehicle", label: "Vehicle", parent: "insurance" },
+  { value: "salary", label: "Salary", parent: "income_salary" },
+  { value: "bonus", label: "Bonus", parent: "income_salary" },
+  { value: "reimbursement", label: "Reimbursement", parent: "income_salary" },
+] as const;
+
+export function getSubcategoryLabel(
+  subcategory: string,
+  category?: string,
+): string {
+  const match = SUBCATEGORY_OPTIONS.find(
+    (option) =>
+      option.value === subcategory
+      && (category === undefined || option.parent === category),
+  );
+  if (match) {
+    return match.label;
+  }
+
+  return subcategory
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char: string) => char.toUpperCase());
+}

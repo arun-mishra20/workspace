@@ -18,10 +18,12 @@ import {
 
 } from '@/modules/expenses/application/ports/transaction.repository.port'
 import { CardResolver } from '@/modules/expenses/infrastructure/categorization/card-resolver'
+import { RecurringPatternService } from '@/modules/expenses/infrastructure/categorization/recurring-pattern.service'
 import {
   TransactionCategorizer,
 
 } from '@/modules/expenses/infrastructure/categorization/transaction-categorizer'
+import { TransactionEnricher } from '@/modules/expenses/infrastructure/categorization/transaction-enricher'
 import { RAW_EMAIL_REPOSITORY  } from '@/shared/application/ports/raw-email.repository.port'
 import { SYNC_JOB_REPOSITORY  } from '@/shared/application/ports/sync-job.repository.port'
 import { EmailSyncService } from '@/shared/application/services/email-sync.service'
@@ -43,12 +45,14 @@ import type {
   AnalyticsPeriod,
   SpendingSummary,
   SpendingByCategoryItem,
+  SpendingBySubcategoryItem,
   SpendingByModeItem,
   SpendingByMerchantItem,
   DailySpendingItem,
   MonthlyTrendItem,
   SpendingByCardItem,
   MilestoneProgress,
+  CreditCardProfile,
   DayOfWeekSpendingItem,
   CategoryTrendItem,
   PeriodComparison,
@@ -74,6 +78,8 @@ export class ExpensesService implements OnModuleDestroy {
 
   private readonly logger = new Logger(ExpensesService.name)
   private readonly transactionCategorizer = TransactionCategorizer.getInstance()
+  private readonly transactionEnricher = TransactionEnricher.getInstance()
+  private readonly recurringPatternService = RecurringPatternService.getInstance()
   private readonly cardResolver = CardResolver.getInstance()
 
   constructor(
@@ -337,6 +343,11 @@ export class ExpensesService implements OnModuleDestroy {
         }
       }
 
+      const recurringUpdated = await this.recurringPatternService.applyForUser(
+        userId,
+        this.transactionRepository,
+      )
+
       this.invalidateUserAnalyticsCache(userId)
 
       await this.syncJobRepository.update(jobId, {
@@ -345,7 +356,7 @@ export class ExpensesService implements OnModuleDestroy {
       })
 
       this.logger.log(
-        `Reprocess job ${jobId} completed: ${totalTransactions} transactions, ${totalStatements} statements from ${totalEmails} emails`,
+        `Reprocess job ${jobId} completed: ${totalTransactions} transactions, ${totalStatements} statements from ${totalEmails} emails (${recurringUpdated} recurring flags updated)`,
       )
     } catch (error) {
       this.logger.error(`Reprocess job ${jobId} failed`, error)
@@ -418,8 +429,15 @@ export class ExpensesService implements OnModuleDestroy {
       processedEmails += chunk.length
     }
 
+    const recurringUpdated = await this.recurringPatternService.applyForUser(
+      userId,
+      this.transactionRepository,
+    )
+
     this.invalidateUserAnalyticsCache(userId)
-    this.logger.log(`Post-sync processing for job ${jobId} completed: ${totalTransactions} transactions, ${totalStatements} statements processed from ${processedEmails} synced emails`)
+    this.logger.log(
+      `Post-sync processing for job ${jobId} completed: ${totalTransactions} transactions, ${totalStatements} statements processed from ${processedEmails} synced emails (${recurringUpdated} recurring flags updated)`,
+    )
   }
 
   private async processEmailForReprocess(
@@ -522,6 +540,25 @@ export class ExpensesService implements OnModuleDestroy {
     filters?: TransactionFilters
   }): Promise<{ data: Transaction[], nextCursor?: string, hasMore: boolean }> {
     return this.transactionRepository.listByUserCursor(params)
+  }
+
+  listCreditCards(): CreditCardProfile[] {
+    return this.cardResolver.listAllCards().map((card) => ({
+      cardLast4: card.cardLast4,
+      cardName: card.cardName,
+      bank: card.bank,
+      icon: card.icon,
+      network: card.network,
+      cardTier: card.cardTier,
+      imageKey: card.imageKey,
+      status: card.status,
+      upgradedTo: card.upgradedTo,
+      upgradedFrom: card.upgradedFrom,
+      annualFee: card.annualFee,
+      rewardCurrency: card.rewardCurrency,
+      tracking: card.tracking,
+      benefits: card.benefits,
+    }))
   }
 
   async getTransactionById(params: { userId: string, id: string }): Promise<Transaction | null> {
@@ -648,6 +685,17 @@ export class ExpensesService implements OnModuleDestroy {
     )
   }
 
+  async getSpendingBySubcategory(
+    userId: string,
+    period: AnalyticsPeriod,
+  ): Promise<SpendingBySubcategoryItem[]> {
+    const range = this.computeDateRange(period)
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getSpendingBySubcategory', { period }),
+      () => this.transactionRepository.getSpendingBySubcategory({ userId, range }),
+    )
+  }
+
   async getSpendingByCategoryForDateRange(
     userId: string,
     startDate: string,
@@ -740,7 +788,7 @@ export class ExpensesService implements OnModuleDestroy {
 
         for (const row of rows) {
           const resolved = this.cardResolver.resolve(row.cardLast4)
-          if (resolved?.milestones) {
+          if (resolved?.milestones && resolved.status !== 'upgraded') {
             milestonesByCard.set(row.cardLast4, resolved.milestones)
           }
         }
@@ -749,7 +797,8 @@ export class ExpensesService implements OnModuleDestroy {
 
         return rows.map((row) => {
           const resolved = this.cardResolver.resolve(row.cardLast4)
-          const milestones = resolved?.milestones
+          const isUpgraded = resolved?.status === 'upgraded'
+          const milestones = resolved?.milestones && !isUpgraded
             ? this.computeMilestoneProgress(row.cardLast4, resolved.milestones, spendIndex)
             : []
 
@@ -758,6 +807,9 @@ export class ExpensesService implements OnModuleDestroy {
             cardName: resolved?.cardName ?? row.cardName,
             bank: resolved?.bank ?? row.bank,
             icon: resolved?.icon ?? row.icon,
+            imageKey: resolved?.imageKey,
+            status: resolved?.status,
+            upgradedTo: resolved?.upgradedTo,
             milestones: milestones.length > 0 ? milestones : undefined,
           }
         })
@@ -1225,23 +1277,35 @@ export class ExpensesService implements OnModuleDestroy {
     }
 
     const exactMatches: Record<string, string> = {}
+    const exactMatchDetails: UserCategorizationRules['exact_match_details'] = {}
 
     // Lower priority: inferred from existing transactions (added first so
     // explicit rules can overwrite them below)
     for (const entry of categorizedMerchants) {
       exactMatches[entry.merchant] = entry.category
+      exactMatchDetails[entry.merchant] = {
+        category: entry.category,
+        subcategory: entry.subcategory,
+      }
     }
 
     // Higher priority: explicit merchant rules (overwrites any inferred entry)
     for (const rule of rules) {
       exactMatches[rule.merchant] = rule.category
+      exactMatchDetails[rule.merchant] = {
+        category: rule.category,
+        subcategory: rule.subcategory,
+      }
     }
 
     this.logger.debug(
       `Loaded ${rules.length} explicit merchant rules and ${categorizedMerchants.length} inferred merchant categories for user ${userId}`,
     )
 
-    return { exact_matches: exactMatches }
+    return {
+      exact_matches: exactMatches,
+      exact_match_details: exactMatchDetails,
+    }
   }
 
   private categorizeTransactions(
@@ -1270,14 +1334,25 @@ export class ExpensesService implements OnModuleDestroy {
         ? this.cardResolver.resolveCardName(transaction.cardLast4)
         : undefined
 
+      const enriched = this.transactionEnricher.enrich({
+        merchant: transaction.merchant,
+        merchantRaw: transaction.merchantRaw,
+        vpa: transaction.vpa,
+        category: category.category,
+        subcategory: category.subcategory,
+        amount: transaction.amount,
+        transactionType: transaction.transactionType,
+      })
+
       return {
         ...transaction,
         category: category.category,
-        subcategory: category.subcategory,
+        subcategory: enriched.subcategory,
         confidence: category.confidence,
         categorizationMethod: category.method,
         requiresReview: category.requiresReview,
         categoryMetadata: category.categoryMetadata,
+        transactionAttributes: enriched.transactionAttributes,
         cardName,
       }
     })

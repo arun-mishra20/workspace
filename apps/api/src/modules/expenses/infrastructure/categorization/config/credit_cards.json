@@ -1,67 +1,168 @@
 {
+    "HDFC Diners Club Black Metal": {
+        "type": "Credit Card",
+        "bank": "HDFC Bank",
+        "network": "Diners Club",
+        "card_tier": "Super Premium",
+        "name": "Diners Club Black Metal",
+        "icon": "credit-card",
+        "last_four_digits": "8772",
+        "image_key": "dcbm",
+        "status": "active",
+        "upgraded_from": "7374",
+        "annual_fee": 10000,
+        "reward_currency": "Reward Points",
+        "tracking": {
+            "primary_card": true,
+            "optimize_for": ["Travel", "Flights", "Hotels", "SmartBuy", "Large Purchases"]
+        },
+        "benefits": {
+            "base_reward_rate": 3.33,
+            "smartbuy_reward_rate": 33.3,
+            "airport_lounge": true,
+            "international_lounge": true,
+            "golf": true,
+            "priority_pass": true,
+            "forex_markup": 1.99
+        },
+        "milestones": {
+            "quarterly_bonus": {
+                "type": "spend",
+                "description": "Spend ₹400,000 in a quarter to earn bonus reward points",
+                "amount": 400000,
+                "reward_points": 10000,
+                "durations": ["quarterly"]
+            },
+            "annual_fee_waiver": {
+                "type": "fee waiver",
+                "description": "Spend ₹800,000 in a membership year to waive annual fee",
+                "amount": 800000,
+                "durations": ["yearly"]
+            }
+        }
+    },
+
+    "HDFC Swiggy": {
+        "type": "Credit Card",
+        "bank": "HDFC Bank",
+        "network": "Mastercard",
+        "card_tier": "Cashback",
+        "name": "HDFC Swiggy",
+        "icon": "credit-card",
+        "last_four_digits": "2866",
+        "image_key": "swiggy",
+        "status": "active",
+        "annual_fee": 500,
+        "reward_currency": "Cashback",
+        "tracking": {
+            "primary_card": false,
+            "optimize_for": ["Swiggy", "Online Shopping", "Cashback"]
+        },
+        "benefits": {
+            "swiggy_cashback": 10,
+            "online_spend_cashback": 5,
+            "other_spends_cashback": 1,
+            "airport_lounge": false,
+            "international_lounge": false,
+            "forex_markup": 3.5
+        },
+        "milestones": {
+            "annual_fee_waiver": {
+                "type": "fee waiver",
+                "description": "Spend ₹200,000 in a membership year to waive annual fee",
+                "amount": 200000,
+                "durations": ["yearly"]
+            }
+        }
+    },
+
+    "HDFC Tata Neu": {
+        "type": "Credit Card",
+        "bank": "HDFC Bank",
+        "network": "Visa",
+        "card_tier": "Premium Cashback",
+        "name": "Tata Neu Infinity",
+        "icon": "credit-card",
+        "last_four_digits": "2312",
+        "image_key": "tata-neu",
+        "status": "active",
+        "annual_fee": 1499,
+        "reward_currency": "NeuCoins",
+        "tracking": {
+            "primary_card": false,
+            "optimize_for": ["BigBasket", "Croma", "Tata Cliq", "Air India", "Tata Brands", "UPI"]
+        },
+        "benefits": {
+            "neucoins_tata_brands": 5,
+            "neucoins_non_tata": 1.5,
+            "upi_rewards": true,
+            "airport_lounge": true,
+            "international_lounge": false,
+            "forex_markup": 2.0
+        },
+        "milestones": {
+            "annual_fee_waiver": {
+                "type": "fee waiver",
+                "description": "Spend ₹300,000 in a membership year to waive annual fee",
+                "amount": 300000,
+                "durations": ["yearly"]
+            }
+        }
+    },
+
     "HDFC Regalia Gold": {
         "type": "Credit Card",
         "name": "Regalia Gold",
         "bank": "HDFC Bank",
+        "network": "Mastercard",
+        "card_tier": "Premium",
         "icon": "credit-card",
         "last_four_digits": "7374",
+        "image_key": "regalia-gold",
+        "status": "upgraded",
+        "upgraded_to": "8772",
+        "annual_fee": 2500,
+        "reward_currency": "Reward Points",
+        "tracking": {
+            "primary_card": false,
+            "legacy_card": true
+        },
+        "benefits": {
+            "base_reward_rate": 1.33,
+            "smartbuy_reward_rate": 6.6,
+            "airport_lounge": true,
+            "international_lounge": true,
+            "golf": false,
+            "forex_markup": 2.0
+        },
         "milestones": {
             "milestone_1": {
                 "type": "spend",
-                "description": "Spend ₹150,000 per Quarter to avail Rs 1500 Myntra or Marks & Spencer or Reliance Digital or Nykaa voucher ",
+                "description": "Spend ₹150,000 per quarter to receive voucher benefits",
                 "amount": 150000,
                 "reward_points": 0,
-                "durations": [
-                    "quarterly"
-                ]
+                "durations": ["quarterly"]
             },
             "milestone_2": {
                 "type": "spend",
-                "description": "Spend ₹500,000 per Quarter to avail Rs 5000 Smartbuy voucher",
+                "description": "Spend ₹500,000 per year to receive SmartBuy voucher",
                 "amount": 500000,
                 "reward_points": 0,
-                "durations": [
-                    "yearly"
-                ],
-                "milestone_start_date": "2025-09-23",
-                "milestone_end_date": "2026-09-24"
+                "durations": ["yearly"]
             },
             "milestone_3": {
                 "type": "spend",
-                "description": "Spend ₹750,000 per Quarter to avail Rs 5000 Smaartbuy voucher",
+                "description": "Spend ₹750,000 per year to receive additional SmartBuy voucher",
                 "amount": 750000,
-                "durations": [
-                    "yearly"
-                ],
-                "milestone_start_date": "2025-09-23",
-                "milestone_end_date": "2026-09-24"
+                "reward_points": 0,
+                "durations": ["yearly"]
             },
             "milestone_4": {
                 "type": "fee waiver",
-                "description": "Spend ₹400,000 to waive off the annual fee of ₹2500",
+                "description": "Spend ₹400,000 to waive annual fee",
                 "amount": 400000,
-                "durations": [
-                    "yearly"
-                ],
-                "milestone_start_date": "2025-09-23",
-                "milestone_end_date": "2026-09-24"
+                "durations": ["yearly"]
             }
         }
-    },
-    "HDFC Swiggy": {
-        "type": "Credit Card",
-        "bank": "HDFC Bank",
-        "icon": "credit-card",
-        "last_four_digits": "2866",
-        "name": "HDFC Swiggy",
-        "milestones": {}
-    },
-    "HDFC Tata Neu": {
-        "type": "Credit Card",
-        "bank": "HDFC Bank",
-        "icon": "credit-card",
-        "last_four_digits": "2312",
-        "name": "HDFC Tata Neu",
-        "milestones": {}
     }
 }

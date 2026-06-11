@@ -17,6 +17,25 @@ export const CategoryMetadataSchema = z.object({
   color: z.string(),
   parent: z.string().nullable(),
 });
+export const TransactionAttributesSchema = z
+  .object({
+    assetClass: z.enum(['stocks', 'mutual_funds', 'gold', 'sip', 'fd_rd']).optional(),
+    platform: z.string().optional(),
+    isSip: z.boolean().optional(),
+    operator: z.string().optional(),
+    routeId: z.string().optional(),
+    vehicleType: z.string().optional(),
+    isRecurring: z.boolean().optional(),
+    billingCycle: z.enum(['weekly', 'monthly', 'quarterly', 'yearly']).optional(),
+    serviceName: z.string().optional(),
+    counterpartyType: z.enum(['person', 'business', 'government']).optional(),
+    incomeType: z.enum(['salary', 'bonus', 'freelance', 'refund', 'dividend', 'reimbursement']).optional(),
+    llmReasoning: z.string().optional(),
+  })
+  .partial();
+
+export type TransactionAttributes = z.infer<typeof TransactionAttributesSchema>;
+
 export type CategoryMetadata = z.infer<typeof CategoryMetadataSchema>;
 
 export const TransactionSchema: ZodType<Transaction> = z.object({
@@ -41,6 +60,7 @@ export const TransactionSchema: ZodType<Transaction> = z.object({
   statementId: z.string().optional(),
   cardLast4: z.string().optional(),
   cardName: z.string().optional(),
+  transactionAttributes: TransactionAttributesSchema.optional(),
 });
 
 export const StatementSchema: ZodType<Statement> = z.object({
@@ -75,6 +95,7 @@ export interface Transaction {
   statementId?: string;
   cardLast4?: string;
   cardName?: string;
+  transactionAttributes?: TransactionAttributes;
 }
 
 export interface Statement {
@@ -192,6 +213,17 @@ export const SpendingSummarySchema = z.object({
 });
 export type SpendingSummary = z.infer<typeof SpendingSummarySchema>;
 
+export const SpendingBySubcategoryItemSchema = z.object({
+  subcategory: z.string(),
+  category: z.string(),
+  displayName: z.string(),
+  amount: z.number(),
+  count: z.number(),
+  percentage: z.number(),
+});
+
+export type SpendingBySubcategoryItem = z.infer<typeof SpendingBySubcategoryItemSchema>;
+
 export const SpendingByCategoryItemSchema = z.object({
   category: z.string(),
   displayName: z.string(),
@@ -250,11 +282,48 @@ export const MilestoneProgressSchema = z.object({
 });
 export type MilestoneProgress = z.infer<typeof MilestoneProgressSchema>;
 
+export const CreditCardStatusSchema = z.enum(["active", "upgraded"]);
+export type CreditCardStatus = z.infer<typeof CreditCardStatusSchema>;
+
+export const CreditCardTrackingSchema = z.object({
+  primary_card: z.boolean().optional(),
+  legacy_card: z.boolean().optional(),
+  optimize_for: z.array(z.string()).optional(),
+});
+export type CreditCardTracking = z.infer<typeof CreditCardTrackingSchema>;
+
+export const CreditCardBenefitsSchema = z.record(
+  z.string(),
+  z.union([z.number(), z.boolean()]),
+);
+export type CreditCardBenefits = z.infer<typeof CreditCardBenefitsSchema>;
+
+export const CreditCardProfileSchema = z.object({
+  cardLast4: z.string(),
+  cardName: z.string(),
+  bank: z.string(),
+  icon: z.string(),
+  network: z.string().optional(),
+  cardTier: z.string().optional(),
+  imageKey: z.string().optional(),
+  status: CreditCardStatusSchema,
+  upgradedTo: z.string().optional(),
+  upgradedFrom: z.string().optional(),
+  annualFee: z.number().optional(),
+  rewardCurrency: z.string().optional(),
+  tracking: CreditCardTrackingSchema.optional(),
+  benefits: CreditCardBenefitsSchema.optional(),
+});
+export type CreditCardProfile = z.infer<typeof CreditCardProfileSchema>;
+
 export const SpendingByCardItemSchema = z.object({
   cardLast4: z.string(),
   cardName: z.string(),
   bank: z.string(),
   icon: z.string(),
+  imageKey: z.string().optional(),
+  status: CreditCardStatusSchema.optional(),
+  upgradedTo: z.string().optional(),
   amount: z.number(),
   count: z.number(),
   milestones: z.array(MilestoneProgressSchema).optional(),

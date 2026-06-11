@@ -110,15 +110,22 @@
     {
       "idx": 15,
       "version": "7",
-      "when": 1773332792761,
-      "tag": "0015_furry_captain_stacy",
+      "when": 1774270424340,
+      "tag": "0016_clear_sandman",
       "breakpoints": true
     },
     {
       "idx": 16,
       "version": "7",
-      "when": 1774270424340,
-      "tag": "0016_clear_sandman",
+      "when": 1781191605811,
+      "tag": "0017_transaction_attributes",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1781191772473,
+      "tag": "0018_add_transaction_attributes_column",
       "breakpoints": true
     }
   ]

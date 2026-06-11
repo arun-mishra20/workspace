@@ -1,0 +1,94 @@
+{
+  "exact_matches": {
+    "swiggy": "delivery",
+    "zomato": "delivery",
+    "dominos": "delivery",
+    "pizza hut": "delivery",
+    "mcdonalds": "restaurant",
+    "starbucks": "cafe",
+    "zepto": "quick_commerce",
+    "blinkit": "quick_commerce",
+    "bigbasket": "grocery_delivery",
+    "uber": "cab",
+    "ola": "cab",
+    "rapido": "bike_taxi",
+    "redbus": "bus",
+    "irctc": "train",
+    "netflix": "subscription",
+    "spotify": "subscription",
+    "chatgpt": "subscription",
+    "openai": "subscription",
+    "notion": "subscription",
+    "github": "subscription",
+    "groww invest tech": "stocks",
+    "zerodha broking": "stocks",
+    "mutual funds iccl": "mutual_funds",
+    "mmtc pamp india": "gold",
+    "bmtc": "bus"
+  },
+  "keyword_patterns": [
+    {
+      "category": "food_dining",
+      "keywords": ["swiggy", "zomato", "delivery", "eatsure", "faasos"],
+      "subcategory": "delivery"
+    },
+    {
+      "category": "food_dining",
+      "keywords": ["restaurant", "cafe", "dhaba", "biryani", "kitchen"],
+      "subcategory": "restaurant"
+    },
+    {
+      "category": "transport",
+      "keywords": ["bmtc", "ka01", "ka02", "ka03", "ka41", "ka50", "ka57"],
+      "subcategory": "bus"
+    },
+    {
+      "category": "transport",
+      "keywords": ["uber", "ola", "rapido", "namma yatri", "cab", "taxi"],
+      "subcategory": "cab"
+    },
+    {
+      "category": "transport",
+      "keywords": ["metro", "mrt"],
+      "subcategory": "metro"
+    },
+    {
+      "category": "transport",
+      "keywords": ["petrol", "diesel", "fuel", "indian oil", "hp petrol", "bharat petroleum"],
+      "subcategory": "fuel"
+    },
+    {
+      "category": "investments",
+      "keywords": ["mutual fund", "iccl", "kuvera", "sip"],
+      "subcategory": "mutual_funds"
+    },
+    {
+      "category": "investments",
+      "keywords": ["mmtc", "pamp", "gold"],
+      "subcategory": "gold"
+    },
+    {
+      "category": "investments",
+      "keywords": ["zerodha", "groww", "upstox", "demat", "stocks", "broking"],
+      "subcategory": "stocks"
+    },
+    {
+      "category": "apps_and_software",
+      "keywords": ["subscription", "saas", "premium", "chatgpt", "notion", "github"],
+      "subcategory": "subscription"
+    },
+    {
+      "category": "income_salary",
+      "keywords": ["bonus", "incentive"],
+      "subcategory": "bonus"
+    },
+    {
+      "category": "income_salary",
+      "keywords": ["reimbursement"],
+      "subcategory": "reimbursement"
+    }
+  ],
+  "category_defaults": {
+    "uncategorized": "uncategorized"
+  }
+}

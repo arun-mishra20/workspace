@@ -75,7 +75,7 @@ const expenseFilterFields = {
   category: z.string().optional(),
   mode: z.string().optional(),
   review: z.string().optional(),
-  card: z.string().optional(),
+  card_last4: z.string().regex(/^\d{4}$/).optional(),
   from: z.string().optional(),
   to: z.string().optional(),
   search: z.string().optional(),

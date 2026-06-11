@@ -1,0 +1,104 @@
+import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
+import { Badge } from '@workspace/ui/components/ui/badge'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@workspace/ui/components/ui/card'
+import { Separator } from '@workspace/ui/components/ui/separator'
+import { Skeleton } from '@workspace/ui/components/ui/skeleton'
+
+interface RankedSpendItem {
+  key: string
+  label: string
+  sublabel?: string
+  amount: number
+  count: number
+}
+
+interface RankedSpendListCardProps {
+  title: string
+  description: string
+  items: RankedSpendItem[]
+  loading: boolean
+  emptyMessage?: string
+  barColor?: string
+}
+
+export function RankedSpendListCard({
+  title,
+  description,
+  items,
+  loading,
+  emptyMessage = 'No data.',
+  barColor = 'bg-primary/70',
+}: RankedSpendListCardProps) {
+  const maxAmount = items[0]?.amount ?? 0
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+        <Separator className="w-full mt-2" />
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-full" />
+            ))}
+          </div>
+        ) : items.length > 0 ? (
+          <div className="space-y-3">
+            {items.map((item, i) => {
+              const pct = maxAmount > 0 ? (item.amount / maxAmount) * 100 : 0
+              return (
+                <div key={item.key} className="flex items-center gap-3 py-2">
+                  <span className="w-5 text-xs text-muted-foreground">
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between text-sm gap-2">
+                      <div className="min-w-0">
+                        <span className="font-medium">{item.label}</span>
+                        {item.sublabel && (
+                          <p className="truncate text-xs text-muted-foreground">
+                            {item.sublabel}
+                          </p>
+                        )}
+                      </div>
+                      <span className="tabular-nums shrink-0">
+                        {fmtCurrency(item.amount)}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1.5 rounded-full bg-muted">
+                      <div
+                        className={`h-full rounded-full transition-all ${barColor.startsWith('bg-') ? barColor : ''}`}
+                        style={{
+                          width: `${pct}%`,
+                          ...(barColor.startsWith('var(')
+                            ? { backgroundColor: barColor }
+                            : {}),
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="tabular-nums shrink-0">
+                    {item.count}
+                  </Badge>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            {emptyMessage}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}

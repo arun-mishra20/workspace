@@ -23,6 +23,9 @@ import {
 import { useSyncJob } from '@/features/expenses/hooks/use-sync-job'
 import { MerchantCategorizeDialog } from '@/features/expenses/components/merchant-categorize-dialog'
 import { BulkActionsToolbar } from '@/features/expenses/components/bulk-actions-toolbar'
+import { CreditCardFilter } from '@/features/expenses/components/credit-card-filter'
+import { LlmCategorizeDialog } from '@/features/expenses/components/llm-categorize-dialog'
+import { fetchCreditCards } from '@/features/expenses/api/credit-cards'
 import { CATEGORY_OPTIONS } from '@/features/expenses/constants/category-options'
 import { Badge } from '@workspace/ui/components/ui/badge'
 import { Button } from '@workspace/ui/components/ui/button'
@@ -84,13 +87,14 @@ import {
   RefreshCcw,
   Unplug,
   AlertTriangle,
+  Sparkles,
   IndianRupee,
   Send,
   ArrowLeft,
   ArrowRight,
   CreditCard,
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { appPaths } from '@/config/app-paths'
 import type { Transaction } from '@workspace/domain'
 import {
@@ -364,6 +368,8 @@ function AnimatedNumber({ value }: { value: number }) {
 
 const ExpenseEmailsPage = () => {
   const queryClient = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filterCard = searchParams.get('card') ?? ''
   const [activeView, setActiveView] = useState<ExpenseView>('expense')
   const [emailPageIndex, setEmailPageIndex] = useState(0)
   const [expensePageIndex, setExpensePageIndex] = useState(0)
@@ -374,6 +380,7 @@ const ExpenseEmailsPage = () => {
 
   // ── Row selection ──
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [queueLlmOpen, setQueueLlmOpen] = useState(false)
 
   // ── Filter state ──
   const [filterCategory, setFilterCategory] = useState('')
@@ -384,13 +391,38 @@ const ExpenseEmailsPage = () => {
   const [searchInput, setSearchInput] = useState('')
   const debouncedSearch = useDebounce(searchInput, 300)
 
+  const handleCardSelect = (last4: string | undefined) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (last4) {
+          next.set('card', last4)
+        } else {
+          next.delete('card')
+        }
+        return next
+      },
+      { replace: true },
+    )
+  }
+
+  const { data: creditCards = [] } = useQuery({
+    queryKey: ['expenses', 'credit-cards'],
+    queryFn: fetchCreditCards,
+    enabled: activeView === 'expense',
+  })
+
   const hasActiveFilters =
     filterCategory ||
     filterMode ||
     filterReview ||
     filterDateFrom ||
     filterDateTo ||
-    debouncedSearch
+    debouncedSearch ||
+    filterCard
+
+  const showAiCategorizePrompt =
+    filterCategory === 'uncategorized' || filterReview === 'true'
 
   // Reset to first page and clear selection whenever filters change
   useEffect(() => {
@@ -403,6 +435,7 @@ const ExpenseEmailsPage = () => {
     filterDateFrom,
     filterDateTo,
     debouncedSearch,
+    filterCard,
   ])
 
   // ── Edit form state ──
@@ -487,6 +520,7 @@ const ExpenseEmailsPage = () => {
       filterDateFrom,
       filterDateTo,
       debouncedSearch,
+      filterCard,
     ],
     queryFn: () =>
       listExpenses({
@@ -498,8 +532,27 @@ const ExpenseEmailsPage = () => {
         ...(filterDateFrom && { date_from: filterDateFrom }),
         ...(filterDateTo && { date_to: filterDateTo }),
         ...(debouncedSearch && { search: debouncedSearch }),
+        ...(filterCard && { card_last4: filterCard }),
       }),
     enabled: activeView === 'expense',
+  })
+
+  const { data: aiQueueData } = useQuery({
+    queryKey: [
+      'expenses',
+      'transactions',
+      'ai-queue',
+      filterCategory,
+      filterReview,
+    ],
+    queryFn: () =>
+      listExpenses({
+        page: 1,
+        page_size: 100,
+        ...(filterCategory === 'uncategorized' && { category: 'uncategorized' }),
+        ...(filterReview === 'true' && { review: 'true' }),
+      }),
+    enabled: showAiCategorizePrompt && activeView === 'expense',
   })
 
   const emailTable = useReactTable({
@@ -884,6 +937,11 @@ const ExpenseEmailsPage = () => {
                     onChange={setSearchInput}
                     placeholder="Search merchant…"
                   />
+                  <CreditCardFilter
+                    cards={creditCards}
+                    selectedLast4={filterCard || undefined}
+                    onSelect={handleCardSelect}
+                  />
                   <SelectFilter
                     label="Categories"
                     value={filterCategory}
@@ -923,6 +981,7 @@ const ExpenseEmailsPage = () => {
                         setFilterDateFrom(undefined)
                         setFilterDateTo(undefined)
                         setSearchInput('')
+                        handleCardSelect(undefined)
                       }}
                     >
                       Clear all
@@ -930,6 +989,24 @@ const ExpenseEmailsPage = () => {
                   )}
                 </div>
               )}
+
+              {activeView === 'expense' && showAiCategorizePrompt ? (
+                <Alert className="mb-4 border-primary/30 bg-primary/5">
+                  <Sparkles className="size-4" />
+                  <AlertTitle>Categorize with AI</AlertTitle>
+                  <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+                    <span>
+                      {expensesData?.total ?? 0} transaction
+                      {(expensesData?.total ?? 0) === 1 ? '' : 's'} match this
+                      filter. AI suggestions are opt-in — review before applying.
+                    </span>
+                    <Button size="sm" onClick={() => setQueueLlmOpen(true)}>
+                      <Sparkles className="mr-2 size-4" />
+                      Categorize up to {Math.min(aiQueueData?.data.length ?? 0, 100)}
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              ) : null}
 
               <Separator className="mb-4" />
 
@@ -1345,6 +1422,17 @@ const ExpenseEmailsPage = () => {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <LlmCategorizeDialog
+        open={queueLlmOpen}
+        onOpenChange={setQueueLlmOpen}
+        transactions={aiQueueData?.data ?? []}
+        onComplete={() => {
+          void queryClient.invalidateQueries({
+            queryKey: ['expenses', 'transactions'],
+          })
+        }}
+      />
     </MainLayout>
   )
 }

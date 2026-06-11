@@ -119,6 +119,8 @@ export const transactionsTable = pgTable(
       .notNull()
       .$type<{ icon: string, color: string, parent: string | null }>()
       .default({ icon: 'question-circle', color: '#BDC3C7', parent: null }),
+    transactionAttributes: jsonb('transaction_attributes')
+      .$type<Record<string, unknown>>(),
     statementId: uuid('statement_id').references(() => statementsTable.id, {
       onDelete: 'set null',
     }),

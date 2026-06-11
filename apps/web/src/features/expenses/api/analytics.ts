@@ -4,6 +4,7 @@ import { apiRequest } from '@/lib/api-client'
 import {
   SpendingSummarySchema,
   SpendingByCategoryItemSchema,
+  SpendingBySubcategoryItemSchema,
   SpendingByModeItemSchema,
   SpendingByMerchantItemSchema,
   DailySpendingItemSchema,
@@ -52,6 +53,14 @@ export async function fetchSpendingByCategory(period: AnalyticsPeriod) {
     url: `/api/expenses/analytics/by-category?period=${period}`,
   })
   return z.array(SpendingByCategoryItemSchema).parse(json)
+}
+
+export async function fetchSpendingBySubcategory(period: AnalyticsPeriod) {
+  const json = await apiRequest({
+    method: 'GET',
+    url: `/api/expenses/analytics/by-subcategory?period=${period}`,
+  })
+  return z.array(SpendingBySubcategoryItemSchema).parse(json)
 }
 
 export async function fetchSpendingByMode(period: AnalyticsPeriod) {

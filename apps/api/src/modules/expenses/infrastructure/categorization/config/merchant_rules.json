@@ -190,7 +190,8 @@
                 "canteen",
                 "tiffin",
                 "mess"
-            ]
+            ],
+            "subcategory": "delivery"
         },
         {
             "category": "groceries",
@@ -260,7 +261,8 @@
                 "irctc",
                 "redbus",
                 "namma yatri"
-            ]
+            ],
+            "subcategory": "cab"
         },
         {
             "category": "utilities",
@@ -337,7 +339,8 @@
                 "zoom",
                 "subscription",
                 "saas"
-            ]
+            ],
+            "subcategory": "subscription"
         },
         {
             "category": "medical",
@@ -416,7 +419,8 @@
                 "nsdl",
                 "cdsl",
                 "ipo"
-            ]
+            ],
+            "subcategory": "stocks"
         },
         {
             "category": "insurance",
@@ -563,7 +567,14 @@
             ]
         }
     ],
-    "vpa_amount_rules": [],
+    "vpa_amount_rules": [
+        {
+            "vpa": "mybmtcdqr@ybl",
+            "category": "transport",
+            "subcategory": "bus",
+            "confidence": 0.95
+        }
+    ],
     "vpa_patterns": [
         {
             "pattern": ".*salary.*@.*",
@@ -608,27 +619,32 @@
         {
             "pattern": ".*zerodha.*@.*",
             "category": "investments",
-            "confidence": 0.9
+            "confidence": 0.9,
+            "subcategory": "stocks"
         },
         {
             "pattern": ".*groww.*@.*",
             "category": "investments",
-            "confidence": 0.9
+            "confidence": 0.9,
+            "subcategory": "stocks"
         },
         {
             "pattern": ".*irctc.*@.*",
             "category": "transport",
-            "confidence": 0.9
+            "confidence": 0.9,
+            "subcategory": "train"
         },
         {
             "pattern": ".*swiggy.*@.*",
             "category": "food_dining",
-            "confidence": 0.92
+            "confidence": 0.92,
+            "subcategory": "delivery"
         },
         {
             "pattern": ".*zomato.*@.*",
             "category": "food_dining",
-            "confidence": 0.92
+            "confidence": 0.92,
+            "subcategory": "delivery"
         }
     ],
     "neft_patterns": {
@@ -644,6 +660,7 @@
             "bonus",
             "incentive",
             "reimbursement"
-        ]
+        ],
+        "subcategory": "salary"
     }
 }

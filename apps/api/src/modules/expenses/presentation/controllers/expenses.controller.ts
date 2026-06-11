@@ -187,6 +187,7 @@ export class ExpensesController {
     if (query.date_from) filters.dateFrom = new Date(query.date_from)
     if (query.date_to) filters.dateTo = new Date(query.date_to)
     if (query.search) filters.search = query.search
+    if (query.card_last4) filters.cardLast4 = query.card_last4
 
     const { data, total } = await this.expensesService.listExpenses({
       userId: req.user.id,
@@ -223,6 +224,7 @@ export class ExpensesController {
     if (query.from) filters.dateFrom = new Date(query.from)
     if (query.to) filters.dateTo = new Date(query.to)
     if (query.search) filters.search = query.search
+    if (query.card_last4) filters.cardLast4 = query.card_last4
 
     const { data, nextCursor, hasMore } = await this.expensesService.listExpensesCursor({
       userId: req.user.id,
@@ -398,6 +400,16 @@ export class ExpensesController {
     return this.expensesService.getSpendingByCategory(req.user.id, period)
   }
 
+  @Get('analytics/by-subcategory')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Spending grouped by subcategory' })
+  async getBySubcategory(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Query('period') period: AnalyticsPeriod = 'month',
+  ) {
+    return this.expensesService.getSpendingBySubcategory(req.user.id, period)
+  }
+
   @Get('analytics/by-mode')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Spending grouped by payment mode' })
@@ -454,6 +466,17 @@ export class ExpensesController {
     @Query('period') period: AnalyticsPeriod = 'month',
   ) {
     return this.expensesService.getSpendingByCard(req.user.id, period)
+  }
+
+  @Get('cards')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'List configured credit cards' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns all configured credit cards with status metadata',
+  })
+  listCreditCards() {
+    return this.expensesService.listCreditCards()
   }
 
   // ── Extended Analytics ──
