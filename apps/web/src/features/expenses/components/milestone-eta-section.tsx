@@ -268,14 +268,25 @@ function MilestoneEtaCard({ eta }: { eta: MilestoneEta }) {
             })()}
           </span>
         ) : (
-          <span className="text-muted-foreground">No activity yet</span>
+          <span className="text-muted-foreground">
+            Need {fmtCurrency(eta.requiredDailyRate ?? 0)}/day by{' '}
+            {(() => {
+              try {
+                return format(parseISO(eta.periodEnd), 'dd MMM yyyy')
+              } catch {
+                return eta.periodEnd
+              }
+            })()}
+          </span>
         )}
-        {eta.daysRemaining !== null && eta.percentage < 100 && (
+        {eta.percentage < 100 && (
           <Badge
             variant={eta.onTrack ? 'secondary' : 'destructive'}
             className="text-[10px]"
           >
-            {eta.onTrack ? `${eta.daysRemaining}d left` : 'Behind schedule'}
+            {eta.onTrack
+              ? `${eta.daysRemaining}d to go`
+              : `${eta.daysLeftInPeriod}d left in period`}
           </Badge>
         )}
       </div>

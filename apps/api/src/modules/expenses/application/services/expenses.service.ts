@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, Logger  } from '@nestjs/common'
-import { addDays, format, isValid, parseISO, startOfDay } from 'date-fns'
+import { addDays, format, isValid, parseISO, startOfDay, subDays } from 'date-fns'
 
 import {
   EMAIL_PARSERS,
@@ -18,6 +18,8 @@ import {
 
 } from '@/modules/expenses/application/ports/transaction.repository.port'
 import { CardResolver } from '@/modules/expenses/infrastructure/categorization/card-resolver'
+import { computeMilestoneDateRange } from '@/modules/expenses/infrastructure/categorization/milestone-date-range'
+import { computeMilestoneEtaForecast } from '@/modules/expenses/infrastructure/categorization/milestone-eta-forecast'
 import { RecurringPatternService } from '@/modules/expenses/infrastructure/categorization/recurring-pattern.service'
 import {
   TransactionCategorizer,
@@ -783,13 +785,19 @@ export class ExpensesService implements OnModuleDestroy {
 
         const milestonesByCard = new Map<
           string,
-          NonNullable<ReturnType<CardResolver['resolve']>>['milestones']
+          {
+            milestones: NonNullable<ReturnType<CardResolver['resolve']>>['milestones']
+            membershipStart?: string
+          }
         >()
 
         for (const row of rows) {
           const resolved = this.cardResolver.resolve(row.cardLast4)
           if (resolved?.milestones && resolved.status !== 'upgraded') {
-            milestonesByCard.set(row.cardLast4, resolved.milestones)
+            milestonesByCard.set(row.cardLast4, {
+              milestones: resolved.milestones,
+              membershipStart: resolved.membershipStart,
+            })
           }
         }
 
@@ -799,7 +807,12 @@ export class ExpensesService implements OnModuleDestroy {
           const resolved = this.cardResolver.resolve(row.cardLast4)
           const isUpgraded = resolved?.status === 'upgraded'
           const milestones = resolved?.milestones && !isUpgraded
-            ? this.computeMilestoneProgress(row.cardLast4, resolved.milestones, spendIndex)
+            ? this.computeMilestoneProgress(
+                row.cardLast4,
+                resolved.milestones,
+                spendIndex,
+                resolved.membershipStart,
+              )
             : []
 
           return {
@@ -942,12 +955,18 @@ export class ExpensesService implements OnModuleDestroy {
         const results: MilestoneEta[] = []
         const milestonesByCard = new Map<
           string,
-          NonNullable<ReturnType<CardResolver['resolve']>>['milestones']
+          {
+            milestones: NonNullable<ReturnType<CardResolver['resolve']>>['milestones']
+            membershipStart?: string
+          }
         >()
 
         for (const [cardLast4, card] of allCards.entries()) {
           if (card.milestones && Object.keys(card.milestones).length > 0) {
-            milestonesByCard.set(cardLast4, card.milestones)
+            milestonesByCard.set(cardLast4, {
+              milestones: card.milestones,
+              membershipStart: card.membershipStart,
+            })
           }
         }
 
@@ -958,40 +977,24 @@ export class ExpensesService implements OnModuleDestroy {
 
           for (const [id, milestone] of Object.entries(card.milestones)) {
             const duration = milestone.durations[0] ?? 'yearly'
-            const { start, end } = this.computeMilestoneDateRange(
-              duration,
-              milestone.milestone_start_date,
-              milestone.milestone_end_date,
-            )
+            const { start, end } = computeMilestoneDateRange(duration, {
+              startDate: milestone.milestone_start_date,
+              endDate: milestone.milestone_end_date,
+              membershipStart: card.membershipStart,
+            })
 
             const currentSpend = this.sumCardSpendInRange(
               spendIndex.get(cardLast4) ?? [],
               start,
               end,
             )
-            const percentage = Math.min(100, (currentSpend / milestone.amount) * 100)
-            const remaining = Math.max(0, milestone.amount - currentSpend)
 
-            const elapsedMs = Date.now() - start.getTime()
-            const elapsedDays = Math.max(1, elapsedMs / (1000 * 60 * 60 * 24))
-            const dailyRate = currentSpend / elapsedDays
-
-            let daysRemaining: number | null = null
-            let estimatedCompletionDate: string | null = null
-            const periodEndStr = end.toISOString().split('T')[0]!
-
-            if (dailyRate > 0 && remaining > 0) {
-              daysRemaining = Math.ceil(remaining / dailyRate)
-              const eta = new Date()
-              eta.setDate(eta.getDate() + daysRemaining)
-              estimatedCompletionDate = eta.toISOString().split('T')[0]!
-            } else if (remaining <= 0) {
-              daysRemaining = 0
-            }
-
-            const onTrack
-              = remaining <= 0
-                || (estimatedCompletionDate != null && estimatedCompletionDate <= periodEndStr)
+            const forecast = computeMilestoneEtaForecast({
+              currentSpend,
+              targetAmount: milestone.amount,
+              periodStart: start,
+              periodEndExclusive: end,
+            })
 
             results.push({
               id,
@@ -1000,12 +1003,14 @@ export class ExpensesService implements OnModuleDestroy {
               description: milestone.description,
               targetAmount: milestone.amount,
               currentSpend,
-              percentage: Math.round(percentage * 100) / 100,
-              dailyRate: Math.round(dailyRate * 100) / 100,
-              daysRemaining,
-              estimatedCompletionDate,
-              periodEnd: periodEndStr,
-              onTrack,
+              percentage: forecast.percentage,
+              dailyRate: forecast.dailyRate,
+              daysRemaining: forecast.daysRemaining,
+              estimatedCompletionDate: forecast.estimatedCompletionDate,
+              periodEnd: forecast.periodEnd,
+              daysLeftInPeriod: forecast.daysLeftInPeriod,
+              requiredDailyRate: forecast.requiredDailyRate,
+              onTrack: forecast.onTrack,
             })
           }
         }
@@ -1098,6 +1103,7 @@ export class ExpensesService implements OnModuleDestroy {
     cardLast4: string,
     milestones: NonNullable<ReturnType<CardResolver['resolve']>>['milestones'],
     spendIndex: Map<string, { transactionDate: Date, amount: number }[]>,
+    membershipStart?: string,
   ): MilestoneProgress[] {
     const entries = Object.entries(milestones)
     if (entries.length === 0) return []
@@ -1106,11 +1112,11 @@ export class ExpensesService implements OnModuleDestroy {
 
     for (const [id, milestone] of entries) {
       const duration = milestone.durations[0] ?? 'yearly'
-      const { start, end, label } = this.computeMilestoneDateRange(
-        duration,
-        milestone.milestone_start_date,
-        milestone.milestone_end_date,
-      )
+      const { start, end, label } = computeMilestoneDateRange(duration, {
+        startDate: milestone.milestone_start_date,
+        endDate: milestone.milestone_end_date,
+        membershipStart,
+      })
 
       const currentSpend = this.sumCardSpendInRange(
         spendIndex.get(cardLast4) ?? [],
@@ -1130,8 +1136,8 @@ export class ExpensesService implements OnModuleDestroy {
         percentage: Math.round(percentage * 100) / 100,
         remaining,
         periodLabel: label,
-        periodStart: start.toISOString().split('T')[0]!,
-        periodEnd: end.toISOString().split('T')[0]!,
+        periodStart: format(startOfDay(start), 'yyyy-MM-dd'),
+        periodEnd: format(subDays(startOfDay(end), 1), 'yyyy-MM-dd'),
       })
     }
 
@@ -1140,7 +1146,13 @@ export class ExpensesService implements OnModuleDestroy {
 
   private async buildMilestoneSpendIndex(
     userId: string,
-    milestonesByCard: Map<string, NonNullable<ReturnType<CardResolver['resolve']>>['milestones']>,
+    milestonesByCard: Map<
+      string,
+      {
+        milestones: NonNullable<ReturnType<CardResolver['resolve']>>['milestones']
+        membershipStart?: string
+      }
+    >,
   ): Promise<Map<string, { transactionDate: Date, amount: number }[]>> {
     if (milestonesByCard.size === 0) {
       return new Map()
@@ -1149,14 +1161,14 @@ export class ExpensesService implements OnModuleDestroy {
     let minStart: Date | null = null
     let maxEnd: Date | null = null
 
-    for (const milestones of milestonesByCard.values()) {
+    for (const { milestones, membershipStart } of milestonesByCard.values()) {
       for (const milestone of Object.values(milestones)) {
         const duration = milestone.durations[0] ?? 'yearly'
-        const { start, end } = this.computeMilestoneDateRange(
-          duration,
-          milestone.milestone_start_date,
-          milestone.milestone_end_date,
-        )
+        const { start, end } = computeMilestoneDateRange(duration, {
+          startDate: milestone.milestone_start_date,
+          endDate: milestone.milestone_end_date,
+          membershipStart,
+        })
 
         if (!minStart || start < minStart) {
           minStart = start
@@ -1204,53 +1216,6 @@ export class ExpensesService implements OnModuleDestroy {
       }
     }
     return total
-  }
-
-  /**
-     * Compute the date range for a milestone based on its duration type.
-     * - "quarterly": Current calendar quarter (Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec)
-     * - "yearly" with custom dates: Uses milestone_start_date/milestone_end_date
-     * - "yearly" without custom dates: Current calendar year
-     */
-  private computeMilestoneDateRange(
-    duration: string,
-    startDate?: string,
-    endDate?: string,
-  ): { start: Date, end: Date, label: string } {
-    const now = new Date()
-
-    if (duration === 'quarterly') {
-      const quarter = Math.floor(now.getMonth() / 3)
-      const quarterNames = ['Jan–Mar', 'Apr–Jun', 'Jul–Sep', 'Oct–Dec']
-      const start = new Date(now.getFullYear(), quarter * 3, 1)
-      const end = new Date(now.getFullYear(), quarter * 3 + 3, 1)
-      return {
-        start,
-        end,
-        label: `Q${quarter + 1} ${now.getFullYear()} (${quarterNames[quarter]})`,
-      }
-    }
-
-    // Yearly with custom dates
-    if (startDate && endDate) {
-      const start = new Date(startDate)
-      const end = new Date(endDate)
-      start.setHours(0, 0, 0, 0)
-      end.setHours(23, 59, 59, 999)
-
-      const fmtDate = (d: Date) =>
-        d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-      return {
-        start,
-        end,
-        label: `${fmtDate(start)} – ${fmtDate(end)}`,
-      }
-    }
-
-    // Yearly default: calendar year
-    const start = new Date(now.getFullYear(), 0, 1)
-    const end = new Date(now.getFullYear() + 1, 0, 1)
-    return { start, end, label: `FY ${now.getFullYear()}` }
   }
 
   private findParser(email: RawEmail): EmailParser | null {

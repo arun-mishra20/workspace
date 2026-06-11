@@ -26,6 +26,7 @@ export interface CreditCardConfig {
   upgraded_from?: string
   annual_fee?: number
   reward_currency?: string
+  membership_start?: string
   tracking?: CreditCardTracking
   benefits?: CreditCardBenefits
   milestones: Record<
@@ -55,6 +56,7 @@ export interface ResolvedCard {
   upgradedFrom?: string
   annualFee?: number
   rewardCurrency?: string
+  membershipStart?: string
   tracking?: CreditCardTracking
   benefits?: CreditCardBenefits
   milestones: CreditCardConfig['milestones']
@@ -153,6 +155,7 @@ export class CardResolver {
             upgradedFrom: card.upgraded_from,
             annualFee: card.annual_fee,
             rewardCurrency: card.reward_currency,
+            membershipStart: card.membership_start,
             tracking: card.tracking,
             benefits: card.benefits,
             milestones: card.milestones,

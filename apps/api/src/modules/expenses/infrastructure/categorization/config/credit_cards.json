@@ -12,6 +12,7 @@
         "upgraded_from": "7374",
         "annual_fee": 10000,
         "reward_currency": "Reward Points",
+        "membership_start": "06-11",
         "tracking": {
             "primary_card": true,
             "optimize_for": ["Travel", "Flights", "Hotels", "SmartBuy", "Large Purchases"]
@@ -54,6 +55,7 @@
         "status": "active",
         "annual_fee": 500,
         "reward_currency": "Cashback",
+        "membership_start": "09-20",
         "tracking": {
             "primary_card": false,
             "optimize_for": ["Swiggy", "Online Shopping", "Cashback"]
@@ -88,6 +90,7 @@
         "status": "active",
         "annual_fee": 1499,
         "reward_currency": "NeuCoins",
+        "membership_start": "06-30",
         "tracking": {
             "primary_card": false,
             "optimize_for": ["BigBasket", "Croma", "Tata Cliq", "Air India", "Tata Brands", "UPI"]
@@ -123,6 +126,7 @@
         "upgraded_to": "8772",
         "annual_fee": 2500,
         "reward_currency": "Reward Points",
+        "membership_start": "09-23",
         "tracking": {
             "primary_card": false,
             "legacy_card": true

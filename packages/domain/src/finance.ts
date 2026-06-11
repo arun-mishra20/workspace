@@ -423,6 +423,8 @@ export const MilestoneEtaSchema = z.object({
   daysRemaining: z.number().nullable(),
   estimatedCompletionDate: z.string().nullable(),
   periodEnd: z.string(),
+  daysLeftInPeriod: z.number(),
+  requiredDailyRate: z.number().nullable(),
   onTrack: z.boolean(),
 });
 export type MilestoneEta = z.infer<typeof MilestoneEtaSchema>;
