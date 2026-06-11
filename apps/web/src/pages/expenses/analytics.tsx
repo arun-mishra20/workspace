@@ -95,6 +95,7 @@ import {
   Gauge,
   Layers,
   PiggyBank,
+  MoreVertical,
   Receipt,
   RotateCw,
   Target,
@@ -413,11 +414,11 @@ const AnalyticsPage = () => {
               </Button>
             ))}
 
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-1">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={startReprocess}
+                onClick={() => startReprocess(false)}
                 disabled={isSyncing}
               >
                 <RotateCw className={isSyncing ? 'animate-spin' : ''} />
@@ -427,6 +428,35 @@ const AnalyticsPage = () => {
                     ? 'Reprocessed ✓'
                     : 'Reprocess Emails'}
               </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="size-8"
+                    disabled={isSyncing}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                    <span className="sr-only">Reprocess options</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-72 p-3">
+                  <Button
+                    variant="ghost"
+                    className="h-auto w-full justify-start px-2 py-2 text-left whitespace-normal"
+                    onClick={() => startReprocess(true)}
+                    disabled={isSyncing}
+                  >
+                    <div className="space-y-1">
+                      <p className="font-medium">Force refresh all</p>
+                      <p className="text-xs text-muted-foreground">
+                        Re-parses every stored email, including ones already
+                        processed. Use after parser updates.
+                      </p>
+                    </div>
+                  </Button>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </header>

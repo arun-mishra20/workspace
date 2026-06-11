@@ -169,6 +169,133 @@ describe('hdfcEmailParser', () => {
     expect(txn.transactionDate).toBe('2026-02-08T00:00:00.000Z')
   })
 
+  it('parses account update UPI credit with Transaction Details sender', () => {
+    const parser = new HdfcEmailParser()
+
+    const creditEmail: RawEmail = {
+      ...baseEmail,
+      from: 'alerts@hdfcbank.net',
+      subject: 'View: Account update for your HDFC Bank A/c',
+      bodyText: '',
+      snippet:
+        "Dear Customer, Greetings from HDFC Bank! We're writing to inform you that Rs.11800.00 has been successfully credited to your HDFC Bank account ending in 9212. Transaction Details: a. Date: 11-06-26 b. Sender: KIRUTHIGA SELLAM C (VPA: kiruthiga.c01@ptyes) c. UPI Reference No.: 307810287731",
+      receivedAt: '2026-06-11T12:00:00.000Z',
+    }
+
+    const transactions = parser.parseTransactions(creditEmail)
+
+    expect(transactions).toHaveLength(1)
+
+    const txn = transactions[0]!
+    expect(txn.amount).toBe(11_800)
+    expect(txn.transactionType).toBe('credited')
+    expect(txn.transactionMode).toBe('upi')
+    expect(txn.merchantRaw).toBe('KIRUTHIGA SELLAM C')
+    expect(txn.vpa).toBe('kiruthiga.c01@ptyes')
+    expect(txn.transactionDate).toBe('2026-06-11T00:00:00.000Z')
+  })
+
+  it('parses towards VPA UPI debit with parenthetical merchant', () => {
+    const parser = new HdfcEmailParser()
+
+    const debitEmail: RawEmail = {
+      ...baseEmail,
+      from: 'alerts@hdfcbank.net',
+      subject: '❗  You have done a UPI txn. Check details!',
+      bodyText: '',
+      snippet:
+        'Dear Customer, Greetings from HDFC Bank! Rs.30.00 is debited from your account ending 9212 towards VPA mybmtcdqr@ybl (BMTC) on 11-06-26. UPI transaction reference no.: 652818964691.',
+      receivedAt: '2026-06-11T12:00:00.000Z',
+    }
+
+    const transactions = parser.parseTransactions(debitEmail)
+
+    expect(transactions).toHaveLength(1)
+
+    const txn = transactions[0]!
+    expect(txn.amount).toBe(30)
+    expect(txn.transactionType).toBe('debited')
+    expect(txn.transactionMode).toBe('upi')
+    expect(txn.merchantRaw).toBe('BMTC')
+    expect(txn.vpa).toBe('mybmtcdqr@ybl')
+    expect(txn.transactionDate).toBe('2026-06-11T00:00:00.000Z')
+  })
+
+  it('parses RuPay credited-to-VPA with parenthetical merchant and card ending', () => {
+    const parser = new HdfcEmailParser()
+
+    const rupayEmail: RawEmail = {
+      ...baseEmail,
+      from: 'alerts@hdfcbank.net',
+      subject: '❗  You have done a UPI txn. Check details!',
+      bodyText: '',
+      snippet:
+        'Dear Customer, Greetings from HDFC Bank! Rs.188.00 is debited from your HDFC Bank RuPay Credit Card ending 2312 and credited to VPA smartq@ptybl (SmartQ) on 11 Jun, 2026. UPI transaction reference no.: 123.',
+      receivedAt: '2026-06-11T12:00:00.000Z',
+    }
+
+    const transactions = parser.parseTransactions(rupayEmail)
+
+    expect(transactions).toHaveLength(1)
+
+    const txn = transactions[0]!
+    expect(txn.amount).toBe(188)
+    expect(txn.transactionType).toBe('debited')
+    expect(txn.transactionMode).toBe('upi')
+    expect(txn.merchantRaw).toBe('SmartQ')
+    expect(txn.vpa).toBe('smartq@ptybl')
+    expect(txn.cardLast4).toBe('2312')
+    expect(txn.transactionDate).toBe('2026-06-11T00:00:00.000Z')
+  })
+
+  it('parses account update credit when snippet contains HTML entities', () => {
+    const parser = new HdfcEmailParser()
+
+    const creditEmail: RawEmail = {
+      ...baseEmail,
+      from: 'alerts@hdfcbank.net',
+      subject: 'View: Account update for your HDFC Bank A/c',
+      bodyText: '',
+      snippet:
+        'Dear Customer, Greetings from HDFC Bank! We&#39;re writing to inform you that Rs.11800.00 has been successfully credited to your HDFC Bank account ending in 9212. Transaction Details: a. Date: 11-06-26 b. Sender: KIRUTHIGA SELLAM C (VPA: kiruthiga.c01@ptyes) c. UPI Reference No.: 307810287731',
+      receivedAt: '2026-06-11T12:00:00.000Z',
+    }
+
+    const transactions = parser.parseTransactions(creditEmail)
+
+    expect(transactions).toHaveLength(1)
+
+    const txn = transactions[0]!
+    expect(txn.merchantRaw).toBe('KIRUTHIGA SELLAM C')
+    expect(txn.vpa).toBe('kiruthiga.c01@ptyes')
+  })
+
+  it('parses legacy by VPA credit format without regression', () => {
+    const parser = new HdfcEmailParser()
+
+    const legacyCreditEmail: RawEmail = {
+      ...baseEmail,
+      from: 'alerts@hdfcbank.net',
+      subject: 'View: Account update for your HDFC Bank A/c',
+      bodyText: '',
+      snippet:
+        'Dear Customer, Rs. 260.00 is successfully credited to your account **9212 by VPA bakshi98nityam-1@okaxis NITYAM BAKSHI on 12-02-26. Your UPI transaction reference number is 604339975743.',
+      receivedAt: '2026-02-12T12:00:00.000Z',
+    }
+
+    const transactions = parser.parseTransactions(legacyCreditEmail)
+
+    expect(transactions).toHaveLength(1)
+
+    const txn = transactions[0]!
+    expect(txn.amount).toBe(260)
+    expect(txn.transactionType).toBe('credited')
+    expect(txn.transactionMode).toBe('upi')
+    expect(txn.merchantRaw).toBe('NITYAM BAKSHI')
+    expect(txn.vpa).toBe('bakshi98nityam-1@okaxis')
+    expect(txn.transactionDate).toBe('2026-02-12T00:00:00.000Z')
+  })
+
   it('parses UPI debit with empty bodyText (HTML-only, reprocess scenario)', () => {
     const parser = new HdfcEmailParser()
 

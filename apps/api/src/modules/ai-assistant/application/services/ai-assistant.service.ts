@@ -40,82 +40,91 @@ export type AiStreamEvent =
   | { type: 'done'; message: string; model: string; toolsUsed: string[]; analysis: AiAssistantAnalysis; usage?: { promptTokens: number; completionTokens: number; totalTokens: number } }
   | { type: 'error'; message: string }
 
-const SYSTEM_PROMPT = [
+// Behavioral constraints and reasoning rules. Constraints are front-loaded so
+// the model encounters them before elaborations.
+const BEHAVIORAL_SYSTEM_PROMPT = [
   'You are an analytics assistant for a personal operations dashboard.',
-  'You must reason from the conversation history, tool results, and your bounded general knowledge.',
-  'When relevant tools are available, prefer calling them instead of guessing.',
-  'For analytical questions, work in stages: identify what needs to be tested, call the right tools, inspect the results, and only then conclude.',
-  'If the first tool result is incomplete, try ONE refinement or alternative tool — but if the data dimension still does not appear, stop calling tools and synthesize with what you have.',
-  'When the question is broad or cross-domain, generate short working hypotheses, test them with tools, compare the evidence, and then synthesize.',
-  'Use capability discovery tools when you are unsure which tool or analytics shape is best.',
-  'Do not rely on frontend-provided page snapshots, widgets, or route-specific context. Use backend tools to discover the necessary evidence.',
-  'Do more than restate visible cards or tables. Use backend tools to fetch broader evidence, compare results, and produce useful analysis.',
-  'You may use your own general world knowledge for qualitative explanation, business context, sector tailwinds, and common risk factors even when that detail is not present in the user data.',
-  'When you use general knowledge, label it clearly as general market context or qualitative reasoning, not as live portfolio data or fresh news.',
-  'If tools return normalized or inferred concepts such as broker/platform roles, concentration, growth, or cross-domain relationships, use them explicitly in your answer.',
-  'Do not claim to see hidden rows, raw records, or charts that are not included in the context payload or returned by tools.',
-  'Do not imply access to real-time prices, current filings, breaking news, or post-training events unless a tool explicitly returned that information.',
-  'Avoid redundant tool calls and only fetch the data necessary to answer the user well.',
-  'When a question needs information from holdings, dividends, principal, expenses, flights, or hotels, use the relevant tools or the constrained analytics DSL before giving a shallow answer.',
-  'Prefer multiple focused tool calls over one vague query when that will produce better evidence.',
-  'Prefer concise, high-signal answers with concrete observations, anomalies, trends, risks, and next steps.',
-  'If the user asks about a specific company or fund, first try to confirm the position with tools, then combine that portfolio evidence with your qualitative reasoning.',
-  'If the data is incomplete, say what is missing and what additional context would improve the answer, but still provide the best bounded qualitative view you can when appropriate.',
-  'Present conclusions as evidence followed by interpretation, especially for inferred relationships or classifications.',
-  'When useful, format the response in short markdown sections or bullets.',
   '',
-  'TOOL-CALLING DISCIPLINE:',
-  'Never call the same tool with the same or very similar arguments more than once per conversation turn.',
-  'After 2-3 tool calls, if the data dimension you need is still not in the results, stop calling tools and synthesize an answer using the evidence you have combined with your general knowledge.',
-  'Do not repeatedly query tools hoping for data that does not exist.',
-  'Every tool result includes a _meta block that lists the fields/dimensions the tool actually provides. If the dimension you need is NOT in _meta.provides, the database does not store it — do not call more tools looking for it.',
+  'HARD CONSTRAINTS — never violate:',
+  '- Do not claim to see hidden rows, raw records, or charts not returned by tools.',
+  '- Do not imply access to real-time prices, current filings, breaking news, or post-training events unless a tool explicitly returned that information.',
+  '- Do not rely on frontend page snapshots as ground truth. Always verify with backend tools.',
+  '- Never call the same tool with the same arguments more than once per conversation turn.',
+  '- After 2–3 tool calls, if the needed data dimension is absent from every _meta.provides, stop — the data does not exist in the database.',
+  '',
+  'REASONING:',
+  'For analytical questions: identify what needs testing → call the right tools → inspect results → conclude.',
+  'For broad or cross-domain questions: form short hypotheses → test with tools → compare evidence → synthesize.',
+  'Use capability-discovery tools when unsure which tool or analytics shape is best.',
+  'If the first tool result is incomplete, try one refinement or alternative — then synthesize with what you have.',
   'When tool results already cover the question, respond immediately without additional tool calls.',
   '',
-  'DERIVED DIMENSIONS — GENERAL PRINCIPLE:',
-  'Many useful dimensions are NOT stored in the database but CAN be inferred by you from the raw data. These are called "derived dimensions".',
-  'When a user asks about a dimension that no tool returns (i.e. it is absent from every _meta.provides list), follow this pattern:',
-  '1. Fetch the raw data using the appropriate tool (e.g. portfolio holdings, expense transactions, flight history).',
-  '2. Examine the fields that ARE returned (symbol, name, category, merchant, airline, route, dates, amounts, etc.).',
-  '3. Apply your world knowledge to classify, group, or enrich the raw data along the requested dimension.',
-  '4. Present the result clearly, labelling inferred classifications as "based on general knowledge" so the user knows it is not from the database.',
+  'GENERAL KNOWLEDGE:',
+  'Use world knowledge for qualitative explanation, business context, sector tailwinds, and common risk factors.',
+  'Label it clearly as "general market context" or "qualitative reasoning" — never as live portfolio data.',
+  'For dimensions absent from _meta.provides (sector, geography, market-cap, risk profile, lifestyle category), infer from raw data fields and label as "based on general knowledge".',
   '',
-  'Common derived dimensions (non-exhaustive):',
-  '- Sector / Industry: infer from stock symbol & company name (e.g. HDFCBANK → Banking, TCS → IT/Technology, ITC → FMCG)',
-  '- Geography / Country exposure: infer from company domicile or exchange listing',
-  '- Market-cap bucket (large/mid/small): infer from well-known company size',
-  '- Risk profile / Volatility tier: infer from asset type and company characteristics',
-  '- ESG / Sustainability rating: infer general sentiment from company reputation',
-  '- Expense lifestyle category: reclassify merchants into discretionary vs. essential spending',
-  '- Travel purpose (business vs. leisure): infer from route, airline class, hotel tier, and day-of-week patterns',
-  '- Seasonality / Temporal patterns: derive from dates in the raw data',
+  'DATA & TOOLS:',
+  'When a question needs holdings, dividends, expenses, flights, or hotels, use the relevant tools before answering.',
+  'Prefer multiple focused tool calls over one vague query when that produces better evidence.',
+  'Prefer concise, high-signal answers with observations, anomalies, trends, risks, and next steps.',
+  'Present conclusions as evidence followed by interpretation.',
+  'Use short markdown sections or bullets when useful.',
+  'If data is incomplete, state what is missing — but still provide the best bounded qualitative view.',
+].join('\n')
+
+// Structured output format specs in a separate message to avoid mixing format
+// mechanics with behavioral reasoning rules.
+const STRUCTURED_OUTPUT_PROMPT = [
+  'STRUCTURED OUTPUT — follow these formats exactly:',
   '',
-  'This principle applies to ANY question where the raw data contains enough signal to reason about the answer, even if the exact field is not stored. Fetch data once, then reason — never loop looking for a field that does not exist.',
-  '',
-  'STRUCTURED OUTPUT GUIDELINES:',
-  'At the end of your response, always suggest 2-4 follow-up questions the user might want to explore. Format them as a block:',
+  'FOLLOW-UP QUESTIONS: End every response with 2–4 follow-up suggestions:',
   ':::actions',
   'What is my expense trend over the last quarter?',
   'How does my dividend income compare year over year?',
   ':::',
   '',
-  'When presenting key metrics, use this format for each metric:',
+  'KEY METRICS: Use :::metric for single values only:',
   ':::metric',
   '{"label":"Total Portfolio Value","value":"₹12,45,000","trend":"up","change":"+8.2%"}',
   ':::',
   '',
-  'You may embed multiple metric blocks in a single response.',
+  'DATA CHARTS: Use :::chart when presenting data across 3+ categories or time periods, or when asked to "show", "visualize", "compare", or "break down". Never for single values.',
+  '',
+  'Bar / line / area format:',
+  ':::chart',
+  '{"type":"bar","title":"Expense by Category","xKey":"category","data":[{"category":"Food","amount":12000},{"category":"Travel","amount":8000}],"series":[{"key":"amount","label":"Amount (₹)"}]}',
+  ':::',
+  '',
+  'Pie chart format (max 6 slices):',
+  ':::chart',
+  '{"type":"pie","title":"Expense Allocation","data":[{"label":"Food","value":12000},{"label":"Travel","value":8000}]}',
+  ':::',
+  '',
+  'Chart type: bar=category comparison, line=time-series, area=cumulative, pie=allocation.',
+  'Chart rules: numeric values only; xKey and series[].key must exactly match field names in data objects.',
+  '',
+  'DIAGRAMS: For non-numeric flows or relationships, use a mermaid fenced code block:',
+  '```mermaid',
+  'graph TD',
+  '    A[Start] --> B[Step]',
+  '```',
 ].join('\n')
 
 const DEFAULT_MAX_TOOL_ROUNDS = 10
 const MAX_CONTEXT_TOKENS = 12_000
 const SUMMARIZATION_THRESHOLD = 10
+const DATA_SNAPSHOT_MAX_CHARS = 1500
 
 function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 3.5)
+  return Math.ceil(text.length / 4)
 }
 
-function estimateMessageTokens(messages: AiChatProviderMessage[]): number {
-  let total = 0
+function estimateMessageTokens(
+  messages: AiChatProviderMessage[],
+  toolDefinitions: AiChatProviderToolDefinition[] = [],
+): number {
+  let total = toolDefinitions.length > 0 ? estimateTokens(JSON.stringify(toolDefinitions)) : 0
   for (const msg of messages) {
     total += 4
     if (msg.content) total += estimateTokens(msg.content)
@@ -157,6 +166,14 @@ class ToolCallCache {
   get size() {
     return this.cache.size
   }
+}
+
+type ToolCallOutcome = {
+  toolCall: AiChatProviderToolCall
+  result: { ok: true; tool: string; result: unknown } | { ok: false; tool: string; error: string }
+  fromCache: boolean
+  step: AiAssistantAnalysisStep
+  resultPreview: string
 }
 
 @Injectable()
@@ -219,6 +236,7 @@ export class AiAssistantService {
     )
 
     let forceNoTools = false
+    let synthesisMsgInjected = false
 
     for (let round = 0; round < this.maxToolRounds; round += 1) {
       const useToolsThisRound = !forceNoTools && round < this.maxToolRounds - 2
@@ -292,64 +310,14 @@ export class AiAssistantService {
         })}`,
       )
 
-      const toolResults = await Promise.all(
-        completion.toolCalls.map(async (toolCall) => {
-          const cached = toolCache.get(toolCall.function.name, toolCall.function.arguments)
-          if (cached) {
-            this.logger.debug(`Tool call cache hit: ${toolCall.function.name}`)
-            return { toolCall, result: cached, fromCache: true }
-          }
-          const result = await this.aiToolRegistry.executeTool(toolCall, { userId })
-          toolCache.set(toolCall.function.name, toolCall.function.arguments, result)
-          return { toolCall, result, fromCache: false }
-        }),
-      )
-
-      for (const { toolCall, result: toolResult, fromCache } of toolResults) {
+      const outcomes = await this.runToolCalls(completion.toolCalls, messages, toolCache, userId, 'chat')
+      for (const { toolCall, step } of outcomes) {
         toolsUsed.push(toolCall.function.name)
-        const parsedArguments = this.tryParseJson(toolCall.function.arguments)
-        const resultPreview = toolResult.ok
-          ? this.summarizeToolResult(toolResult.result)
-          : toolResult.error
-
-        analysisSteps.push({
-          id: toolCall.id,
-          type: 'tool-call',
-          title: fromCache ? `Ran ${toolCall.function.name} (cached)` : `Ran ${toolCall.function.name}`,
-          summary: toolResult.ok
-            ? `Executed ${toolCall.function.name} and captured structured evidence.${fromCache ? ' (served from session cache)' : ''}`
-            : `Attempted ${toolCall.function.name}, but the tool returned an error.`,
-          status: toolResult.ok ? 'completed' : 'failed',
-          toolName: toolCall.function.name,
-          toolArgs: parsedArguments,
-          resultData: toolResult.ok ? toolResult.result : { error: toolResult.error },
-          resultPreview,
-        })
-
-        this.logger.debug(
-          `AI tool result${fromCache ? ' (cached)' : ''}: ${JSON.stringify({
-            userId,
-            tool: toolCall.function.name,
-            result: this.truncate(JSON.stringify(toolResult), 2000),
-          })}`,
-        )
-
-        messages.push({
-          role: 'tool',
-          tool_call_id: toolCall.id,
-          content: JSON.stringify(toolResult),
-        })
+        analysisSteps.push(step)
       }
 
-      const allCached = toolResults.length > 0 && toolResults.every(({ fromCache }) => fromCache)
-      if (allCached) {
-        this.logger.debug('All tool calls in this round were cache hits — injecting synthesis prompt')
-        messages.push({
-          role: 'system',
-          content: 'All tool calls in this round returned previously cached results — no new data was obtained. You have already gathered all available evidence. Synthesize your answer now using the tool results you have and your general knowledge. Do not call any more tools.',
-        })
-        forceNoTools = true
-      }
+      synthesisMsgInjected = this.injectSynthesisPromptOnce(outcomes, messages, synthesisMsgInjected, 'chat')
+      if (synthesisMsgInjected) forceNoTools = true
     }
 
     this.logger.warn('AI assistant exceeded maximum tool-call rounds, returning partial result')
@@ -368,8 +336,7 @@ export class AiAssistantService {
   }
 
   async *chatStream(input: AiAssistantChatRequest, userId: string): AsyncGenerator<AiStreamEvent> {
-    const allTools = this.aiToolRegistry.getTools()
-    const tools = this.filterToolsForPage(allTools, input.pageContext?.pageId)
+    const tools = this.aiToolRegistry.getTools()
     const prefetchedEvidence = await this.buildPrefetchedEvidence(input, userId)
     const messages = this.buildMessages(input, prefetchedEvidence.messages)
     const model: string = input.model || this.configService.get('OPENWIRE_MODEL', { infer: true })
@@ -384,6 +351,7 @@ export class AiAssistantService {
     let fullContent = ''
     let lastUsage: AiStreamEvent & { type: 'done' } | undefined
     let forceNoTools = false
+    let synthesisMsgInjected = false
 
     for (let round = 0; round < this.maxToolRounds; round += 1) {
       let roundContent = ''
@@ -485,57 +453,17 @@ export class AiAssistantService {
         yield { type: 'step', step: observationStep }
       }
 
-      const toolResults = await Promise.all(
-        roundToolCalls.map(async (toolCall) => {
-          const cached = toolCache.get(toolCall.function.name, toolCall.function.arguments)
-          if (cached) {
-            this.logger.debug(`Tool call cache hit (stream): ${toolCall.function.name}`)
-            return { toolCall, result: cached, fromCache: true }
-          }
-          const result = await this.aiToolRegistry.executeTool(toolCall, { userId })
-          toolCache.set(toolCall.function.name, toolCall.function.arguments, result)
-          return { toolCall, result, fromCache: false }
-        }),
-      )
+      const outcomes = await this.runToolCalls(roundToolCalls, messages, toolCache, userId, 'stream')
 
-      for (const { toolCall, result, fromCache } of toolResults) {
+      for (const { toolCall, step, result, resultPreview } of outcomes) {
         toolsUsed.push(toolCall.function.name)
-        const parsedArguments = this.tryParseJson(toolCall.function.arguments)
-        const resultPreview = result.ok ? this.summarizeToolResult(result.result) : result.error
-
-        const toolStep: AiAssistantAnalysisStep = {
-          id: toolCall.id,
-          type: 'tool-call',
-          title: fromCache ? `Ran ${toolCall.function.name} (cached)` : `Ran ${toolCall.function.name}`,
-          summary: result.ok
-            ? `Executed ${toolCall.function.name} and captured structured evidence.${fromCache ? ' (served from session cache)' : ''}`
-            : `Attempted ${toolCall.function.name}, but the tool returned an error.`,
-          status: result.ok ? 'completed' : 'failed',
-          toolName: toolCall.function.name,
-          toolArgs: parsedArguments,
-          resultData: result.ok ? result.result : { error: result.error },
-          resultPreview,
-        }
-        analysisSteps.push(toolStep)
-        yield { type: 'tool-result', toolCallId: toolCall.id, toolName: toolCall.function.name, ok: result.ok, preview: resultPreview ?? '' }
-        yield { type: 'step', step: toolStep }
-
-        messages.push({
-          role: 'tool',
-          tool_call_id: toolCall.id,
-          content: JSON.stringify(result),
-        })
+        analysisSteps.push(step)
+        yield { type: 'tool-result', toolCallId: toolCall.id, toolName: toolCall.function.name, ok: result.ok, preview: resultPreview }
+        yield { type: 'step', step }
       }
 
-      const allCached = toolResults.length > 0 && toolResults.every(({ fromCache }) => fromCache)
-      if (allCached) {
-        this.logger.debug('All tool calls in this stream round were cache hits — injecting synthesis prompt')
-        messages.push({
-          role: 'system',
-          content: 'All tool calls in this round returned previously cached results — no new data was obtained. You have already gathered all available evidence. Synthesize your answer now using the tool results you have and your general knowledge. Do not call any more tools.',
-        })
-        forceNoTools = true
-      }
+      synthesisMsgInjected = this.injectSynthesisPromptOnce(outcomes, messages, synthesisMsgInjected, 'stream')
+      if (synthesisMsgInjected) forceNoTools = true
     }
 
     yield {
@@ -544,11 +472,78 @@ export class AiAssistantService {
     }
   }
 
-  private filterToolsForPage(
-    tools: AiChatProviderToolDefinition[],
-    _pageId?: string,
-  ): AiChatProviderToolDefinition[] {
-    return tools
+  private async runToolCalls(
+    toolCalls: AiChatProviderToolCall[],
+    messages: AiChatProviderMessage[],
+    toolCache: ToolCallCache,
+    userId: string,
+    logTag: string,
+  ): Promise<ToolCallOutcome[]> {
+    const raw = await Promise.all(
+      toolCalls.map(async (toolCall) => {
+        const cached = toolCache.get(toolCall.function.name, toolCall.function.arguments)
+        if (cached) {
+          this.logger.debug(`Tool call cache hit (${logTag}): ${toolCall.function.name}`)
+          return { toolCall, result: cached, fromCache: true }
+        }
+        const result = await this.aiToolRegistry.executeTool(toolCall, { userId })
+        toolCache.set(toolCall.function.name, toolCall.function.arguments, result)
+        return { toolCall, result, fromCache: false }
+      }),
+    )
+
+    return raw.map(({ toolCall, result, fromCache }) => {
+      const parsedArguments = this.tryParseJson(toolCall.function.arguments)
+      const resultPreview = result.ok ? this.summarizeToolResult(result.result) : result.error
+
+      const step: AiAssistantAnalysisStep = {
+        id: toolCall.id,
+        type: 'tool-call',
+        title: fromCache ? `Ran ${toolCall.function.name} (cached)` : `Ran ${toolCall.function.name}`,
+        summary: result.ok
+          ? `Executed ${toolCall.function.name} and captured structured evidence.${fromCache ? ' (served from session cache)' : ''}`
+          : `Attempted ${toolCall.function.name}, but the tool returned an error.`,
+        status: result.ok ? 'completed' : 'failed',
+        toolName: toolCall.function.name,
+        toolArgs: parsedArguments,
+        resultData: result.ok ? result.result : { error: result.error },
+        resultPreview,
+      }
+
+      this.logger.debug(
+        `AI tool result${fromCache ? ' (cached)' : ''} (${logTag}): ${JSON.stringify({
+          userId,
+          tool: toolCall.function.name,
+          result: this.truncate(JSON.stringify(result), 2000),
+        })}`,
+      )
+
+      messages.push({
+        role: 'tool',
+        tool_call_id: toolCall.id,
+        content: JSON.stringify(result),
+      })
+
+      return { toolCall, result, fromCache, step, resultPreview: resultPreview ?? '' }
+    })
+  }
+
+  private injectSynthesisPromptOnce(
+    outcomes: ToolCallOutcome[],
+    messages: AiChatProviderMessage[],
+    alreadyInjected: boolean,
+    logTag: string,
+  ): boolean {
+    const allCached = outcomes.length > 0 && outcomes.every(({ fromCache }) => fromCache)
+    if (allCached && !alreadyInjected) {
+      this.logger.debug(`All tool calls in ${logTag} round were cache hits — injecting synthesis prompt`)
+      messages.push({
+        role: 'system',
+        content: 'All tool calls in this round returned previously cached results. Synthesize your answer now using the evidence you have. Do not call any more tools.',
+      })
+      return true
+    }
+    return alreadyInjected
   }
 
   private buildMessages(
@@ -556,10 +551,8 @@ export class AiAssistantService {
     prefetchedMessages: AiChatProviderMessage[] = [],
   ): AiChatProviderMessage[] {
     const systemMessages: AiChatProviderMessage[] = [
-      {
-        role: 'system',
-        content: SYSTEM_PROMPT,
-      },
+      { role: 'system', content: BEHAVIORAL_SYSTEM_PROMPT },
+      { role: 'system', content: STRUCTURED_OUTPUT_PROMPT },
     ]
 
     if (input.pageContext) {
@@ -569,7 +562,9 @@ export class AiAssistantService {
           `The user is currently viewing: "${input.pageContext.title}" (page: ${input.pageContext.pageId}, route: ${input.pageContext.route}).`,
           input.pageContext.description ? `Page description: ${input.pageContext.description}` : '',
           input.pageContext.filters ? `Active filters: ${JSON.stringify(input.pageContext.filters)}` : '',
-          input.pageContext.dataSnapshot ? `Visible data snapshot: ${JSON.stringify(input.pageContext.dataSnapshot)}` : '',
+          input.pageContext.dataSnapshot
+            ? `Visible data snapshot: ${this.truncate(JSON.stringify(input.pageContext.dataSnapshot), DATA_SNAPSHOT_MAX_CHARS)}`
+            : '',
           'Use this context to provide more relevant answers, but always verify with backend tools rather than relying solely on snapshot data.',
         ].filter(Boolean).join('\n'),
       })
@@ -591,7 +586,8 @@ export class AiAssistantService {
       return messages
     }
 
-    const totalTokens = estimateMessageTokens(messages)
+    const tools = this.aiToolRegistry.getTools()
+    const totalTokens = estimateMessageTokens(messages, tools)
     if (totalTokens <= MAX_CONTEXT_TOKENS) {
       return messages
     }
@@ -601,17 +597,24 @@ export class AiAssistantService {
     const older = messages.slice(0, -recentCount)
 
     const summaryParts: string[] = []
+    let toolCallCount = 0
     for (const msg of older) {
       if (msg.role === 'user') {
         summaryParts.push(`User asked: ${this.truncate(msg.content ?? '', 120)}`)
       } else if (msg.role === 'assistant' && msg.content) {
         summaryParts.push(`Assistant answered: ${this.truncate(msg.content, 120)}`)
+      } else if (msg.role === 'tool') {
+        toolCallCount++
       }
     }
 
+    const toolNote = toolCallCount > 0
+      ? `\n(${toolCallCount} tool call/result pairs from earlier turns are omitted for context length.)`
+      : ''
+
     const summaryMessage: AiChatProviderMessage = {
       role: 'system',
-      content: `Summary of earlier conversation (${older.length} messages):\n${summaryParts.join('\n')}`,
+      content: `Summary of earlier conversation (${older.length} messages):${toolNote}\n${summaryParts.join('\n')}`,
     }
 
     this.logger.debug(
@@ -655,7 +658,8 @@ export class AiAssistantService {
     query?: string
     period?: string
   } {
-    const normalized = content.replaceAll(/\s+/g, ' ').trim().toLowerCase()
+    const normalized = content.replaceAll(/\s+/g, ' ').trim()
+    const lower = normalized.toLowerCase()
 
     const holdingPatterns = [
       /analy(?:s|z)e\s+(.+?)(?:,|\.|\?| as per| in my| for my| tell me| give me| what| prospects| outlook| thesis| view| opinion| should)/i,
@@ -664,24 +668,24 @@ export class AiAssistantService {
     ]
 
     for (const pattern of holdingPatterns) {
-      const match = content.replaceAll(/\s+/g, ' ').trim().match(pattern)
+      const match = normalized.match(pattern)
       const extracted = match?.[1]?.trim()
       if (extracted) {
         return {
           type: 'holding-lookup',
-          query: extracted.replaceAll(/^['"]|['"]$/g, '').trim(),
+          query: extracted.replaceAll(/^['"]|['"]$/g, '').trim()
         }
       }
     }
 
     const portfolioKeywords = ['portfolio', 'allocation', 'holdings', 'invested', 'investment', 'net worth']
-    if (portfolioKeywords.some((kw) => normalized.includes(kw))) {
+    if (portfolioKeywords.some((kw) => lower.includes(kw))) {
       return { type: 'portfolio-overview' }
     }
 
     const expenseKeywords = ['expense', 'spending', 'spent', 'merchant', 'transaction', 'cost']
-    if (expenseKeywords.some((kw) => normalized.includes(kw))) {
-      const periodMatch = normalized.match(/\b(week|month|quarter|year)\b/)
+    if (expenseKeywords.some((kw) => lower.includes(kw))) {
+      const periodMatch = lower.match(/\b(week|month|quarter|year)\b/)
       return { type: 'expense-summary', period: periodMatch?.[1] }
     }
 
@@ -689,154 +693,169 @@ export class AiAssistantService {
   }
 
   private async prefetchHolding(query: string, userId: string): Promise<{ messages: AiChatProviderMessage[], toolsUsed: string[], steps: AiAssistantAnalysisStep[] }> {
-    const toolResult = await this.aiToolRegistry.executeTool(
-      {
-        id: 'prefetch-getHoldingDetails',
-        type: 'function',
-        function: {
-          name: 'getHoldingDetails',
-          arguments: JSON.stringify({ query }),
+    try {
+      const toolResult = await this.aiToolRegistry.executeTool(
+        {
+          id: 'prefetch-getHoldingDetails',
+          type: 'function',
+          function: {
+            name: 'getHoldingDetails',
+            arguments: JSON.stringify({ query }),
+          },
         },
-      },
-      { userId },
-    )
+        { userId },
+      )
 
-    this.logger.debug(
-      `AI prefetch holding result: ${JSON.stringify({
-        userId, tool: 'getHoldingDetails', query,
-        result: this.truncate(JSON.stringify(toolResult), 2000),
-      })}`,
-    )
+      this.logger.debug(
+        `AI prefetch holding result: ${JSON.stringify({
+          userId, tool: 'getHoldingDetails', query,
+          result: this.truncate(JSON.stringify(toolResult), 2000),
+        })}`,
+      )
 
-    return {
-      toolsUsed: ['getHoldingDetails'],
-      steps: [{
-        id: 'prefetch-getHoldingDetails',
-        type: 'prefetch',
-        title: 'Prefetched holding evidence',
-        summary: `Ran getHoldingDetails before the main loop for "${query}".`,
-        status: 'completed',
-        toolName: 'getHoldingDetails',
-        toolArgs: { query },
-        resultData: toolResult,
-        resultPreview: this.summarizeToolResult(toolResult),
-      }],
-      messages: [
-        {
-          role: 'system',
-          content: [
-            'A portfolio lookup has already been executed for the latest company-style question.',
-            'Do not ask the user for basic holding details that are already present below.',
-            'Do not blame current page context if the lookup misses; say the holding was not confirmed in portfolio tools and then give bounded qualitative reasoning when prospects were requested.',
-          ].join('\n\n'),
-        },
-        {
-          role: 'assistant',
-          content: null,
-          tool_calls: [{
-            id: 'prefetch-getHoldingDetails',
-            type: 'function',
-            function: { name: 'getHoldingDetails', arguments: JSON.stringify({ query }) },
-          }],
-        },
-        {
-          role: 'tool',
-          tool_call_id: 'prefetch-getHoldingDetails',
-          content: JSON.stringify(toolResult),
-        },
-      ],
+      return {
+        toolsUsed: ['getHoldingDetails'],
+        steps: [{
+          id: 'prefetch-getHoldingDetails',
+          type: 'prefetch',
+          title: 'Prefetched holding evidence',
+          summary: `Ran getHoldingDetails before the main loop for "${query}".`,
+          status: 'completed',
+          toolName: 'getHoldingDetails',
+          toolArgs: { query },
+          resultData: toolResult,
+          resultPreview: this.summarizeToolResult(toolResult),
+        }],
+        messages: [
+          {
+            role: 'system',
+            content: [
+              'A portfolio lookup has already been executed for the latest company-style question.',
+              'Do not ask the user for basic holding details that are already present below.',
+              'Do not blame current page context if the lookup misses; say the holding was not confirmed in portfolio tools and then give bounded qualitative reasoning when prospects were requested.',
+            ].join('\n\n'),
+          },
+          {
+            role: 'assistant',
+            content: null,
+            tool_calls: [{
+              id: 'prefetch-getHoldingDetails',
+              type: 'function',
+              function: { name: 'getHoldingDetails', arguments: JSON.stringify({ query }) },
+            }],
+          },
+          {
+            role: 'tool',
+            tool_call_id: 'prefetch-getHoldingDetails',
+            content: JSON.stringify(toolResult),
+          },
+        ],
+      }
+    } catch (error) {
+      this.logger.warn(`Prefetch getHoldingDetails failed: ${error instanceof Error ? error.message : String(error)}`)
+      return { messages: [], toolsUsed: [], steps: [] }
     }
   }
 
   private async prefetchPortfolioSummary(userId: string): Promise<{ messages: AiChatProviderMessage[], toolsUsed: string[], steps: AiAssistantAnalysisStep[] }> {
-    const toolResult = await this.aiToolRegistry.executeTool(
-      {
-        id: 'prefetch-getPortfolioSummary',
-        type: 'function',
-        function: { name: 'getPortfolioSummary', arguments: '{}' },
-      },
-      { userId },
-    )
+    try {
+      const toolResult = await this.aiToolRegistry.executeTool(
+        {
+          id: 'prefetch-getPortfolioSummary',
+          type: 'function',
+          function: { name: 'getPortfolioSummary', arguments: '{}' },
+        },
+        { userId },
+      )
 
-    return {
-      toolsUsed: ['getPortfolioSummary'],
-      steps: [{
-        id: 'prefetch-getPortfolioSummary',
-        type: 'prefetch',
-        title: 'Prefetched portfolio summary',
-        summary: 'Ran getPortfolioSummary before the main loop.',
-        status: 'completed',
-        toolName: 'getPortfolioSummary',
-        toolArgs: {},
-        resultData: toolResult,
-        resultPreview: this.summarizeToolResult(toolResult),
-      }],
-      messages: [
-        {
-          role: 'system',
-          content: 'A portfolio summary has already been fetched. Use the data below as baseline evidence. Call additional tools only if deeper analysis is needed.',
-        },
-        {
-          role: 'assistant',
-          content: null,
-          tool_calls: [{
-            id: 'prefetch-getPortfolioSummary',
-            type: 'function',
-            function: { name: 'getPortfolioSummary', arguments: '{}' },
-          }],
-        },
-        {
-          role: 'tool',
-          tool_call_id: 'prefetch-getPortfolioSummary',
-          content: JSON.stringify(toolResult),
-        },
-      ],
+      return {
+        toolsUsed: ['getPortfolioSummary'],
+        steps: [{
+          id: 'prefetch-getPortfolioSummary',
+          type: 'prefetch',
+          title: 'Prefetched portfolio summary',
+          summary: 'Ran getPortfolioSummary before the main loop.',
+          status: 'completed',
+          toolName: 'getPortfolioSummary',
+          toolArgs: {},
+          resultData: toolResult,
+          resultPreview: this.summarizeToolResult(toolResult),
+        }],
+        messages: [
+          {
+            role: 'system',
+            content: 'A portfolio summary has already been fetched. Use the data below as baseline evidence. Call additional tools only if deeper analysis is needed.',
+          },
+          {
+            role: 'assistant',
+            content: null,
+            tool_calls: [{
+              id: 'prefetch-getPortfolioSummary',
+              type: 'function',
+              function: { name: 'getPortfolioSummary', arguments: '{}' },
+            }],
+          },
+          {
+            role: 'tool',
+            tool_call_id: 'prefetch-getPortfolioSummary',
+            content: JSON.stringify(toolResult),
+          },
+        ],
+      }
+    } catch (error) {
+      this.logger.warn(`Prefetch getPortfolioSummary failed: ${error instanceof Error ? error.message : String(error)}`)
+      return { messages: [], toolsUsed: [], steps: [] }
     }
   }
 
   private async prefetchExpenseSummary(userId: string, period = 'month'): Promise<{ messages: AiChatProviderMessage[], toolsUsed: string[], steps: AiAssistantAnalysisStep[] }> {
-    const toolResult = await this.aiToolRegistry.executeTool(
-      {
-        id: 'prefetch-getExpenseSummary',
-        type: 'function',
-        function: { name: 'getExpenseSummary', arguments: JSON.stringify({ period }) },
-      },
-      { userId },
-    )
+    try {
+      const toolResult = await this.aiToolRegistry.executeTool(
+        {
+          id: 'prefetch-getExpenseSummary',
+          type: 'function',
+          function: { name: 'getExpenseSummary', arguments: JSON.stringify({ period }) },
+        },
+        { userId },
+      )
 
-    return {
-      toolsUsed: ['getExpenseSummary'],
-      steps: [{
-        id: 'prefetch-getExpenseSummary',
-        type: 'prefetch',
-        title: 'Prefetched expense summary',
-        summary: `Ran getExpenseSummary for period "${period}" before the main loop.`,
-        status: 'completed',
-        toolName: 'getExpenseSummary',
-        toolArgs: { period },
-        resultData: toolResult,
-        resultPreview: this.summarizeToolResult(toolResult),
-      }],
-      messages: [
-        {
-          role: 'system',
-          content: `An expense summary for the "${period}" period has already been fetched. Use the data below as baseline evidence.`,
-        },
-        {
-          role: 'assistant',
-          content: null,
-          tool_calls: [{
-            id: 'prefetch-getExpenseSummary',
-            type: 'function',
-            function: { name: 'getExpenseSummary', arguments: JSON.stringify({ period }) },
-          }],
-        },
-        {
-          role: 'tool',
-          tool_call_id: 'prefetch-getExpenseSummary',
-          content: JSON.stringify(toolResult),
-        },
-      ],
+      return {
+        toolsUsed: ['getExpenseSummary'],
+        steps: [{
+          id: 'prefetch-getExpenseSummary',
+          type: 'prefetch',
+          title: 'Prefetched expense summary',
+          summary: `Ran getExpenseSummary for period "${period}" before the main loop.`,
+          status: 'completed',
+          toolName: 'getExpenseSummary',
+          toolArgs: { period },
+          resultData: toolResult,
+          resultPreview: this.summarizeToolResult(toolResult),
+        }],
+        messages: [
+          {
+            role: 'system',
+            content: `An expense summary for the "${period}" period has already been fetched. Use the data below as baseline evidence.`,
+          },
+          {
+            role: 'assistant',
+            content: null,
+            tool_calls: [{
+              id: 'prefetch-getExpenseSummary',
+              type: 'function',
+              function: { name: 'getExpenseSummary', arguments: JSON.stringify({ period }) },
+            }],
+          },
+          {
+            role: 'tool',
+            tool_call_id: 'prefetch-getExpenseSummary',
+            content: JSON.stringify(toolResult),
+          },
+        ],
+      }
+    } catch (error) {
+      this.logger.warn(`Prefetch getExpenseSummary failed: ${error instanceof Error ? error.message : String(error)}`)
+      return { messages: [], toolsUsed: [], steps: [] }
     }
   }
 

@@ -726,38 +726,70 @@ const ExpenseEmailsPage = () => {
                 </Popover>
               </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={startReprocess}
-              disabled={isSyncing}
-              className="relative overflow-hidden"
-            >
-              <RotateCw />
-              {isSyncing && job?.query === '__reprocess__' && (
-                <div
-                  className="absolute inset-y-0 left-0 bg-primary/20 transition-all duration-300"
-                  style={{
-                    width: syncProgressWidth,
-                  }}
-                />
-              )}
-              <span className="relative z-10">
-                {job?.query === '__reprocess__' &&
-                job?.status === 'processing' &&
-                job.totalEmails ? (
-                  <>
-                    Reprocessing (
-                    <AnimatedNumber value={displayedProcessedEmails} /> /{' '}
-                    {job.totalEmails})
-                  </>
-                ) : job?.query === '__reprocess__' &&
-                  job?.status === 'completed' ? (
-                  'Reprocessed'
-                ) : (
-                  'Reprocess'
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                onClick={() => startReprocess(false)}
+                disabled={isSyncing}
+                className="relative overflow-hidden"
+              >
+                <RotateCw />
+                {isSyncing && job?.query === '__reprocess__' && (
+                  <div
+                    className="absolute inset-y-0 left-0 bg-primary/20 transition-all duration-300"
+                    style={{
+                      width: syncProgressWidth,
+                    }}
+                  />
                 )}
-              </span>
-            </Button>
+                <span className="relative z-10">
+                  {job?.query === '__reprocess__' &&
+                  job?.status === 'processing' &&
+                  job.totalEmails ? (
+                    <>
+                      Reprocessing (
+                      <AnimatedNumber value={displayedProcessedEmails} /> /{' '}
+                      {job.totalEmails})
+                    </>
+                  ) : job?.query === '__reprocess__' &&
+                    job?.status === 'completed' ? (
+                    'Reprocessed'
+                  ) : (
+                    'Reprocess'
+                  )}
+                </span>
+              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={isSyncing}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                    <span className="sr-only">Reprocess options</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-72 p-3">
+                  <div className="space-y-2">
+                    <Button
+                      variant="ghost"
+                      className="h-auto w-full justify-start px-2 py-2 text-left whitespace-normal"
+                      onClick={() => startReprocess(true)}
+                      disabled={isSyncing}
+                    >
+                      <div className="space-y-1">
+                        <p className="font-medium">Force refresh all</p>
+                        <p className="text-xs text-muted-foreground">
+                          Re-parses every stored email, including ones already
+                          processed. Use after parser updates.
+                        </p>
+                      </div>
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
 
             {statusQuery.data?.connected ? (
               <Badge

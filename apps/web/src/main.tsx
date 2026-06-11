@@ -1,6 +1,7 @@
 import '@workspace/ui/styles/index.css'
 import 'katex/dist/katex.min.css'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import 'highlight.js/styles/github-dark-dimmed.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { AppProvider } from './app/providers'
