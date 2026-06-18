@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
 import { Badge } from '@workspace/ui/components/ui/badge'
 import {
@@ -16,6 +18,7 @@ interface RankedSpendItem {
   sublabel?: string
   amount: number
   count: number
+  href?: string
 }
 
 interface RankedSpendListCardProps {
@@ -55,8 +58,8 @@ export function RankedSpendListCard({
           <div className="space-y-3">
             {items.map((item, i) => {
               const pct = maxAmount > 0 ? (item.amount / maxAmount) * 100 : 0
-              return (
-                <div key={item.key} className="flex items-center gap-3 py-2">
+              const rowContent = (
+                <>
                   <span className="w-5 text-xs text-muted-foreground">
                     {i + 1}
                   </span>
@@ -89,6 +92,24 @@ export function RankedSpendListCard({
                   <Badge variant="secondary" className="tabular-nums shrink-0">
                     {item.count}
                   </Badge>
+                </>
+              )
+
+              if (item.href) {
+                return (
+                  <Link
+                    key={item.key}
+                    to={item.href}
+                    className="flex items-center gap-3 rounded-md py-2 transition-colors hover:bg-muted/50"
+                  >
+                    {rowContent}
+                  </Link>
+                )
+              }
+
+              return (
+                <div key={item.key} className="flex items-center gap-3 py-2">
+                  {rowContent}
                 </div>
               )
             })}

@@ -1,5 +1,6 @@
 import { format, parseISO, subDays } from 'date-fns'
-import { ArrowDownRight, ArrowUpRight, Calendar } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, Calendar, ExternalLink } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
 import { SummaryCard } from '@/features/expenses/components/analytics/summary-card'
@@ -42,6 +43,8 @@ interface DaySpendExplorerSectionProps {
   spentTransactions: Transaction[]
   receivedTransactions: Transaction[]
   loading: boolean
+  selectedCardLast4?: string
+  viewAllHref?: string
 }
 
 export function DaySpendExplorerSection({
@@ -52,6 +55,7 @@ export function DaySpendExplorerSection({
   spentTransactions,
   receivedTransactions,
   loading,
+  viewAllHref,
 }: DaySpendExplorerSectionProps) {
   const recentDatePresets = Array.from({ length: 7 }, (_, index) => {
     const date = subDays(new Date(), index)
@@ -83,6 +87,14 @@ export function DaySpendExplorerSection({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {viewAllHref && (
+              <Button variant="outline" size="sm" asChild>
+                <Link to={viewAllHref}>
+                  View all
+                  <ExternalLink className="ml-1.5 size-3.5" />
+                </Link>
+              </Button>
+            )}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="justify-start font-normal">
@@ -125,7 +137,7 @@ export function DaySpendExplorerSection({
           <SummaryCard
             title="Spent That Day"
             value={summary ? fmtCurrency(summary.totalSpent) : undefined}
-            icon={<ArrowDownRight className="size-4 text-red-500" />}
+            icon={<ArrowDownRight className="size-4 text-destructive" />}
             subtitle={
               summary
                 ? `${spentTransactions.length} outgoing transactions`
@@ -136,7 +148,7 @@ export function DaySpendExplorerSection({
           <SummaryCard
             title="Received That Day"
             value={summary ? fmtCurrency(summary.totalReceived) : undefined}
-            icon={<ArrowUpRight className="size-4 text-emerald-500" />}
+            icon={<ArrowUpRight className="size-4 text-chart-2" />}
             subtitle={
               summary ? `Net: ${fmtCurrency(summary.netFlow)}` : undefined
             }
@@ -166,7 +178,7 @@ export function DaySpendExplorerSection({
               transactions={spentTransactions}
               loading={loading}
               emptyMessage="No spending transactions for this date."
-              amountClassName="text-red-500"
+              amountClassName="text-destructive"
             />
           </TabsContent>
 
@@ -175,7 +187,7 @@ export function DaySpendExplorerSection({
               transactions={receivedTransactions}
               loading={loading}
               emptyMessage="No received transactions for this date."
-              amountClassName="text-emerald-500"
+              amountClassName="text-chart-2"
             />
           </TabsContent>
         </Tabs>

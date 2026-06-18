@@ -382,13 +382,21 @@ const ExpenseEmailsPage = () => {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [queueLlmOpen, setQueueLlmOpen] = useState(false)
 
-  // ── Filter state ──
-  const [filterCategory, setFilterCategory] = useState('')
+  // ── Filter state (initialized from URL for analytics drill-down) ──
+  const [filterCategory, setFilterCategory] = useState(
+    () => searchParams.get('category') ?? '',
+  )
   const [filterMode, setFilterMode] = useState('')
   const [filterReview, setFilterReview] = useState('')
-  const [filterDateFrom, setFilterDateFrom] = useState<string | undefined>()
-  const [filterDateTo, setFilterDateTo] = useState<string | undefined>()
-  const [searchInput, setSearchInput] = useState('')
+  const [filterDateFrom, setFilterDateFrom] = useState<string | undefined>(
+    () => searchParams.get('date_from') ?? undefined,
+  )
+  const [filterDateTo, setFilterDateTo] = useState<string | undefined>(
+    () => searchParams.get('date_to') ?? undefined,
+  )
+  const [searchInput, setSearchInput] = useState(
+    () => searchParams.get('search') ?? '',
+  )
   const debouncedSearch = useDebounce(searchInput, 300)
 
   const handleCardSelect = (last4: string | undefined) => {

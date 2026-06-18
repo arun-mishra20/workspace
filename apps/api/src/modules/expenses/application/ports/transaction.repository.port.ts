@@ -68,24 +68,43 @@ export interface TransactionRepository {
   }): Promise<Transaction[]>
 
   // ── Analytics ──
-  getSpendingSummary(params: { userId: string, range: DateRange }): Promise<SpendingSummary>
+  getSpendingSummary(params: {
+    userId: string
+    range: DateRange
+    cardLast4?: string
+  }): Promise<SpendingSummary>
   getSpendingByCategory(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<SpendingByCategoryItem[]>
   getSpendingBySubcategory(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<SpendingBySubcategoryItem[]>
-  getSpendingByMode(params: { userId: string, range: DateRange }): Promise<SpendingByModeItem[]>
+  getSpendingByMode(params: {
+    userId: string
+    range: DateRange
+    cardLast4?: string
+  }): Promise<SpendingByModeItem[]>
   getTopMerchants(params: {
     userId: string
     range: DateRange
     limit: number
+    cardLast4?: string
   }): Promise<SpendingByMerchantItem[]>
-  getDailySpending(params: { userId: string, range: DateRange }): Promise<DailySpendingItem[]>
+  getDailySpending(params: {
+    userId: string
+    range: DateRange
+    cardLast4?: string
+  }): Promise<DailySpendingItem[]>
   getMonthlyTrend(params: { userId: string, months: number }): Promise<MonthlyTrendItem[]>
-  getSpendingByCard(params: { userId: string, range: DateRange }): Promise<SpendingByCardItem[]>
+  getSpendingByCard(params: {
+    userId: string
+    range: DateRange
+    cardLast4?: string
+  }): Promise<SpendingByCardItem[]>
   getCardSpendForRange(params: {
     userId: string
     cardLast4: string
@@ -101,30 +120,41 @@ export interface TransactionRepository {
   getDayOfWeekSpending(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<DayOfWeekSpendingItem[]>
   getCategoryTrend(params: { userId: string, months: number }): Promise<CategoryTrendItem[]>
   getPeriodTotals(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<{ totalSpent: number, totalReceived: number, transactionCount: number }>
   getCumulativeSpend(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<CumulativeSpendItem[]>
   getSavingsRate(params: { userId: string, months: number }): Promise<SavingsRateItem[]>
   getCardCategoryBreakdown(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<CardCategoryItem[]>
-  getTopVpas(params: { userId: string, range: DateRange, limit: number }): Promise<TopVpaItem[]>
+  getTopVpas(params: {
+    userId: string
+    range: DateRange
+    limit: number
+    cardLast4?: string
+  }): Promise<TopVpaItem[]>
   getSpendingVelocity(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<SpendingVelocityItem[]>
   getLargestTransactions(params: {
     userId: string
     range: DateRange
     limit: number
+    cardLast4?: string
   }): Promise<LargestTransactionItem[]>
 
   // ── Pattern Analytics ──

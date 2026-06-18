@@ -668,33 +668,39 @@ export class ExpensesService implements OnModuleDestroy {
     return { start, end }
   }
 
-  async getSpendingSummary(userId: string, period: AnalyticsPeriod): Promise<SpendingSummary> {
+  async getSpendingSummary(
+    userId: string,
+    period: AnalyticsPeriod,
+    cardLast4?: string,
+  ): Promise<SpendingSummary> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingSummary', { period }),
-      () => this.transactionRepository.getSpendingSummary({ userId, range }),
+      this.cacheKey(userId, 'getSpendingSummary', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getSpendingSummary({ userId, range, cardLast4 }),
     )
   }
 
   async getSpendingByCategory(
     userId: string,
     period: AnalyticsPeriod,
+    cardLast4?: string,
   ): Promise<SpendingByCategoryItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingByCategory', { period }),
-      () => this.transactionRepository.getSpendingByCategory({ userId, range }),
+      this.cacheKey(userId, 'getSpendingByCategory', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getSpendingByCategory({ userId, range, cardLast4 }),
     )
   }
 
   async getSpendingBySubcategory(
     userId: string,
     period: AnalyticsPeriod,
+    cardLast4?: string,
   ): Promise<SpendingBySubcategoryItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingBySubcategory', { period }),
-      () => this.transactionRepository.getSpendingBySubcategory({ userId, range }),
+      this.cacheKey(userId, 'getSpendingBySubcategory', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getSpendingBySubcategory({ userId, range, cardLast4 }),
     )
   }
 
@@ -702,22 +708,28 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     startDate: string,
     endDate: string,
+    cardLast4?: string,
   ): Promise<SpendingByCategoryItem[]> {
     const range = this.computeExplicitDateRange(startDate, endDate)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingByCategoryForDateRange', { startDate, endDate }),
-      () => this.transactionRepository.getSpendingByCategory({ userId, range }),
+      this.cacheKey(userId, 'getSpendingByCategoryForDateRange', {
+        startDate,
+        endDate,
+        ...(cardLast4 && { cardLast4 }),
+      }),
+      () => this.transactionRepository.getSpendingByCategory({ userId, range, cardLast4 }),
     )
   }
 
   async getSpendingByMode(
     userId: string,
     period: AnalyticsPeriod,
+    cardLast4?: string,
   ): Promise<SpendingByModeItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingByMode', { period }),
-      () => this.transactionRepository.getSpendingByMode({ userId, range }),
+      this.cacheKey(userId, 'getSpendingByMode', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getSpendingByMode({ userId, range, cardLast4 }),
     )
   }
 
@@ -725,11 +737,12 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     period: AnalyticsPeriod,
     limit = 10,
+    cardLast4?: string,
   ): Promise<SpendingByMerchantItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getTopMerchants', { period, limit }),
-      () => this.transactionRepository.getTopMerchants({ userId, range, limit }),
+      this.cacheKey(userId, 'getTopMerchants', { period, limit, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getTopMerchants({ userId, range, limit, cardLast4 }),
     )
   }
 
@@ -738,19 +751,29 @@ export class ExpensesService implements OnModuleDestroy {
     startDate: string,
     endDate: string,
     limit = 10,
+    cardLast4?: string,
   ): Promise<SpendingByMerchantItem[]> {
     const range = this.computeExplicitDateRange(startDate, endDate)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getTopMerchantsForDateRange', { startDate, endDate, limit }),
-      () => this.transactionRepository.getTopMerchants({ userId, range, limit }),
+      this.cacheKey(userId, 'getTopMerchantsForDateRange', {
+        startDate,
+        endDate,
+        limit,
+        ...(cardLast4 && { cardLast4 }),
+      }),
+      () => this.transactionRepository.getTopMerchants({ userId, range, limit, cardLast4 }),
     )
   }
 
-  async getDailySpending(userId: string, period: AnalyticsPeriod): Promise<DailySpendingItem[]> {
+  async getDailySpending(
+    userId: string,
+    period: AnalyticsPeriod,
+    cardLast4?: string,
+  ): Promise<DailySpendingItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getDailySpending', { period }),
-      () => this.transactionRepository.getDailySpending({ userId, range }),
+      this.cacheKey(userId, 'getDailySpending', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getDailySpending({ userId, range, cardLast4 }),
     )
   }
 
@@ -758,11 +781,16 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     startDate: string,
     endDate: string,
+    cardLast4?: string,
   ): Promise<DailySpendingItem[]> {
     const range = this.computeExplicitDateRange(startDate, endDate)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getDailySpendingForDateRange', { startDate, endDate }),
-      () => this.transactionRepository.getDailySpending({ userId, range }),
+      this.cacheKey(userId, 'getDailySpendingForDateRange', {
+        startDate,
+        endDate,
+        ...(cardLast4 && { cardLast4 }),
+      }),
+      () => this.transactionRepository.getDailySpending({ userId, range, cardLast4 }),
     )
   }
 
@@ -776,12 +804,13 @@ export class ExpensesService implements OnModuleDestroy {
   async getSpendingByCard(
     userId: string,
     period: AnalyticsPeriod,
+    cardLast4?: string,
   ): Promise<SpendingByCardItem[]> {
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingByCard', { period }),
+      this.cacheKey(userId, 'getSpendingByCard', { period, ...(cardLast4 && { cardLast4 }) }),
       async () => {
         const range = this.computeDateRange(period)
-        const rows = await this.transactionRepository.getSpendingByCard({ userId, range })
+        const rows = await this.transactionRepository.getSpendingByCard({ userId, range, cardLast4 })
 
         const milestonesByCard = new Map<
           string,
@@ -838,11 +867,12 @@ export class ExpensesService implements OnModuleDestroy {
   async getDayOfWeekSpending(
     userId: string,
     period: AnalyticsPeriod,
+    cardLast4?: string,
   ): Promise<DayOfWeekSpendingItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getDayOfWeekSpending', { period }),
-      () => this.transactionRepository.getDayOfWeekSpending({ userId, range }),
+      this.cacheKey(userId, 'getDayOfWeekSpending', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getDayOfWeekSpending({ userId, range, cardLast4 }),
     )
   }
 
@@ -853,9 +883,13 @@ export class ExpensesService implements OnModuleDestroy {
     )
   }
 
-  async getPeriodComparison(userId: string, period: AnalyticsPeriod): Promise<PeriodComparison> {
+  async getPeriodComparison(
+    userId: string,
+    period: AnalyticsPeriod,
+    cardLast4?: string,
+  ): Promise<PeriodComparison> {
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getPeriodComparison', { period }),
+      this.cacheKey(userId, 'getPeriodComparison', { period, ...(cardLast4 && { cardLast4 }) }),
       async () => {
         const currentRange = this.computeDateRange(period)
 
@@ -866,8 +900,8 @@ export class ExpensesService implements OnModuleDestroy {
         }
 
         const [current, previous] = await Promise.all([
-          this.transactionRepository.getPeriodTotals({ userId, range: currentRange }),
-          this.transactionRepository.getPeriodTotals({ userId, range: previousRange }),
+          this.transactionRepository.getPeriodTotals({ userId, range: currentRange, cardLast4 }),
+          this.transactionRepository.getPeriodTotals({ userId, range: previousRange, cardLast4 }),
         ])
 
         const currentAvg
@@ -902,11 +936,12 @@ export class ExpensesService implements OnModuleDestroy {
   async getCumulativeSpend(
     userId: string,
     period: AnalyticsPeriod,
+    cardLast4?: string,
   ): Promise<CumulativeSpendItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getCumulativeSpend', { period }),
-      () => this.transactionRepository.getCumulativeSpend({ userId, range }),
+      this.cacheKey(userId, 'getCumulativeSpend', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getCumulativeSpend({ userId, range, cardLast4 }),
     )
   }
 
@@ -920,30 +955,37 @@ export class ExpensesService implements OnModuleDestroy {
   async getCardCategoryBreakdown(
     userId: string,
     period: AnalyticsPeriod,
+    cardLast4?: string,
   ): Promise<CardCategoryItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getCardCategoryBreakdown', { period }),
-      () => this.transactionRepository.getCardCategoryBreakdown({ userId, range }),
+      this.cacheKey(userId, 'getCardCategoryBreakdown', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getCardCategoryBreakdown({ userId, range, cardLast4 }),
     )
   }
 
-  async getTopVpas(userId: string, period: AnalyticsPeriod, limit = 10): Promise<TopVpaItem[]> {
+  async getTopVpas(
+    userId: string,
+    period: AnalyticsPeriod,
+    limit = 10,
+    cardLast4?: string,
+  ): Promise<TopVpaItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getTopVpas', { period, limit }),
-      () => this.transactionRepository.getTopVpas({ userId, range, limit }),
+      this.cacheKey(userId, 'getTopVpas', { period, limit, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getTopVpas({ userId, range, limit, cardLast4 }),
     )
   }
 
   async getSpendingVelocity(
     userId: string,
     period: AnalyticsPeriod,
+    cardLast4?: string,
   ): Promise<SpendingVelocityItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingVelocity', { period }),
-      () => this.transactionRepository.getSpendingVelocity({ userId, range }),
+      this.cacheKey(userId, 'getSpendingVelocity', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getSpendingVelocity({ userId, range, cardLast4 }),
     )
   }
 
@@ -1024,11 +1066,12 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     period: AnalyticsPeriod,
     limit = 10,
+    cardLast4?: string,
   ): Promise<LargestTransactionItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getLargestTransactions', { period, limit }),
-      () => this.transactionRepository.getLargestTransactions({ userId, range, limit }),
+      this.cacheKey(userId, 'getLargestTransactions', { period, limit, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getLargestTransactions({ userId, range, limit, cardLast4 }),
     )
   }
 
@@ -1037,11 +1080,17 @@ export class ExpensesService implements OnModuleDestroy {
     startDate: string,
     endDate: string,
     limit = 10,
+    cardLast4?: string,
   ): Promise<LargestTransactionItem[]> {
     const range = this.computeExplicitDateRange(startDate, endDate)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getLargestTransactionsForDateRange', { startDate, endDate, limit }),
-      () => this.transactionRepository.getLargestTransactions({ userId, range, limit }),
+      this.cacheKey(userId, 'getLargestTransactionsForDateRange', {
+        startDate,
+        endDate,
+        limit,
+        ...(cardLast4 && { cardLast4 }),
+      }),
+      () => this.transactionRepository.getLargestTransactions({ userId, range, limit, cardLast4 }),
     )
   }
 
@@ -1049,11 +1098,16 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     startDate: string,
     endDate: string,
+    cardLast4?: string,
   ): Promise<SpendingSummary> {
     const range = this.computeExplicitDateRange(startDate, endDate)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingSummaryForDateRange', { startDate, endDate }),
-      () => this.transactionRepository.getSpendingSummary({ userId, range }),
+      this.cacheKey(userId, 'getSpendingSummaryForDateRange', {
+        startDate,
+        endDate,
+        ...(cardLast4 && { cardLast4 }),
+      }),
+      () => this.transactionRepository.getSpendingSummary({ userId, range, cardLast4 }),
     )
   }
 

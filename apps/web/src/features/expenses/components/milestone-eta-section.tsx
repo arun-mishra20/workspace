@@ -4,6 +4,7 @@ import { format, parseISO } from 'date-fns'
 import groupBy from 'lodash/groupBy'
 import { Target } from 'lucide-react'
 
+import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
 import { CreditCardTile } from '@/features/expenses/components/credit-card-tile'
 import { cn } from '@/lib/utils'
 import { Badge } from '@workspace/ui/components/ui/badge'
@@ -17,16 +18,10 @@ import {
 } from '@workspace/ui/components/ui/card'
 import { Separator } from '@workspace/ui/components/ui/separator'
 
-const fmtCurrency = (n: number) =>
-  new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(n)
-
 interface MilestoneEtaSectionProps {
   etas: MilestoneEta[]
   cards: CreditCardProfile[]
+  headerSelectedCardLast4?: string
 }
 
 function partitionCardsWithMilestones(
@@ -87,7 +82,19 @@ function CardMilestoneTab({
   )
 }
 
-export function MilestoneEtaSection({ etas, cards }: MilestoneEtaSectionProps) {
+function formatPeriodDate(value: string) {
+  try {
+    return format(parseISO(value), 'dd MMM yyyy')
+  } catch {
+    return value
+  }
+}
+
+export function MilestoneEtaSection({
+  etas,
+  cards,
+  headerSelectedCardLast4,
+}: MilestoneEtaSectionProps) {
   const etasByCard = useMemo(() => groupBy(etas, 'cardLast4'), [etas])
 
   const { active, archived } = useMemo(
@@ -105,13 +112,23 @@ export function MilestoneEtaSection({ etas, cards }: MilestoneEtaSectionProps) {
   useEffect(() => {
     if (cardsWithMilestones.length === 0) return
 
+    if (
+      headerSelectedCardLast4 &&
+      cardsWithMilestones.some(
+        (card) => card.cardLast4 === headerSelectedCardLast4,
+      )
+    ) {
+      setSelectedLast4(headerSelectedCardLast4)
+      return
+    }
+
     const stillValid = cardsWithMilestones.some(
       (card) => card.cardLast4 === selectedLast4,
     )
     if (!selectedLast4 || !stillValid) {
       setSelectedLast4(cardsWithMilestones[0]!.cardLast4)
     }
-  }, [cardsWithMilestones, selectedLast4])
+  }, [cardsWithMilestones, headerSelectedCardLast4, selectedLast4])
 
   if (etas.length === 0 || cardsWithMilestones.length === 0) return null
 
@@ -119,6 +136,7 @@ export function MilestoneEtaSection({ etas, cards }: MilestoneEtaSectionProps) {
     (card) => card.cardLast4 === selectedLast4,
   )
   const visibleEtas = selectedLast4 ? (etasByCard[selectedLast4] ?? []) : []
+  const periodSample = visibleEtas[0]
 
   const successorCard = selectedCard?.upgradedTo
     ? cards.find((card) => card.cardLast4 === selectedCard.upgradedTo)
@@ -139,7 +157,11 @@ export function MilestoneEtaSection({ etas, cards }: MilestoneEtaSectionProps) {
         <Separator className="w-full mt-2" />
       </CardHeader>
       <CardContent className="space-y-4">
-        <div role="tablist" aria-label="Credit cards with milestones" className="space-y-3">
+        <div
+          role="tablist"
+          aria-label="Credit cards with milestones"
+          className="space-y-3"
+        >
           {active.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-1">
               {active.map((card) => (
@@ -173,6 +195,17 @@ export function MilestoneEtaSection({ etas, cards }: MilestoneEtaSectionProps) {
             </div>
           )}
         </div>
+
+        {selectedCard && periodSample && (
+          <div className="rounded-lg border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">
+              Membership period:{' '}
+            </span>
+            ends {formatPeriodDate(periodSample.periodEnd)}
+            {' · '}
+            {periodSample.daysLeftInPeriod} days left
+          </div>
+        )}
 
         {selectedCard && (
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -248,6 +281,11 @@ function MilestoneEtaCard({ eta }: { eta: MilestoneEta }) {
         <span className="tabular-nums">{fmtCurrency(eta.dailyRate)}/day</span>
       </div>
 
+      <div className="text-[10px] text-muted-foreground">
+        Period ends {formatPeriodDate(eta.periodEnd)} · {eta.daysLeftInPeriod}{' '}
+        days left
+      </div>
+
       <div className="flex items-center justify-between text-xs">
         {eta.percentage >= 100 ? (
           <span
@@ -258,27 +296,15 @@ function MilestoneEtaCard({ eta }: { eta: MilestoneEta }) {
           </span>
         ) : eta.estimatedCompletionDate ? (
           <span className="text-muted-foreground">
-            ETA:{' '}
-            {(() => {
-              try {
-                return format(parseISO(eta.estimatedCompletionDate), 'dd MMM yyyy')
-              } catch {
-                return eta.estimatedCompletionDate
-              }
-            })()}
+            ETA: {formatPeriodDate(eta.estimatedCompletionDate)}
           </span>
         ) : (
           <span className="text-muted-foreground">
             Need {fmtCurrency(eta.requiredDailyRate ?? 0)}/day by{' '}
-            {(() => {
-              try {
-                return format(parseISO(eta.periodEnd), 'dd MMM yyyy')
-              } catch {
-                return eta.periodEnd
-              }
-            })()}
+            {formatPeriodDate(eta.periodEnd)}
           </span>
         )}
+
         {eta.percentage < 100 && (
           <Badge
             variant={eta.onTrack ? 'secondary' : 'destructive'}

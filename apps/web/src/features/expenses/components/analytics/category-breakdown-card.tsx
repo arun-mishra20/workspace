@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Cell, Pie, PieChart } from 'recharts'
 
 import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
@@ -14,6 +15,8 @@ import {
 import {
   type ChartConfig,
   ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from '@workspace/ui/components/ui/chart'
@@ -32,12 +35,14 @@ interface CategoryBreakdownCardProps {
   data: CategoryChartItem[]
   chartConfig: ChartConfig
   loading: boolean
+  getCategoryHref?: (category: string) => string
 }
 
 export function CategoryBreakdownCard({
   data,
   chartConfig,
   loading,
+  getCategoryHref,
 }: CategoryBreakdownCardProps) {
   const [view, setView] = useState<'chart' | 'table'>('chart')
 
@@ -112,10 +117,11 @@ export function CategoryBreakdownCard({
                 wrapperStyle={{ zIndex: 100 }}
                 content={
                   <ChartTooltipContent
-                    formatter={(value, name) => (
+                    formatter={(value, _name, item) => (
                       <div className="flex items-center justify-between gap-4">
                         <span className="text-muted-foreground">
-                          {String(name).replace(/_/g, ' ')}
+                          {item.payload?.displayName ??
+                            String(item.name).replace(/_/g, ' ')}
                         </span>
                         <span className="font-mono font-medium tabular-nums">
                           {fmtCurrency(Number(value))}
@@ -137,39 +143,63 @@ export function CategoryBreakdownCard({
                   <Cell key={entry.category} fill={entry.chartColor} />
                 ))}
               </Pie>
+              <ChartLegend
+                content={<ChartLegendContent nameKey="category" />}
+              />
             </PieChart>
           </ChartContainer>
         ) : (
           <div className="divide-y">
-            {data.map((c) => (
-              <div
-                key={c.category}
-                className="flex items-center justify-between py-3"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="size-3 rounded-full"
-                    style={{ backgroundColor: c.chartColor }}
-                  />
-                  <span className="text-sm font-medium capitalize">
-                    {c.displayName}
-                  </span>
-                  {c.parent && (
-                    <Badge variant="outline" className="text-[10px] capitalize">
-                      {c.parent}
+            {data.map((c) => {
+              const row = (
+                <>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="size-3 rounded-full"
+                      style={{ backgroundColor: c.chartColor }}
+                    />
+                    <span className="text-sm font-medium capitalize">
+                      {c.displayName}
+                    </span>
+                    {c.parent && (
+                      <Badge variant="outline" className="text-[10px] capitalize">
+                        {c.parent}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Badge variant="secondary" className="tabular-nums">
+                      {c.count} txns
                     </Badge>
-                  )}
+                    <span className="min-w-25 text-right text-sm font-semibold tabular-nums">
+                      {fmtCurrency(c.amount)}
+                    </span>
+                  </div>
+                </>
+              )
+
+              const href = getCategoryHref?.(c.category)
+              if (href) {
+                return (
+                  <Link
+                    key={c.category}
+                    to={href}
+                    className="flex items-center justify-between py-3 transition-colors hover:bg-muted/50 rounded-sm px-1 -mx-1"
+                  >
+                    {row}
+                  </Link>
+                )
+              }
+
+              return (
+                <div
+                  key={c.category}
+                  className="flex items-center justify-between py-3"
+                >
+                  {row}
                 </div>
-                <div className="flex items-center gap-4">
-                  <Badge variant="secondary" className="tabular-nums">
-                    {c.count} txns
-                  </Badge>
-                  <span className="min-w-25 text-right text-sm font-semibold tabular-nums">
-                    {fmtCurrency(c.amount)}
-                  </span>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </CardContent>

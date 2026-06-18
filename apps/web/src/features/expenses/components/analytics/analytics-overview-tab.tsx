@@ -24,6 +24,7 @@ import {
   fmtCompact,
   fmtCurrency,
 } from '@/features/expenses/components/analytics/analytics-utils'
+import { buildExpensesDrillDownUrl } from '@/features/expenses/lib/build-expenses-drill-down-url'
 import type { MetricTrendPoint } from '@/lib/metric-trends'
 import type {
   AnalyticsPeriod,
@@ -51,6 +52,7 @@ import { Skeleton } from '@workspace/ui/components/ui/skeleton'
 
 interface AnalyticsOverviewTabProps {
   period: AnalyticsPeriod
+  selectedCardLast4?: string
   summary?: SpendingSummary
   summaryLoading: boolean
   recentSpentTrend: MetricTrendPoint[]
@@ -87,6 +89,7 @@ interface AnalyticsOverviewTabProps {
 
 export function AnalyticsOverviewTab({
   period,
+  selectedCardLast4,
   summary,
   summaryLoading,
   recentSpentTrend,
@@ -116,7 +119,7 @@ export function AnalyticsOverviewTab({
         <SummaryCard
           title="Total Spent"
           value={summary ? fmtCurrency(summary.totalSpent) : undefined}
-          icon={<ArrowDownRight className="size-4 text-red-500" />}
+          icon={<ArrowDownRight className="size-4 text-destructive" />}
           subtitle={
             summary ? `${summary.transactionCount} transactions` : undefined
           }
@@ -127,7 +130,7 @@ export function AnalyticsOverviewTab({
         <SummaryCard
           title="Total Received"
           value={summary ? fmtCurrency(summary.totalReceived) : undefined}
-          icon={<ArrowUpRight className="size-4 text-emerald-500" />}
+          icon={<ArrowUpRight className="size-4 text-chart-2" />}
           subtitle={
             summary ? `Net flow: ${fmtCurrency(summary.netFlow)}` : undefined
           }
@@ -138,14 +141,14 @@ export function AnalyticsOverviewTab({
         <SummaryCard
           title="Avg Transaction"
           value={summary ? fmtCurrency(summary.avgTransaction) : undefined}
-          icon={<Receipt className="size-4 text-blue-500" />}
+          icon={<Receipt className="size-4 text-chart-3" />}
           subtitle={summary ? `Top: ${summary.topMerchant}` : undefined}
           loading={summaryLoading}
         />
         <SummaryCard
           title="Pending Review"
           value={summary ? String(summary.reviewPending) : undefined}
-          icon={<TrendingDown className="size-4 text-amber-500" />}
+          icon={<TrendingDown className="size-4 text-chart-4" />}
           subtitle={
             summary
               ? `Top category: ${summary.topCategory.replace(/_/g, ' ')}`
@@ -159,7 +162,9 @@ export function AnalyticsOverviewTab({
         <Card className="lg:col-span-2 overflow-hidden">
           <CardHeader>
             <CardTitle className="text-base">Daily Spending</CardTitle>
-            <CardDescription>Debits &amp; credits per day</CardDescription>
+            <CardDescription>
+              Debits &amp; credits per day — click a bar to explore that day
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {dailyLoading ? (
@@ -213,11 +218,25 @@ export function AnalyticsOverviewTab({
                     dataKey="debited"
                     fill="var(--color-debited)"
                     radius={[4, 4, 0, 0]}
+                    cursor="pointer"
+                    onClick={(data) => {
+                      const payload = data as { date?: string }
+                      if (payload.date) {
+                        onSelectedDateChange(payload.date)
+                      }
+                    }}
                   />
                   <Bar
                     dataKey="credited"
                     fill="var(--color-credited)"
                     radius={[4, 4, 0, 0]}
+                    cursor="pointer"
+                    onClick={(data) => {
+                      const payload = data as { date?: string }
+                      if (payload.date) {
+                        onSelectedDateChange(payload.date)
+                      }
+                    }}
                   />
                 </BarChart>
               </ChartContainer>
@@ -295,6 +314,11 @@ export function AnalyticsOverviewTab({
         spentTransactions={spentTransactions}
         receivedTransactions={receivedTransactions}
         loading={daySummaryLoading || dayTransactionsLoading}
+        selectedCardLast4={selectedCardLast4}
+        viewAllHref={buildExpensesDrillDownUrl({
+          date: selectedDate,
+          cardLast4: selectedCardLast4,
+        })}
       />
 
       <PeriodComparisonSection
@@ -311,6 +335,11 @@ export function AnalyticsOverviewTab({
           label: m.merchant,
           amount: m.amount,
           count: m.count,
+          href: buildExpensesDrillDownUrl({
+            period,
+            cardLast4: selectedCardLast4,
+            merchant: m.merchant,
+          }),
         }))}
         loading={merchantsLoading}
         emptyMessage="No merchant data."

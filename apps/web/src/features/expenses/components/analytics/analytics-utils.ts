@@ -37,3 +37,7 @@ export const fmtCompact = (n: number) =>
 export function isAnalyticsTab(value: string | null): value is AnalyticsTab {
   return ANALYTICS_TABS.includes(value as AnalyticsTab)
 }
+
+export function isAnalyticsPeriod(value: string | null): value is AnalyticsPeriod {
+  return PERIODS.some((p) => p.value === value)
+}

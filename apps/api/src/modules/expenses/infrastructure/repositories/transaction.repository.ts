@@ -17,6 +17,7 @@ import type {
   TransactionFilters,
   DateRange,
 } from '@/modules/expenses/application/ports/transaction.repository.port'
+import { buildAnalyticsRangeWhere } from '@/modules/expenses/infrastructure/repositories/analytics-range-query'
 import type { DrizzleDb } from '@/shared/infrastructure/db/db.port'
 import type { InsertTransaction, TransactionRecord } from '@workspace/database'
 import type {
@@ -444,12 +445,9 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getSpendingSummary(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<SpendingSummary> {
-    const where = and(
-      eq(transactionsTable.userId, params.userId),
-      gte(transactionsTable.transactionDate, params.range.start),
-      lt(transactionsTable.transactionDate, params.range.end),
-    )
+    const where = buildAnalyticsRangeWhere(params)
 
     const [row] = await this.db
       .select({
@@ -500,6 +498,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getSpendingByCategory(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<SpendingByCategoryItem[]> {
     const rows = await this.db
       .select({
@@ -509,12 +508,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-          eq(transactionsTable.transactionType, 'debited'),
-        ),
+        buildAnalyticsRangeWhere(params, eq(transactionsTable.transactionType, 'debited')),
       )
       .groupBy(transactionsTable.category)
       .orderBy(sql`sum(${transactionsTable.amount}::numeric) desc`)
@@ -536,6 +530,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getSpendingBySubcategory(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<SpendingBySubcategoryItem[]> {
     const rows = await this.db
       .select({
@@ -546,10 +541,8 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
+        buildAnalyticsRangeWhere(
+          params,
           eq(transactionsTable.transactionType, 'debited'),
           ne(transactionsTable.subcategory, 'uncategorized'),
         ),
@@ -582,6 +575,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getSpendingByMode(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<SpendingByModeItem[]> {
     const rows = await this.db
       .select({
@@ -590,13 +584,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         count: sql<number>`count(*)::int`,
       })
       .from(transactionsTable)
-      .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-        ),
-      )
+      .where(buildAnalyticsRangeWhere(params))
       .groupBy(transactionsTable.transactionMode)
       .orderBy(sql`sum(${transactionsTable.amount}::numeric) desc`)
 
@@ -611,6 +599,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     userId: string
     range: DateRange
     limit: number
+    cardLast4?: string
   }): Promise<SpendingByMerchantItem[]> {
     const rows = await this.db
       .select({
@@ -620,12 +609,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-          eq(transactionsTable.transactionType, 'debited'),
-        ),
+        buildAnalyticsRangeWhere(params, eq(transactionsTable.transactionType, 'debited')),
       )
       .groupBy(transactionsTable.merchant)
       .orderBy(sql`sum(${transactionsTable.amount}::numeric) desc`)
@@ -641,6 +625,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getDailySpending(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<DailySpendingItem[]> {
     const rows = await this.db
       .select({
@@ -649,13 +634,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         credited: sql<string>`coalesce(sum(case when ${transactionsTable.transactionType} = 'credited' then ${transactionsTable.amount}::numeric else 0 end), 0)`,
       })
       .from(transactionsTable)
-      .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-        ),
-      )
+      .where(buildAnalyticsRangeWhere(params))
       .groupBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD')`)
       .orderBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD') asc`)
 
@@ -705,6 +684,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getSpendingByCard(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<SpendingByCardItem[]> {
     const rows = await this.db
       .select({
@@ -715,10 +695,8 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
+        buildAnalyticsRangeWhere(
+          params,
           eq(transactionsTable.transactionType, 'debited'),
           eq(transactionsTable.transactionMode, 'credit_card'),
           sql`${transactionsTable.cardLast4} is not null`,
@@ -801,6 +779,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getDayOfWeekSpending(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<DayOfWeekSpendingItem[]> {
     const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -812,12 +791,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-          eq(transactionsTable.transactionType, 'debited'),
-        ),
+        buildAnalyticsRangeWhere(params, eq(transactionsTable.transactionType, 'debited')),
       )
       .groupBy(sql`extract(dow from ${transactionsTable.transactionDate})`)
       .orderBy(sql`extract(dow from ${transactionsTable.transactionDate}) asc`)
@@ -885,6 +859,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getPeriodTotals(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<{ totalSpent: number, totalReceived: number, transactionCount: number }> {
     const [row] = await this.db
       .select({
@@ -893,13 +868,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         transactionCount: sql<number>`count(*)::int`,
       })
       .from(transactionsTable)
-      .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-        ),
-      )
+      .where(buildAnalyticsRangeWhere(params))
 
     return {
       totalSpent: Number(row?.totalSpent ?? 0),
@@ -911,6 +880,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getCumulativeSpend(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<CumulativeSpendItem[]> {
     const rows = await this.db
       .select({
@@ -919,12 +889,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-          eq(transactionsTable.transactionType, 'debited'),
-        ),
+        buildAnalyticsRangeWhere(params, eq(transactionsTable.transactionType, 'debited')),
       )
       .groupBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD')`)
       .orderBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD') asc`)
@@ -978,6 +943,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getCardCategoryBreakdown(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<CardCategoryItem[]> {
     const rows = await this.db
       .select({
@@ -989,10 +955,8 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
+        buildAnalyticsRangeWhere(
+          params,
           eq(transactionsTable.transactionType, 'debited'),
           eq(transactionsTable.transactionMode, 'credit_card'),
           sql`${transactionsTable.cardLast4} is not null`,
@@ -1025,6 +989,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     userId: string
     range: DateRange
     limit: number
+    cardLast4?: string
   }): Promise<TopVpaItem[]> {
     const rows = await this.db
       .select({
@@ -1035,10 +1000,8 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
+        buildAnalyticsRangeWhere(
+          params,
           eq(transactionsTable.transactionMode, 'upi'),
           sql`${transactionsTable.vpa} is not null`,
         ),
@@ -1058,6 +1021,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getSpendingVelocity(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<SpendingVelocityItem[]> {
     // Get daily spending, then compute 7-day rolling average
     const rows = await this.db
@@ -1067,12 +1031,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-          eq(transactionsTable.transactionType, 'debited'),
-        ),
+        buildAnalyticsRangeWhere(params, eq(transactionsTable.transactionType, 'debited')),
       )
       .groupBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD')`)
       .orderBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD') asc`)
@@ -1099,6 +1058,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     userId: string
     range: DateRange
     limit: number
+    cardLast4?: string
   }): Promise<LargestTransactionItem[]> {
     const rows = await this.db
       .select({
@@ -1111,12 +1071,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-          eq(transactionsTable.transactionType, 'debited'),
-        ),
+        buildAnalyticsRangeWhere(params, eq(transactionsTable.transactionType, 'debited')),
       )
       .orderBy(sql`${transactionsTable.amount}::numeric desc`)
       .limit(params.limit)

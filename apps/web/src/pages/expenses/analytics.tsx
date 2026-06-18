@@ -26,29 +26,29 @@ import {
   fetchSpendingVelocity,
   fetchMilestoneEtas,
   fetchLargestTransactions,
+  type AnalyticsQueryOptions,
 } from '@/features/expenses/api/analytics'
 import { listExpenses } from '@/features/expenses/api/list-expenses'
 import { fetchCreditCards } from '@/features/expenses/api/credit-cards'
 import { AnalyticsCardsTab } from '@/features/expenses/components/analytics/analytics-cards-tab'
 import { AnalyticsCategoriesTab } from '@/features/expenses/components/analytics/analytics-categories-tab'
+import { AnalyticsFilterBar } from '@/features/expenses/components/analytics/analytics-filter-bar'
 import { AnalyticsOverviewTab } from '@/features/expenses/components/analytics/analytics-overview-tab'
 import { AnalyticsPageHeader } from '@/features/expenses/components/analytics/analytics-page-header'
+import { AnalyticsQueryBoundary } from '@/features/expenses/components/analytics/analytics-query-boundary'
 import { AnalyticsTrendsTab } from '@/features/expenses/components/analytics/analytics-trends-tab'
 import {
   getChartTokenColor,
+  isAnalyticsPeriod,
   isAnalyticsTab,
   type AnalyticsTab,
 } from '@/features/expenses/components/analytics/analytics-utils'
 import { useSyncJob } from '@/features/expenses/hooks/use-sync-job'
-import {
-  takeLastMetricTrendPoints,
-} from '@/lib/metric-trends'
+import { takeLastMetricTrendPoints } from '@/lib/metric-trends'
 
 import type { AnalyticsPeriod } from '@workspace/domain'
 
-import {
-  type ChartConfig,
-} from '@workspace/ui/components/ui/chart'
+import { type ChartConfig } from '@workspace/ui/components/ui/chart'
 import {
   Tabs,
   TabsContent,
@@ -57,15 +57,39 @@ import {
 } from '@workspace/ui/components/ui/tabs'
 
 const AnalyticsPage = () => {
-  const [period, setPeriod] = useState<AnalyticsPeriod>('month')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const periodParam = searchParams.get('period')
+  const period: AnalyticsPeriod = isAnalyticsPeriod(periodParam)
+    ? periodParam
+    : 'month'
+  const selectedCard = searchParams.get('card') ?? ''
+  const tabParam = searchParams.get('tab')
+  const activeTab: AnalyticsTab = isAnalyticsTab(tabParam)
+    ? tabParam
+    : 'overview'
+  const cardOptions: AnalyticsQueryOptions | undefined = selectedCard
+    ? { cardLast4: selectedCard }
+    : undefined
+
   const [selectedDate, setSelectedDate] = useState(() =>
     format(new Date(), 'yyyy-MM-dd'),
   )
-  const [searchParams, setSearchParams] = useSearchParams()
-  const selectedCard = searchParams.get('card') ?? ''
-  const tabParam = searchParams.get('tab')
-  const activeTab: AnalyticsTab = isAnalyticsTab(tabParam) ? tabParam : 'overview'
   const queryClient = useQueryClient()
+
+  const handlePeriodChange = (nextPeriod: AnalyticsPeriod) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (nextPeriod === 'month') {
+          next.delete('period')
+        } else {
+          next.set('period', nextPeriod)
+        }
+        return next
+      },
+      { replace: true },
+    )
+  }
 
   const handleTabChange = (tab: string) => {
     setSearchParams(
@@ -103,105 +127,146 @@ const AnalyticsPage = () => {
     },
   })
 
-  const summaryQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'summary', period],
-    queryFn: () => fetchSpendingSummary(period),
-  })
-
-  const categoryQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'by-category', period],
-    queryFn: () => fetchSpendingByCategory(period),
-  })
-
-  const subcategoryQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'by-subcategory', period],
-    queryFn: () => fetchSpendingBySubcategory(period),
-  })
-
-  const modeQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'by-mode', period],
-    queryFn: () => fetchSpendingByMode(period),
-  })
-
-  const merchantQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'top-merchants', period],
-    queryFn: () => fetchTopMerchants(period),
-  })
-
-  const dailyQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'daily', period],
-    queryFn: () => fetchDailySpending(period),
-  })
-
-  const trendQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'monthly-trend'],
-    queryFn: () => fetchMonthlyTrend(12),
-  })
-
-  const cardQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'by-card', period],
-    queryFn: () => fetchSpendingByCard(period),
-  })
-
-  const dayOfWeekQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'day-of-week', period],
-    queryFn: () => fetchDayOfWeekSpending(period),
-  })
-
-  const categoryTrendQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'category-trend'],
-    queryFn: () => fetchCategoryTrend(6),
-  })
-
-  const periodComparisonQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'period-comparison', period],
-    queryFn: () => fetchPeriodComparison(period),
-  })
-
-  const cumulativeQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'cumulative', period],
-    queryFn: () => fetchCumulativeSpend(period),
-  })
-
-  const savingsRateQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'savings-rate'],
-    queryFn: () => fetchSavingsRate(6),
-  })
-
-  const cardCategoriesQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'card-categories', period],
-    queryFn: () => fetchCardCategories(period),
-  })
-
-  const topVpasQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'top-vpas', period],
-    queryFn: () => fetchTopVpas(period, 10),
-  })
-
-  const velocityQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'velocity', period],
-    queryFn: () => fetchSpendingVelocity(period),
-  })
-
-  const milestoneEtaQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'milestone-etas'],
-    queryFn: () => fetchMilestoneEtas(),
-  })
-
-  const largestQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'largest', period],
-    queryFn: () => fetchLargestTransactions(period, 10),
-  })
+  const isOverview = activeTab === 'overview'
+  const isCards = activeTab === 'cards'
+  const isCategories = activeTab === 'categories'
+  const isTrends = activeTab === 'trends'
 
   const creditCardsQ = useQuery({
     queryKey: ['expenses', 'credit-cards'],
     queryFn: fetchCreditCards,
   })
 
+  const summaryQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'summary', period, selectedCard],
+    queryFn: () => fetchSpendingSummary(period, cardOptions),
+    enabled: isOverview,
+  })
+
+  const categoryQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'by-category', period, selectedCard],
+    queryFn: () => fetchSpendingByCategory(period, cardOptions),
+    enabled: isCategories,
+  })
+
+  const subcategoryQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'by-subcategory', period, selectedCard],
+    queryFn: () => fetchSpendingBySubcategory(period, cardOptions),
+    enabled: isCategories,
+  })
+
+  const modeQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'by-mode', period, selectedCard],
+    queryFn: () => fetchSpendingByMode(period, cardOptions),
+    enabled: isOverview,
+  })
+
+  const merchantQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'top-merchants', period, selectedCard],
+    queryFn: () => fetchTopMerchants(period, 10, cardOptions),
+    enabled: isOverview,
+  })
+
+  const dailyQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'daily', period, selectedCard],
+    queryFn: () => fetchDailySpending(period, cardOptions),
+    enabled: isOverview,
+  })
+
+  const trendQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'monthly-trend'],
+    queryFn: () => fetchMonthlyTrend(12),
+    enabled: isOverview || isTrends,
+  })
+
+  const cardQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'by-card', period, selectedCard],
+    queryFn: () => fetchSpendingByCard(period, cardOptions),
+    enabled: isCards,
+  })
+
+  const dayOfWeekQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'day-of-week', period, selectedCard],
+    queryFn: () => fetchDayOfWeekSpending(period, cardOptions),
+    enabled: isTrends,
+  })
+
+  const categoryTrendQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'category-trend'],
+    queryFn: () => fetchCategoryTrend(6),
+    enabled: isTrends,
+  })
+
+  const periodComparisonQ = useQuery({
+    queryKey: [
+      'expenses',
+      'analytics',
+      'period-comparison',
+      period,
+      selectedCard,
+    ],
+    queryFn: () => fetchPeriodComparison(period, cardOptions),
+    enabled: isOverview,
+  })
+
+  const cumulativeQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'cumulative', period, selectedCard],
+    queryFn: () => fetchCumulativeSpend(period, cardOptions),
+    enabled: isTrends,
+  })
+
+  const savingsRateQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'savings-rate'],
+    queryFn: () => fetchSavingsRate(6),
+    enabled: isTrends,
+  })
+
+  const cardCategoriesQ = useQuery({
+    queryKey: [
+      'expenses',
+      'analytics',
+      'card-categories',
+      period,
+      selectedCard,
+    ],
+    queryFn: () => fetchCardCategories(period, cardOptions),
+    enabled: isCards,
+  })
+
+  const topVpasQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'top-vpas', period, selectedCard],
+    queryFn: () => fetchTopVpas(period, 10, cardOptions),
+    enabled: isTrends,
+  })
+
+  const velocityQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'velocity', period, selectedCard],
+    queryFn: () => fetchSpendingVelocity(period, cardOptions),
+    enabled: isTrends,
+  })
+
+  const milestoneEtaQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'milestone-etas'],
+    queryFn: () => fetchMilestoneEtas(),
+    enabled: isCards,
+  })
+
+  const largestQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'largest', period, selectedCard],
+    queryFn: () => fetchLargestTransactions(period, 10, cardOptions),
+    enabled: isTrends,
+  })
+
   const daySummaryQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'day-summary', selectedDate],
-    queryFn: () => fetchSpendingSummaryForDate(selectedDate),
-    enabled: Boolean(selectedDate),
+    queryKey: [
+      'expenses',
+      'analytics',
+      'day-summary',
+      selectedDate,
+      selectedCard,
+    ],
+    queryFn: () => fetchSpendingSummaryForDate(selectedDate, cardOptions),
+    enabled: isOverview && Boolean(selectedDate),
   })
 
   const dayTransactionsQ = useQuery({
@@ -220,8 +285,15 @@ const AnalyticsPage = () => {
         date_to: selectedDate,
         ...(selectedCard && { card_last4: selectedCard }),
       }),
-    enabled: Boolean(selectedDate),
+    enabled: isOverview && Boolean(selectedDate),
   })
+
+  const selectedCardProfile = (creditCardsQ.data ?? []).find(
+    (card) => card.cardLast4 === selectedCard,
+  )
+  const cardFilterLabel = selectedCardProfile
+    ? `${selectedCardProfile.cardName} ••${selectedCardProfile.cardLast4}`
+    : undefined
 
   const aiPageContext = useMemo(
     () =>
@@ -349,12 +421,25 @@ const AnalyticsPage = () => {
     (transaction) => transaction.transactionType === 'credited',
   )
 
+  const tabError =
+    (isOverview && summaryQ.isError) ||
+    (isCards && cardQ.isError) ||
+    (isCategories && categoryQ.isError) ||
+    (isTrends && trendQ.isError)
+
+  const retryTabQueries = () => {
+    if (isOverview) void summaryQ.refetch()
+    if (isCards) void cardQ.refetch()
+    if (isCategories) void categoryQ.refetch()
+    if (isTrends) void trendQ.refetch()
+  }
+
   return (
     <MainLayout>
       <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
         <AnalyticsPageHeader
           period={period}
-          onPeriodChange={setPeriod}
+          onPeriodChange={handlePeriodChange}
           cards={creditCardsQ.data ?? []}
           selectedCardLast4={selectedCard || undefined}
           onCardSelect={handleCardSelect}
@@ -363,92 +448,111 @@ const AnalyticsPage = () => {
           onReprocess={startReprocess}
         />
 
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="cards">Cards</TabsTrigger>
-            <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="trends">Trends</TabsTrigger>
-          </TabsList>
+        <Tabs
+          value={activeTab}
+          onValueChange={handleTabChange}
+          className="gap-4"
+        >
+          <div className="sticky top-[var(--analytics-header-offset,9.5rem)] z-10 -mx-4 sm:-mx-6 bg-background/95 px-4 sm:px-6 pb-0 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <TabsList className="h-auto w-full justify-start overflow-x-auto">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="cards">Cards</TabsTrigger>
+              <TabsTrigger value="categories">Categories</TabsTrigger>
+              <TabsTrigger value="trends">Trends</TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="overview" className="mt-6">
-            <AnalyticsOverviewTab
-              period={period}
-              summary={summaryQ.data}
-              summaryLoading={summaryQ.isLoading}
-              recentSpentTrend={recentSpentTrend}
-              recentReceivedTrend={recentReceivedTrend}
-              dailyData={dailyQ.data ?? []}
-              dailyLoading={dailyQ.isLoading}
-              dailyChartConfig={dailyChartConfig}
-              modeChartData={modeChartData}
-              modeChartConfig={modeChartConfig}
-              modeLoading={modeQ.isLoading}
-              selectedDate={selectedDate}
-              onSelectedDateChange={setSelectedDate}
-              daySummary={daySummaryQ.data}
-              daySummaryLoading={daySummaryQ.isLoading}
-              transactionsTotal={dayTransactionsQ.data?.total ?? 0}
-              spentTransactions={spentTransactions}
-              receivedTransactions={receivedTransactions}
-              dayTransactionsLoading={dayTransactionsQ.isLoading}
-              periodComparison={periodComparisonQ.data}
-              periodComparisonLoading={periodComparisonQ.isLoading}
-              merchants={merchantQ.data}
-              merchantsLoading={merchantQ.isLoading}
-            />
-          </TabsContent>
+          {/* <AnalyticsFilterBar
+            period={period}
+            activeTab={activeTab}
+            cardLabel={cardFilterLabel}
+          /> */}
 
-          <TabsContent value="cards" className="mt-6">
-            <AnalyticsCardsTab
-              cards={creditCardsQ.data ?? []}
-              cardSpend={cardQ.data ?? []}
-              cardSpendLoading={cardQ.isLoading}
-              selectedCardLast4={selectedCard || undefined}
-              milestoneEtas={milestoneEtaQ.data}
-              cardCategories={cardCategoriesQ.data}
-              cardCategoriesLoading={cardCategoriesQ.isLoading}
-            />
-          </TabsContent>
+          <AnalyticsQueryBoundary isError={tabError} onRetry={retryTabQueries}>
+            <TabsContent value="overview" className="mt-2">
+              <AnalyticsOverviewTab
+                period={period}
+                selectedCardLast4={selectedCard || undefined}
+                summary={summaryQ.data}
+                summaryLoading={summaryQ.isLoading}
+                recentSpentTrend={recentSpentTrend}
+                recentReceivedTrend={recentReceivedTrend}
+                dailyData={dailyQ.data ?? []}
+                dailyLoading={dailyQ.isLoading}
+                dailyChartConfig={dailyChartConfig}
+                modeChartData={modeChartData}
+                modeChartConfig={modeChartConfig}
+                modeLoading={modeQ.isLoading}
+                selectedDate={selectedDate}
+                onSelectedDateChange={setSelectedDate}
+                daySummary={daySummaryQ.data}
+                daySummaryLoading={daySummaryQ.isLoading}
+                transactionsTotal={dayTransactionsQ.data?.total ?? 0}
+                spentTransactions={spentTransactions}
+                receivedTransactions={receivedTransactions}
+                dayTransactionsLoading={dayTransactionsQ.isLoading}
+                periodComparison={periodComparisonQ.data}
+                periodComparisonLoading={periodComparisonQ.isLoading}
+                merchants={merchantQ.data}
+                merchantsLoading={merchantQ.isLoading}
+              />
+            </TabsContent>
 
-          <TabsContent value="categories" className="mt-6">
-            <AnalyticsCategoriesTab
-              categoryChartData={categoryChartData}
-              categoryChartConfig={categoryChartConfig}
-              categoryLoading={categoryQ.isLoading}
-              subcategoryChartData={subcategoryChartData}
-              subcategoryChartConfig={subcategoryChartConfig}
-              subcategoryLoading={subcategoryQ.isLoading}
-            />
-          </TabsContent>
+            <TabsContent value="cards" className="mt-2">
+              <AnalyticsCardsTab
+                cards={creditCardsQ.data ?? []}
+                cardSpend={cardQ.data ?? []}
+                cardSpendLoading={cardQ.isLoading}
+                selectedCardLast4={selectedCard || undefined}
+                milestoneEtas={milestoneEtaQ.data}
+                cardCategories={cardCategoriesQ.data}
+                cardCategoriesLoading={cardCategoriesQ.isLoading}
+              />
+            </TabsContent>
 
-          <TabsContent value="trends" className="mt-6">
-            <AnalyticsTrendsTab
-              monthlyTrend={trendQ.data ?? []}
-              monthlyTrendLoading={trendQ.isLoading}
-              trendChartConfig={trendChartConfig}
-              dayOfWeekData={dayOfWeekQ.data ?? []}
-              dayOfWeekLoading={dayOfWeekQ.isLoading}
-              dayOfWeekConfig={dayOfWeekConfig}
-              cumulativeData={cumulativeQ.data ?? []}
-              cumulativeLoading={cumulativeQ.isLoading}
-              cumulativeConfig={cumulativeConfig}
-              categoryTrendPivoted={categoryTrendPivoted}
-              trendCategories={trendCategories}
-              categoryTrendConfig={categoryTrendConfig}
-              categoryTrendLoading={categoryTrendQ.isLoading}
-              savingsRateData={savingsRateQ.data ?? []}
-              savingsRateLoading={savingsRateQ.isLoading}
-              savingsRateConfig={savingsRateConfig}
-              velocityData={velocityQ.data ?? []}
-              velocityLoading={velocityQ.isLoading}
-              velocityConfig={velocityConfig}
-              topVpas={topVpasQ.data}
-              topVpasLoading={topVpasQ.isLoading}
-              largestTransactions={largestQ.data}
-              largestLoading={largestQ.isLoading}
-            />
-          </TabsContent>
+            <TabsContent value="categories" className="mt-2">
+              <AnalyticsCategoriesTab
+                period={period}
+                selectedCardLast4={selectedCard || undefined}
+                categoryChartData={categoryChartData}
+                categoryChartConfig={categoryChartConfig}
+                categoryLoading={categoryQ.isLoading}
+                subcategoryChartData={subcategoryChartData}
+                subcategoryChartConfig={subcategoryChartConfig}
+                subcategoryLoading={subcategoryQ.isLoading}
+              />
+            </TabsContent>
+
+            <TabsContent value="trends" className="mt-2">
+              <AnalyticsTrendsTab
+                period={period}
+                selectedCardLast4={selectedCard || undefined}
+                monthlyTrend={trendQ.data ?? []}
+                monthlyTrendLoading={trendQ.isLoading}
+                trendChartConfig={trendChartConfig}
+                dayOfWeekData={dayOfWeekQ.data ?? []}
+                dayOfWeekLoading={dayOfWeekQ.isLoading}
+                dayOfWeekConfig={dayOfWeekConfig}
+                cumulativeData={cumulativeQ.data ?? []}
+                cumulativeLoading={cumulativeQ.isLoading}
+                cumulativeConfig={cumulativeConfig}
+                categoryTrendPivoted={categoryTrendPivoted}
+                trendCategories={trendCategories}
+                categoryTrendConfig={categoryTrendConfig}
+                categoryTrendLoading={categoryTrendQ.isLoading}
+                savingsRateData={savingsRateQ.data ?? []}
+                savingsRateLoading={savingsRateQ.isLoading}
+                savingsRateConfig={savingsRateConfig}
+                velocityData={velocityQ.data ?? []}
+                velocityLoading={velocityQ.isLoading}
+                velocityConfig={velocityConfig}
+                topVpas={topVpasQ.data}
+                topVpasLoading={topVpasQ.isLoading}
+                largestTransactions={largestQ.data}
+                largestLoading={largestQ.isLoading}
+              />
+            </TabsContent>
+          </AnalyticsQueryBoundary>
         </Tabs>
       </div>
     </MainLayout>

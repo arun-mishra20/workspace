@@ -6,6 +6,7 @@ import {
   Receipt,
   TrendingUp,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import {
   Area,
   AreaChart,
@@ -26,7 +27,9 @@ import {
   fmtCurrency,
   getChartTokenColor,
 } from '@/features/expenses/components/analytics/analytics-utils'
+import { buildExpensesDrillDownUrl } from '@/features/expenses/lib/build-expenses-drill-down-url'
 import type {
+  AnalyticsPeriod,
   LargestTransactionItem,
   TopVpaItem,
 } from '@workspace/domain'
@@ -50,6 +53,8 @@ import { Separator } from '@workspace/ui/components/ui/separator'
 import { Skeleton } from '@workspace/ui/components/ui/skeleton'
 
 interface AnalyticsTrendsTabProps {
+  period: AnalyticsPeriod
+  selectedCardLast4?: string
   monthlyTrend: Array<{
     month: string
     debited: number
@@ -86,6 +91,8 @@ interface AnalyticsTrendsTabProps {
 }
 
 export function AnalyticsTrendsTab({
+  period,
+  selectedCardLast4,
   monthlyTrend,
   monthlyTrendLoading,
   trendChartConfig,
@@ -666,6 +673,11 @@ export function AnalyticsTrendsTab({
           sublabel: v.vpa,
           amount: v.amount,
           count: v.count,
+          href: buildExpensesDrillDownUrl({
+            period,
+            cardLast4: selectedCardLast4,
+            merchant: v.merchant,
+          }),
         }))}
         loading={topVpasLoading}
         emptyMessage="No UPI data available."
@@ -693,9 +705,14 @@ export function AnalyticsTrendsTab({
           ) : largestTransactions && largestTransactions.length > 0 ? (
             <div className="divide-y">
               {largestTransactions.map((txn, i) => (
-                <div
+                <Link
                   key={txn.id}
-                  className="flex items-center justify-between py-3"
+                  to={buildExpensesDrillDownUrl({
+                    date: txn.transactionDate,
+                    cardLast4: selectedCardLast4,
+                    merchant: txn.merchant,
+                  })}
+                  className="flex items-center justify-between py-3 transition-colors hover:bg-muted/50 rounded-sm px-1 -mx-1"
                 >
                   <div className="flex items-center gap-3">
                     <span className="flex size-6 items-center justify-center rounded-full bg-muted text-xs font-medium">
@@ -731,10 +748,10 @@ export function AnalyticsTrendsTab({
                       </div>
                     </div>
                   </div>
-                  <span className="text-sm font-semibold tabular-nums text-red-500">
+                  <span className="text-sm font-semibold tabular-nums text-destructive">
                     {fmtCurrency(txn.amount)}
                   </span>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (

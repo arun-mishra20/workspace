@@ -5,6 +5,8 @@ import {
   fmtCompact,
   fmtCurrency,
 } from '@/features/expenses/components/analytics/analytics-utils'
+import { buildExpensesDrillDownUrl } from '@/features/expenses/lib/build-expenses-drill-down-url'
+import type { AnalyticsPeriod } from '@workspace/domain'
 import {
   Card,
   CardContent,
@@ -38,6 +40,8 @@ type SubcategoryChartItem = {
 }
 
 interface AnalyticsCategoriesTabProps {
+  period: AnalyticsPeriod
+  selectedCardLast4?: string
   categoryChartData: CategoryChartItem[]
   categoryChartConfig: ChartConfig
   categoryLoading: boolean
@@ -47,6 +51,8 @@ interface AnalyticsCategoriesTabProps {
 }
 
 export function AnalyticsCategoriesTab({
+  period,
+  selectedCardLast4,
   categoryChartData,
   categoryChartConfig,
   categoryLoading,
@@ -60,6 +66,13 @@ export function AnalyticsCategoriesTab({
         data={categoryChartData}
         chartConfig={categoryChartConfig}
         loading={categoryLoading}
+        getCategoryHref={(category) =>
+          buildExpensesDrillDownUrl({
+            period,
+            cardLast4: selectedCardLast4,
+            category,
+          })
+        }
       />
 
       <Card>
