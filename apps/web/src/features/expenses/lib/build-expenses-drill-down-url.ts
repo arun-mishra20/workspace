@@ -1,6 +1,6 @@
-import { format, subDays, subMonths, subYears } from 'date-fns'
-
 import type { AnalyticsPeriod } from '@workspace/domain'
+
+import { periodToDateRange } from '@/features/expenses/lib/period-to-date-range'
 import { appPaths } from '@/config/app-paths'
 
 export interface ExpensesDrillDownParams {
@@ -11,29 +11,9 @@ export interface ExpensesDrillDownParams {
   date?: string
 }
 
-function periodToDateRange(period: AnalyticsPeriod): { dateFrom: string; dateTo: string } {
-  const end = new Date()
-  let start: Date
-
-  switch (period) {
-    case 'week':
-      start = subDays(end, 7)
-      break
-    case 'month':
-      start = subMonths(end, 1)
-      break
-    case 'quarter':
-      start = subMonths(end, 3)
-      break
-    case 'year':
-      start = subYears(end, 1)
-      break
-  }
-
-  return {
-    dateFrom: format(start, 'yyyy-MM-dd'),
-    dateTo: format(end, 'yyyy-MM-dd'),
-  }
+function periodToDateRangeLegacy(period: AnalyticsPeriod): { dateFrom: string; dateTo: string } {
+  const { startDate, endDate } = periodToDateRange(period)
+  return { dateFrom: startDate, dateTo: endDate }
 }
 
 export function buildExpensesDrillDownUrl(params: ExpensesDrillDownParams): string {
@@ -48,7 +28,7 @@ export function buildExpensesDrillDownUrl(params: ExpensesDrillDownParams): stri
     search.set('date_from', params.date)
     search.set('date_to', params.date)
   } else if (params.period) {
-    const { dateFrom, dateTo } = periodToDateRange(params.period)
+    const { dateFrom, dateTo } = periodToDateRangeLegacy(params.period)
     search.set('date_from', dateFrom)
     search.set('date_to', dateTo)
   }

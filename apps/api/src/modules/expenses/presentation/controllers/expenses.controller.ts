@@ -23,6 +23,8 @@ import { ZodValidationPipe } from '@/app/pipes/zod-validation.pipe'
 import { JwtAuthGuard } from '@/modules/auth/presentation/guards/jwt-auth.guard'
 import { ExpenseLlmCategorizationService } from '@/modules/expenses/application/services/expense-llm-categorization.service'
 import { CategorizationRulesService } from '@/modules/expenses/application/services/categorization-rules.service'
+import { RuleDashboardAnalyticsService } from '@/modules/expenses/application/services/rule-dashboard-analytics.service'
+import { RuleDashboardsService } from '@/modules/expenses/application/services/rule-dashboards.service'
 import { ExpensesService } from '@/modules/expenses/application/services/expenses.service'
 import { GmailOAuthService } from '@/modules/expenses/application/services/gmail-oauth.service'
 import { BulkCategorizeDto } from '@/modules/expenses/presentation/dtos/bulk-categorize.dto'
@@ -33,6 +35,11 @@ import {
   RulePreviewRequestSchema,
   UpdateCategorizationRuleInputSchema,
 } from '@/modules/expenses/presentation/dtos/categorization-rule.dto'
+import {
+  CreateRuleDashboardInputSchema,
+  RuleDashboardAnalyticsRequestSchema,
+  UpdateRuleDashboardInputSchema,
+} from '@/modules/expenses/presentation/dtos/rule-dashboard.dto'
 import { BulkUpdateTransactionsDto } from '@/modules/expenses/presentation/dtos/bulk-update-transactions.dto'
 import { ListExpensesCursorSchema } from '@/modules/expenses/presentation/dtos/expenses.schema'
 import { ListExpenseEmailsDto } from '@/modules/expenses/presentation/dtos/list-expense-emails.dto'
@@ -54,6 +61,8 @@ export class ExpensesController {
     private readonly gmailOAuthService: GmailOAuthService,
     private readonly llmCategorizationService: ExpenseLlmCategorizationService,
     private readonly categorizationRulesService: CategorizationRulesService,
+    private readonly ruleDashboardsService: RuleDashboardsService,
+    private readonly ruleDashboardAnalyticsService: RuleDashboardAnalyticsService,
   ) {}
 
   @Post('sync')
@@ -878,6 +887,107 @@ export class ExpensesController {
       id,
       RuleApplyRequestSchema.parse(body),
     )
+  }
+
+  // ── Rule dashboards ──
+
+  @Get('rule-dashboards')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'List saved rule dashboards' })
+  listRuleDashboards(@Request() req: FastifyRequest & { user: { id: string } }) {
+    return this.ruleDashboardsService.listDashboards(req.user.id)
+  }
+
+  @Post('rule-dashboards')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Create a saved rule dashboard' })
+  createRuleDashboard(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Body(new ZodValidationPipe(CreateRuleDashboardInputSchema)) body: unknown,
+  ) {
+    return this.ruleDashboardsService.createDashboard(
+      req.user.id,
+      CreateRuleDashboardInputSchema.parse(body),
+    )
+  }
+
+  @Post('rule-dashboards/analytics')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Compute analytics for one or more rules (OR, deduped)' })
+  computeRuleDashboardAnalytics(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Body(new ZodValidationPipe(RuleDashboardAnalyticsRequestSchema)) body: unknown,
+  ) {
+    return this.ruleDashboardAnalyticsService.computeAnalytics(
+      req.user.id,
+      RuleDashboardAnalyticsRequestSchema.parse(body),
+    )
+  }
+
+  @Get('rule-dashboards/:id/analytics')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Compute analytics for a saved rule dashboard' })
+  @ApiQuery({ name: 'startDate', required: true })
+  @ApiQuery({ name: 'endDate', required: true })
+  @ApiQuery({ name: 'cardLast4', required: false })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'pageSize', required: false })
+  getSavedRuleDashboardAnalytics(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Param('id') id: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('cardLast4') cardLast4?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.ruleDashboardsService.getDashboard(req.user.id, id).then((dashboard) =>
+      this.ruleDashboardAnalyticsService.computeAnalytics(req.user.id, {
+        ruleIds: dashboard.ruleIds,
+        inlineRules: dashboard.inlineRules,
+        startDate,
+        endDate,
+        cardLast4,
+        page: page ? Number(page) : 1,
+        pageSize: pageSize ? Number(pageSize) : 25,
+      }),
+    )
+  }
+
+  @Get('rule-dashboards/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get a saved rule dashboard' })
+  getRuleDashboard(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Param('id') id: string,
+  ) {
+    return this.ruleDashboardsService.getDashboard(req.user.id, id)
+  }
+
+  @Patch('rule-dashboards/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update a saved rule dashboard' })
+  updateRuleDashboard(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(UpdateRuleDashboardInputSchema)) body: unknown,
+  ) {
+    return this.ruleDashboardsService.updateDashboard(
+      req.user.id,
+      id,
+      UpdateRuleDashboardInputSchema.parse(body),
+    )
+  }
+
+  @Delete('rule-dashboards/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Delete a saved rule dashboard' })
+  deleteRuleDashboard(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Param('id') id: string,
+  ) {
+    return this.ruleDashboardsService.deleteDashboard(req.user.id, id)
   }
 
   @Get('gmail/connect')

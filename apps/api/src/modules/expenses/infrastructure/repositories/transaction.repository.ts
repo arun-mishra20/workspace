@@ -1539,6 +1539,32 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     return records.map((record) => this.toDomain(record))
   }
 
+  async listByUserInDateRange(params: {
+    userId: string
+    range: DateRange
+    cardLast4?: string
+    limit?: number
+  }): Promise<Transaction[]> {
+    const where = this.buildFilterWhere(params.userId, {
+      dateFrom: params.range.start,
+      dateTo: params.range.end,
+      cardLast4: params.cardLast4,
+    })
+
+    let query = this.db
+      .select()
+      .from(transactionsTable)
+      .where(where)
+      .orderBy(desc(transactionsTable.transactionDate))
+
+    if (params.limit !== undefined) {
+      query = query.limit(params.limit) as typeof query
+    }
+
+    const records = await query
+    return records.map((record) => this.toDomain(record))
+  }
+
   async updateTransactionAttributesBatch(params: {
     userId: string
     updates: { id: string, transactionAttributes: Transaction['transactionAttributes'] }[]

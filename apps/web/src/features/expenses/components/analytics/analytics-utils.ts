@@ -8,7 +8,7 @@ export const ANALYTICS_TABS = [
   'data-quality',
   'rules',
   'patterns',
-  'segments',
+  'dashboards',
 ] as const
 export type AnalyticsTab = (typeof ANALYTICS_TABS)[number]
 

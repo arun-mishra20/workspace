@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import {
   ArrowDownRight,
@@ -18,7 +19,13 @@ import {
 
 import { Link } from 'react-router-dom'
 import { appPaths } from '@/config/app-paths'
+import {
+  ChartCardToolbar,
+  type ChartCardView,
+} from '@/features/expenses/components/analytics/chart-card-toolbar'
+import { topNWithOther } from '@/features/expenses/components/analytics/chart-data-utils'
 import { DaySpendExplorerSection } from '@/features/expenses/components/analytics/day-spend-explorer-section'
+import { SpendHeatmapCalendar } from '@/features/expenses/components/analytics/spend-heatmap-calendar'
 import { PeriodComparisonSection } from '@/features/expenses/components/analytics/period-comparison-section'
 import { RankedSpendListCard } from '@/features/expenses/components/analytics/ranked-spend-list-card'
 import { SummaryCard } from '@/features/expenses/components/analytics/summary-card'
@@ -27,6 +34,7 @@ import {
   fmtCurrency,
 } from '@/features/expenses/components/analytics/analytics-utils'
 import { buildExpensesDrillDownUrl } from '@/features/expenses/lib/build-expenses-drill-down-url'
+import { periodLabel } from '@/features/expenses/lib/period-to-date-range'
 import type { MetricTrendPoint } from '@/lib/metric-trends'
 import type {
   AnalyticsPeriod,
@@ -115,6 +123,247 @@ export function AnalyticsOverviewTab({
   merchants,
   merchantsLoading,
 }: AnalyticsOverviewTabProps) {
+  const [dailyView, setDailyView] = useState<ChartCardView>('chart')
+  const [showDebited, setShowDebited] = useState(true)
+  const [showCredited, setShowCredited] = useState(true)
+  const [modeView, setModeView] = useState<ChartCardView>('chart')
+  const [modeTopN, setModeTopN] = useState(6)
+
+  const displayModeData = useMemo(
+    () =>
+      topNWithOther(modeChartData, modeTopN, (rest) => ({
+        mode: '__other__',
+        amount: rest.reduce((sum, item) => sum + item.amount, 0),
+        count: rest.reduce((sum, item) => sum + item.count, 0),
+        chartColor: 'var(--color-muted-foreground)',
+      })),
+    [modeChartData, modeTopN],
+  )
+
+  const emptyDailyHint =
+    selectedCardLast4 == null
+      ? 'Try selecting 90 days or 1 year.'
+      : 'Try clearing the card filter or selecting a longer period.'
+
+  const renderDailyContent = () => {
+    if (dailyLoading) {
+      return <Skeleton className="h-75 w-full" />
+    }
+
+    if (dailyData.length === 0) {
+      return (
+        <div className="py-12 text-center text-sm text-muted-foreground">
+          <p>No data for this period.</p>
+          <p className="mt-1 text-xs">{emptyDailyHint}</p>
+        </div>
+      )
+    }
+
+    if (dailyView === 'heatmap') {
+      return <SpendHeatmapCalendar data={dailyData} metric="debited" />
+    }
+
+    if (dailyView === 'table') {
+      return (
+        <div className="max-h-75 overflow-auto rounded-lg border">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-muted/80">
+              <tr className="border-b text-left text-xs text-muted-foreground">
+                <th className="px-3 py-2 font-medium">Date</th>
+                {showDebited ? (
+                  <th className="px-3 py-2 font-medium text-right">Spent</th>
+                ) : null}
+                {showCredited ? (
+                  <th className="px-3 py-2 font-medium text-right">Received</th>
+                ) : null}
+              </tr>
+            </thead>
+            <tbody>
+              {dailyData.map((row) => (
+                <tr
+                  key={row.date}
+                  className="cursor-pointer border-b transition-colors hover:bg-muted/50"
+                  onClick={() => onSelectedDateChange(row.date)}
+                >
+                  <td className="px-3 py-2">
+                    {format(parseISO(row.date), 'dd MMM yyyy')}
+                  </td>
+                  {showDebited ? (
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {fmtCurrency(row.debited)}
+                    </td>
+                  ) : null}
+                  {showCredited ? (
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {fmtCurrency(row.credited)}
+                    </td>
+                  ) : null}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+
+    return (
+      <ChartContainer config={dailyChartConfig} className="h-75 w-full">
+        <BarChart data={dailyData}>
+          <CartesianGrid vertical={false} />
+          <XAxis
+            dataKey="date"
+            tickFormatter={(v: string) => {
+              try {
+                return format(parseISO(v), 'dd MMM')
+              } catch {
+                return v
+              }
+            }}
+            tickLine={false}
+            axisLine={false}
+            fontSize={12}
+          />
+          <YAxis
+            tickFormatter={fmtCompact}
+            tickLine={false}
+            axisLine={false}
+            width={50}
+            fontSize={12}
+          />
+          <ChartTooltip
+            wrapperStyle={{ zIndex: 100 }}
+            content={
+              <ChartTooltipContent
+                formatter={(value, name) => (
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground">
+                      {name === 'debited' ? 'Spent' : 'Received'}
+                    </span>
+                    <span className="font-mono font-medium tabular-nums">
+                      {fmtCurrency(Number(value))}
+                    </span>
+                  </div>
+                )}
+              />
+            }
+          />
+          <ChartLegend content={<ChartLegendContent />} />
+          {showDebited ? (
+            <Bar
+              dataKey="debited"
+              fill="var(--color-debited)"
+              radius={[4, 4, 0, 0]}
+              cursor="pointer"
+              onClick={(data) => {
+                const payload = data as { date?: string }
+                if (payload.date) {
+                  onSelectedDateChange(payload.date)
+                }
+              }}
+            />
+          ) : null}
+          {showCredited ? (
+            <Bar
+              dataKey="credited"
+              fill="var(--color-credited)"
+              radius={[4, 4, 0, 0]}
+              cursor="pointer"
+              onClick={(data) => {
+                const payload = data as { date?: string }
+                if (payload.date) {
+                  onSelectedDateChange(payload.date)
+                }
+              }}
+            />
+          ) : null}
+        </BarChart>
+      </ChartContainer>
+    )
+  }
+
+  const renderModeContent = () => {
+    if (modeLoading) {
+      return <Skeleton className="mx-auto size-55 rounded-full" />
+    }
+
+    if (displayModeData.length === 0) {
+      return (
+        <p className="py-12 text-center text-sm text-muted-foreground">
+          No mode data.
+        </p>
+      )
+    }
+
+    if (modeView === 'table') {
+      return (
+        <div className="divide-y">
+          {displayModeData.map((entry) => (
+            <div
+              key={entry.mode}
+              className="flex items-center justify-between py-3"
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="size-3 rounded-full"
+                  style={{ backgroundColor: entry.chartColor }}
+                />
+                <span className="text-sm font-medium capitalize">
+                  {entry.mode === '__other__'
+                    ? 'Other'
+                    : entry.mode.replace(/_/g, ' ')}
+                </span>
+              </div>
+              <span className="text-sm font-semibold tabular-nums">
+                {fmtCurrency(entry.amount)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    return (
+      <ChartContainer
+        config={modeChartConfig}
+        chartType="pie"
+        className="mx-auto aspect-square h-65"
+      >
+        <PieChart>
+          <ChartTooltip
+            wrapperStyle={{ zIndex: 100 }}
+            content={
+              <ChartTooltipContent
+                formatter={(value, name) => (
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground">
+                      {String(name).replace(/_/g, ' ')}
+                    </span>
+                    <span className="font-mono font-medium tabular-nums">
+                      {fmtCurrency(Number(value))}
+                    </span>
+                  </div>
+                )}
+              />
+            }
+          />
+          <Pie
+            data={displayModeData}
+            dataKey="amount"
+            nameKey="mode"
+            innerRadius={55}
+            outerRadius={100}
+            paddingAngle={2}
+          >
+            {displayModeData.map((entry) => (
+              <Cell key={entry.mode} fill={entry.chartColor} />
+            ))}
+          </Pie>
+          <ChartLegend content={<ChartLegendContent nameKey="mode" />} />
+        </PieChart>
+      </ChartContainer>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -173,149 +422,54 @@ export function AnalyticsOverviewTab({
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
         <Card className="lg:col-span-2 overflow-hidden">
           <CardHeader>
-            <CardTitle className="text-base">Daily Spending</CardTitle>
-            <CardDescription>
-              Debits &amp; credits per day — click a bar to explore that day
-            </CardDescription>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle className="text-base">Daily Spending</CardTitle>
+                <CardDescription>
+                  Debits &amp; credits per day — click a bar to explore that day
+                </CardDescription>
+              </div>
+              <ChartCardToolbar
+                view={dailyView}
+                onViewChange={setDailyView}
+                views={['chart', 'table', 'heatmap']}
+                seriesOptions={[
+                  { id: 'debited', label: 'Spent', checked: showDebited },
+                  { id: 'credited', label: 'Received', checked: showCredited },
+                ]}
+                onSeriesToggle={(id, checked) => {
+                  if (id === 'debited') setShowDebited(checked)
+                  if (id === 'credited') setShowCredited(checked)
+                }}
+              />
+            </div>
           </CardHeader>
-          <CardContent>
-            {dailyLoading ? (
-              <Skeleton className="h-75 w-full" />
-            ) : dailyData.length > 0 ? (
-              <ChartContainer config={dailyChartConfig} className="h-75 w-full">
-                <BarChart data={dailyData}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={(v: string) => {
-                      try {
-                        return format(parseISO(v), 'dd MMM')
-                      } catch {
-                        return v
-                      }
-                    }}
-                    tickLine={false}
-                    axisLine={false}
-                    fontSize={12}
-                  />
-                  <YAxis
-                    tickFormatter={fmtCompact}
-                    tickLine={false}
-                    axisLine={false}
-                    width={50}
-                    fontSize={12}
-                  />
-                  <ChartTooltip
-                    wrapperStyle={{ zIndex: 100 }}
-                    content={
-                      <ChartTooltipContent
-                        formatter={(value, name) => (
-                          <div className="flex items-center justify-between gap-4">
-                            <span className="text-muted-foreground">
-                              {name === 'debited' ? 'Spent' : 'Received'}
-                            </span>
-                            <span className="font-mono font-medium tabular-nums">
-                              {fmtCurrency(Number(value))}
-                            </span>
-                          </div>
-                        )}
-                      />
-                    }
-                  />
-                  <ChartLegend content={<ChartLegendContent />} />
-                  <Bar
-                    dataKey="debited"
-                    fill="var(--color-debited)"
-                    radius={[4, 4, 0, 0]}
-                    cursor="pointer"
-                    onClick={(data) => {
-                      const payload = data as { date?: string }
-                      if (payload.date) {
-                        onSelectedDateChange(payload.date)
-                      }
-                    }}
-                  />
-                  <Bar
-                    dataKey="credited"
-                    fill="var(--color-credited)"
-                    radius={[4, 4, 0, 0]}
-                    cursor="pointer"
-                    onClick={(data) => {
-                      const payload = data as { date?: string }
-                      if (payload.date) {
-                        onSelectedDateChange(payload.date)
-                      }
-                    }}
-                  />
-                </BarChart>
-              </ChartContainer>
-            ) : (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                No data for this period.
-              </p>
-            )}
-          </CardContent>
+          <CardContent>{renderDailyContent()}</CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Payment Modes</CardTitle>
-            <CardDescription>How you pay</CardDescription>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle className="text-base">Payment Modes</CardTitle>
+                <CardDescription>How you pay</CardDescription>
+              </div>
+              <ChartCardToolbar
+                view={modeView}
+                onViewChange={setModeView}
+                views={['chart', 'table']}
+                showTopN
+                topN={modeTopN}
+                onTopNChange={setModeTopN}
+              />
+            </div>
           </CardHeader>
-          <CardContent>
-            {modeLoading ? (
-              <Skeleton className="mx-auto size-55 rounded-full" />
-            ) : modeChartData.length > 0 ? (
-              <ChartContainer
-                config={modeChartConfig}
-                chartType="pie"
-                className="mx-auto aspect-square h-65"
-              >
-                <PieChart>
-                  <ChartTooltip
-                    wrapperStyle={{ zIndex: 100 }}
-                    content={
-                      <ChartTooltipContent
-                        formatter={(value, name) => (
-                          <div className="flex items-center justify-between gap-4">
-                            <span className="text-muted-foreground">
-                              {String(name).replace(/_/g, ' ')}
-                            </span>
-                            <span className="font-mono font-medium tabular-nums">
-                              {fmtCurrency(Number(value))}
-                            </span>
-                          </div>
-                        )}
-                      />
-                    }
-                  />
-                  <Pie
-                    data={modeChartData}
-                    dataKey="amount"
-                    nameKey="mode"
-                    innerRadius={55}
-                    outerRadius={100}
-                    paddingAngle={2}
-                  >
-                    {modeChartData.map((entry) => (
-                      <Cell key={entry.mode} fill={entry.chartColor} />
-                    ))}
-                  </Pie>
-                  <ChartLegend
-                    content={<ChartLegendContent nameKey="mode" />}
-                  />
-                </PieChart>
-              </ChartContainer>
-            ) : (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                No mode data.
-              </p>
-            )}
-          </CardContent>
+          <CardContent>{renderModeContent()}</CardContent>
         </Card>
       </div>
 
       <DaySpendExplorerSection
+        periodLabel={periodLabel(period)}
         selectedDate={selectedDate}
         onSelectedDateChange={onSelectedDateChange}
         summary={daySummary}

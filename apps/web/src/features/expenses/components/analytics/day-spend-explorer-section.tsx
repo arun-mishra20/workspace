@@ -32,6 +32,7 @@ import {
 import { cn } from '@/lib/utils'
 
 interface DaySpendExplorerSectionProps {
+  periodLabel?: string
   selectedDate: string
   onSelectedDateChange: (date: string) => void
   summary?: {
@@ -49,6 +50,7 @@ interface DaySpendExplorerSectionProps {
 }
 
 export function DaySpendExplorerSection({
+  periodLabel,
   selectedDate,
   onSelectedDateChange,
   summary,
@@ -81,9 +83,14 @@ export function DaySpendExplorerSection({
       <CardHeader>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle className="text-base">Day Explorer</CardTitle>
+            <CardTitle className="text-base">Explore a day</CardTitle>
             <CardDescription>
-              Pick a date to inspect totals and individual transactions.
+              Drill into a single day&apos;s transactions.
+              {periodLabel ? (
+                <span className="block text-xs">
+                  Within selected period: {periodLabel}
+                </span>
+              ) : null}
             </CardDescription>
           </div>
 

@@ -19,7 +19,7 @@ const TAB_LABELS: Record<AnalyticsTab, string> = {
   'data-quality': 'Data Quality',
   rules: 'Rules',
   patterns: 'Patterns',
-  segments: 'Segments',
+  dashboards: 'Dashboards',
 }
 
 export function AnalyticsFilterBar({

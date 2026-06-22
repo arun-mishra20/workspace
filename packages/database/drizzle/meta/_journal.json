@@ -134,6 +134,20 @@
       "when": 1782131444063,
       "tag": "0019_categorization_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1782132000000,
+      "tag": "0020_rule_dashboards",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1782133000000,
+      "tag": "0021_rule_dashboards_inline_rules",
+      "breakpoints": true
     }
   ]
 }

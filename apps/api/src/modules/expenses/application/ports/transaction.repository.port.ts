@@ -236,6 +236,13 @@ export interface TransactionRepository {
 
   listAllForUser(userId: string): Promise<Transaction[]>
 
+  listByUserInDateRange(params: {
+    userId: string
+    range: DateRange
+    cardLast4?: string
+    limit?: number
+  }): Promise<Transaction[]>
+
   updateTransactionAttributesBatch(params: {
     userId: string
     updates: { id: string, transactionAttributes: Transaction['transactionAttributes'] }[]

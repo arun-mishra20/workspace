@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { Gauge, Layers, PiggyBank, Receipt, TrendingUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -11,11 +12,19 @@ import {
   ComposedChart,
   Line,
   LineChart,
+  PolarAngleAxis,
+  PolarGrid,
+  Radar,
+  RadarChart,
   XAxis,
   YAxis,
 } from 'recharts'
 
 import { RankedSpendListCard } from '@/features/expenses/components/analytics/ranked-spend-list-card'
+import {
+  ChartCardToolbar,
+  type ChartCardView,
+} from '@/features/expenses/components/analytics/chart-card-toolbar'
 import {
   fmtCompact,
   fmtCurrency,
@@ -112,6 +121,8 @@ export function AnalyticsTrendsTab({
   largestTransactions,
   largestLoading,
 }: AnalyticsTrendsTabProps) {
+  const [dayOfWeekView, setDayOfWeekView] = useState<ChartCardView>('chart')
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
@@ -203,14 +214,21 @@ export function AnalyticsTrendsTab({
 
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="size-4 text-muted-foreground" />
-              <div>
-                <CardTitle className="text-base">
-                  Day-of-Week Spending
-                </CardTitle>
-                <CardDescription>When do you spend the most?</CardDescription>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="size-4 text-muted-foreground" />
+                <div>
+                  <CardTitle className="text-base">
+                    Day-of-Week Spending
+                  </CardTitle>
+                  <CardDescription>When do you spend the most?</CardDescription>
+                </div>
               </div>
+              <ChartCardToolbar
+                view={dayOfWeekView}
+                onViewChange={setDayOfWeekView}
+                views={['chart', 'radar']}
+              />
             </div>
             <Separator className="w-full mt-2" />
           </CardHeader>
@@ -218,61 +236,93 @@ export function AnalyticsTrendsTab({
             {dayOfWeekLoading ? (
               <Skeleton className="h-60 w-full" />
             ) : dayOfWeekData.length > 0 ? (
-              <ChartContainer config={dayOfWeekConfig} className="h-60 w-full">
-                <BarChart data={dayOfWeekData}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="dayName"
-                    tickLine={false}
-                    axisLine={false}
-                    fontSize={12}
-                  />
-                  <YAxis
-                    tickFormatter={fmtCompact}
-                    tickLine={false}
-                    axisLine={false}
-                    width={50}
-                    fontSize={12}
-                  />
-                  <ChartTooltip
-                    wrapperStyle={{ zIndex: 100 }}
-                    content={
-                      <ChartTooltipContent
-                        formatter={(value) => (
-                          <div className="flex items-center justify-between gap-4">
-                            <span className="text-muted-foreground">
-                              Amount Spent
-                            </span>
-                            <span className="font-mono font-medium tabular-nums">
-                              {fmtCurrency(Number(value))}
-                            </span>
-                          </div>
-                        )}
-                      />
-                    }
-                  />
-                  <Bar
-                    dataKey="amount"
-                    fill="var(--color-chart-1)"
-                    radius={[4, 4, 0, 0]}
-                  >
-                    {dayOfWeekData.map((entry) => {
-                      const maxAmt = Math.max(
-                        ...dayOfWeekData.map((d) => d.amount),
-                      )
-                      const opacity =
-                        maxAmt > 0 ? 0.4 + (entry.amount / maxAmt) * 0.6 : 0.5
-                      return (
-                        <Cell
-                          key={entry.dayName}
-                          fill="var(--color-chart-1)"
-                          fillOpacity={opacity}
+              dayOfWeekView === 'radar' ? (
+                <ChartContainer config={dayOfWeekConfig} className="h-60 w-full">
+                  <RadarChart data={dayOfWeekData} cx="50%" cy="50%" outerRadius="75%">
+                    <PolarGrid />
+                    <PolarAngleAxis dataKey="dayName" tick={{ fontSize: 11 }} />
+                    <ChartTooltip
+                      wrapperStyle={{ zIndex: 100 }}
+                      content={
+                        <ChartTooltipContent
+                          formatter={(value) => (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-muted-foreground">
+                                Amount Spent
+                              </span>
+                              <span className="font-mono font-medium tabular-nums">
+                                {fmtCurrency(Number(value))}
+                              </span>
+                            </div>
+                          )}
                         />
-                      )
-                    })}
-                  </Bar>
-                </BarChart>
-              </ChartContainer>
+                      }
+                    />
+                    <Radar
+                      dataKey="amount"
+                      stroke="var(--color-chart-1)"
+                      fill="var(--color-chart-1)"
+                      fillOpacity={0.45}
+                    />
+                  </RadarChart>
+                </ChartContainer>
+              ) : (
+                <ChartContainer config={dayOfWeekConfig} className="h-60 w-full">
+                  <BarChart data={dayOfWeekData}>
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="dayName"
+                      tickLine={false}
+                      axisLine={false}
+                      fontSize={12}
+                    />
+                    <YAxis
+                      tickFormatter={fmtCompact}
+                      tickLine={false}
+                      axisLine={false}
+                      width={50}
+                      fontSize={12}
+                    />
+                    <ChartTooltip
+                      wrapperStyle={{ zIndex: 100 }}
+                      content={
+                        <ChartTooltipContent
+                          formatter={(value) => (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-muted-foreground">
+                                Amount Spent
+                              </span>
+                              <span className="font-mono font-medium tabular-nums">
+                                {fmtCurrency(Number(value))}
+                              </span>
+                            </div>
+                          )}
+                        />
+                      }
+                    />
+                    <Bar
+                      dataKey="amount"
+                      fill="var(--color-chart-1)"
+                      radius={[4, 4, 0, 0]}
+                    >
+                      {dayOfWeekData.map((entry) => {
+                        const maxAmt = Math.max(
+                          ...dayOfWeekData.map((d) => d.amount),
+                        )
+                        const opacity =
+                          maxAmt > 0 ? 0.4 + (entry.amount / maxAmt) * 0.6 : 0.5
+                        return (
+                          <Cell
+                            key={entry.dayName}
+                            fill="var(--color-chart-1)"
+                            fillOpacity={opacity}
+                          />
+                        )
+                      })}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
+              )
             ) : (
               <p className="py-12 text-center text-sm text-muted-foreground">
                 No data for this period.

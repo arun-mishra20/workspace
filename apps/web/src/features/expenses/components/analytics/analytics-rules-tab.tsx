@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
-import { GripVertical, Plus, Sparkles, Trash2 } from 'lucide-react'
+import { GripVertical, LayoutDashboard, Plus, Sparkles, Trash2 } from 'lucide-react'
+
+import { Link } from 'react-router-dom'
+import { appPaths } from '@/config/app-paths'
 
 import {
   applyCategorizationRule,
@@ -23,6 +26,10 @@ import {
   RuleBuilderForm,
 } from '@/features/expenses/components/rules/rule-builder-form'
 import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
+import {
+  buildDashboardDeepLink,
+} from '@/features/expenses/components/analytics/analytics-dashboards-tab'
+import { defaultDashboardDateRange } from '@/features/expenses/components/analytics/analytics-dashboards-tab'
 import type {
   CategoryOption,
   CreateCategorizationRuleInput,
@@ -258,6 +265,22 @@ export function AnalyticsRulesTab({
                     onClick={() => moveRule(rule.id, 1)}
                   >
                     Down
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                  >
+                    <Link
+                      to={`${appPaths.auth.analytics.getHref()}${buildDashboardDeepLink({
+                        ruleIds: [rule.id],
+                        from: defaultDashboardDateRange().startDate,
+                        to: defaultDashboardDateRange().endDate,
+                      })}`}
+                    >
+                      <LayoutDashboard className="mr-1 size-3.5" />
+                      View dashboard
+                    </Link>
                   </Button>
                   <Button
                     variant="outline"

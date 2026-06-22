@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { format } from 'date-fns'
-import { Download } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
 import { useSearchParams } from 'react-router-dom'
 
 import { MainLayout } from '@/components/layouts'
@@ -34,12 +33,12 @@ import { fetchCreditCards } from '@/features/expenses/api/credit-cards'
 import {
   fetchClassificationHealth,
   fetchSpendAnomalies,
-  getTransactionsExportUrl,
 } from '@/features/expenses/api/classification-health'
 import { AnalyticsCardsTab } from '@/features/expenses/components/analytics/analytics-cards-tab'
 import { AnalyticsCategoriesTab } from '@/features/expenses/components/analytics/analytics-categories-tab'
 import { AnalyticsDataQualityTab } from '@/features/expenses/components/analytics/analytics-data-quality-tab'
 import { AnalyticsOverviewTab } from '@/features/expenses/components/analytics/analytics-overview-tab'
+import { AnalyticsContextBar } from '@/features/expenses/components/analytics/analytics-context-bar'
 import { AnalyticsPageHeader } from '@/features/expenses/components/analytics/analytics-page-header'
 import { AnalyticsPatternsTab } from '@/features/expenses/components/analytics/analytics-patterns-tab'
 import {
@@ -47,7 +46,7 @@ import {
   buildRuleSeedFromMerchant,
   type RuleEditorSeed,
 } from '@/features/expenses/components/analytics/analytics-rules-tab'
-import { AnalyticsSegmentsTab } from '@/features/expenses/components/analytics/analytics-segments-tab'
+import { AnalyticsDashboardsTab } from '@/features/expenses/components/analytics/analytics-dashboards-tab'
 import { AnalyticsQueryBoundary } from '@/features/expenses/components/analytics/analytics-query-boundary'
 import { AnalyticsTrendsTab } from '@/features/expenses/components/analytics/analytics-trends-tab'
 import {
@@ -57,12 +56,12 @@ import {
   type AnalyticsTab,
 } from '@/features/expenses/components/analytics/analytics-utils'
 import { useSyncJob } from '@/features/expenses/hooks/use-sync-job'
+import { periodLabel, periodToDateRange } from '@/features/expenses/lib/period-to-date-range'
 import { takeLastMetricTrendPoints } from '@/lib/metric-trends'
 
 import type { AnalyticsPeriod } from '@workspace/domain'
 
 import { type ChartConfig } from '@workspace/ui/components/ui/chart'
-import { Button } from '@workspace/ui/components/ui/button'
 import {
   Tabs,
   TabsContent,
@@ -84,6 +83,48 @@ const AnalyticsPage = () => {
   const cardOptions: AnalyticsQueryOptions | undefined = selectedCard
     ? { cardLast4: selectedCard }
     : undefined
+
+  const dashboardPeriodParam = searchParams.get('dashboardPeriod')
+  const dashboardPeriod: AnalyticsPeriod = isAnalyticsPeriod(dashboardPeriodParam)
+    ? dashboardPeriodParam
+    : 'month'
+
+  const dashboardRangeCustom =
+    searchParams.get('dashboardRange') === 'custom' ||
+    (searchParams.has('from') && searchParams.has('to'))
+
+  const dashboardDateRange = useMemo(
+    () => periodToDateRange(dashboardPeriod),
+    [dashboardPeriod],
+  )
+
+  const dashboardStartDate =
+    searchParams.get('from') ?? dashboardDateRange.startDate
+  const dashboardEndDate = searchParams.get('to') ?? dashboardDateRange.endDate
+
+  const effectiveDashboardRange = useMemo(() => {
+    if (dashboardRangeCustom) {
+      return { startDate: dashboardStartDate, endDate: dashboardEndDate }
+    }
+    return dashboardDateRange
+  }, [
+    dashboardRangeCustom,
+    dashboardStartDate,
+    dashboardEndDate,
+    dashboardDateRange,
+  ])
+
+  const dashboardRangeSummary = useMemo(() => {
+    if (dashboardRangeCustom) {
+      return `${format(parseISO(dashboardStartDate), 'dd MMM yyyy')} – ${format(parseISO(dashboardEndDate), 'dd MMM yyyy')}`
+    }
+    return periodLabel(dashboardPeriod)
+  }, [
+    dashboardEndDate,
+    dashboardPeriod,
+    dashboardRangeCustom,
+    dashboardStartDate,
+  ])
 
   const [selectedDate, setSelectedDate] = useState(() =>
     format(new Date(), 'yyyy-MM-dd'),
@@ -135,6 +176,37 @@ const AnalyticsPage = () => {
         } else {
           next.delete('card')
         }
+        return next
+      },
+      { replace: true },
+    )
+  }
+
+  const handleDashboardPeriodChange = (nextPeriod: AnalyticsPeriod) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (nextPeriod === 'month') {
+          next.delete('dashboardPeriod')
+        } else {
+          next.set('dashboardPeriod', nextPeriod)
+        }
+        next.delete('dashboardRange')
+        next.delete('from')
+        next.delete('to')
+        return next
+      },
+      { replace: true },
+    )
+  }
+
+  const handleDashboardCustomRangeApply = (from: string, to: string) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('dashboardRange', 'custom')
+        next.set('from', from)
+        next.set('to', to)
         return next
       },
       { replace: true },
@@ -467,31 +539,17 @@ const AnalyticsPage = () => {
     <MainLayout>
       <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
         <AnalyticsPageHeader
-          period={period}
-          onPeriodChange={handlePeriodChange}
-          cards={creditCardsQ.data ?? []}
-          selectedCardLast4={selectedCard || undefined}
-          onCardSelect={handleCardSelect}
           isSyncing={isSyncing}
           job={job}
           onReprocess={startReprocess}
         />
-
-        <div className="flex justify-end">
-          <Button variant="outline" size="sm" asChild>
-            <a href={getTransactionsExportUrl(period, cardOptions)} download>
-              <Download className="mr-1.5 size-4" />
-              Export CSV
-            </a>
-          </Button>
-        </div>
 
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
           className="gap-4"
         >
-          <div className="sticky top-[var(--analytics-header-offset,9.5rem)] z-10 -mx-4 sm:-mx-6 bg-background/95 px-4 sm:px-6 pb-0 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="sticky top-[var(--analytics-header-offset,5.5rem)] z-10 -mx-4 sm:-mx-6 bg-background/95 px-4 sm:px-6 pb-0 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <TabsList className="h-auto w-full justify-start overflow-x-auto">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="cards">Cards</TabsTrigger>
@@ -500,15 +558,26 @@ const AnalyticsPage = () => {
               <TabsTrigger value="data-quality">Data Quality</TabsTrigger>
               <TabsTrigger value="rules">Rules</TabsTrigger>
               <TabsTrigger value="patterns">Patterns</TabsTrigger>
-              <TabsTrigger value="segments">Segments</TabsTrigger>
+              <TabsTrigger value="dashboards">Dashboards</TabsTrigger>
             </TabsList>
-          </div>
 
-          {/* <AnalyticsFilterBar
-            period={period}
-            activeTab={activeTab}
-            cardLabel={cardFilterLabel}
-          /> */}
+            <div className="py-3">
+              <AnalyticsContextBar
+                activeTab={activeTab}
+                period={period}
+                onPeriodChange={handlePeriodChange}
+                cards={creditCardsQ.data ?? []}
+                selectedCardLast4={selectedCard || undefined}
+                onCardSelect={handleCardSelect}
+                dashboardPeriod={dashboardPeriod}
+                onDashboardPeriodChange={handleDashboardPeriodChange}
+                dashboardRangeCustom={dashboardRangeCustom}
+                dashboardStartDate={dashboardStartDate}
+                dashboardEndDate={dashboardEndDate}
+                onDashboardCustomRangeApply={handleDashboardCustomRangeApply}
+              />
+            </div>
+          </div>
 
           <AnalyticsQueryBoundary isError={tabError} onRetry={retryTabQueries}>
             <TabsContent value="overview" className="mt-2">
@@ -620,10 +689,12 @@ const AnalyticsPage = () => {
               <AnalyticsPatternsTab period={period} />
             </TabsContent>
 
-            <TabsContent value="segments" className="mt-2">
-              <AnalyticsSegmentsTab
-                period={period}
+            <TabsContent value="dashboards" className="mt-2">
+              <AnalyticsDashboardsTab
                 selectedCardLast4={selectedCard || undefined}
+                startDate={effectiveDashboardRange.startDate}
+                endDate={effectiveDashboardRange.endDate}
+                rangeSummary={dashboardRangeSummary}
               />
             </TabsContent>
           </AnalyticsQueryBoundary>
