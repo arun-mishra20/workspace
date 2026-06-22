@@ -6,6 +6,10 @@ import {
 
 } from '@/modules/expenses/application/ports/email-parser.port'
 import {
+  CATEGORIZATION_RULE_REPOSITORY,
+
+} from '@/modules/expenses/application/ports/categorization-rule.repository.port'
+import {
   MERCHANT_RULE_REPOSITORY,
 
 } from '@/modules/expenses/application/ports/merchant-rule.repository.port'
@@ -33,6 +37,7 @@ import { BoundedCache } from '@/shared/infrastructure/utils/bounded-cache'
 import { JobManager } from '@/shared/infrastructure/utils/job-manager'
 
 import type { EmailParser } from '@/modules/expenses/application/ports/email-parser.port'
+import type { CategorizationRuleRepository } from '@/modules/expenses/application/ports/categorization-rule.repository.port'
 import type { MerchantCategoryRuleRepository } from '@/modules/expenses/application/ports/merchant-rule.repository.port'
 import type { StatementRepository } from '@/modules/expenses/application/ports/statement.repository.port'
 import type { TransactionRepository, TransactionFilters, DateRange } from '@/modules/expenses/application/ports/transaction.repository.port'
@@ -65,6 +70,8 @@ import type {
   SpendingVelocityItem,
   MilestoneEta,
   LargestTransactionItem,
+  ClassificationHealth,
+  SpendAnomalies,
   SyncJob,
 } from '@workspace/domain'
 
@@ -97,6 +104,8 @@ export class ExpensesService implements OnModuleDestroy {
     private readonly syncJobRepository: SyncJobRepository,
     @Inject(MERCHANT_RULE_REPOSITORY)
     private readonly merchantRuleRepository: MerchantCategoryRuleRepository,
+    @Inject(CATEGORIZATION_RULE_REPOSITORY)
+    private readonly categorizationRuleRepository: CategorizationRuleRepository,
     private readonly emailSyncService: EmailSyncService,
     private readonly jobManager: JobManager,
   ) {}
@@ -1075,6 +1084,91 @@ export class ExpensesService implements OnModuleDestroy {
     )
   }
 
+  async getClassificationHealth(
+    userId: string,
+    period: AnalyticsPeriod,
+    cardLast4?: string,
+  ): Promise<ClassificationHealth> {
+    const range = this.computeDateRange(period)
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getClassificationHealth', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getClassificationHealth({ userId, range, cardLast4 }),
+    )
+  }
+
+  async getSpendAnomalies(
+    userId: string,
+    period: AnalyticsPeriod,
+    cardLast4?: string,
+  ): Promise<SpendAnomalies> {
+    const range = this.computeDateRange(period)
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getSpendAnomalies', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getSpendAnomalies({ userId, range, cardLast4 }),
+    )
+  }
+
+  async exportTransactionsCsv(
+    userId: string,
+    period: AnalyticsPeriod,
+    cardLast4?: string,
+  ): Promise<string> {
+    const range = this.computeDateRange(period)
+    const all = await this.transactionRepository.listAllForUser(userId)
+    const filtered = all.filter((txn) => {
+      const date = new Date(txn.transactionDate)
+      if (date < range.start || date >= range.end) return false
+      if (cardLast4 && txn.cardLast4 !== cardLast4) return false
+      return true
+    })
+
+    const headers = [
+      'id',
+      'merchant',
+      'merchant_raw',
+      'amount',
+      'currency',
+      'transaction_date',
+      'transaction_type',
+      'transaction_mode',
+      'category',
+      'subcategory',
+      'confidence',
+      'categorization_method',
+      'requires_review',
+      'vpa',
+      'card_last4',
+      'transaction_attributes',
+    ]
+
+    const escape = (value: string) => `"${value.replace(/"/g, '""')}"`
+
+    const rows = filtered.map((txn) =>
+      [
+        txn.id,
+        txn.merchant,
+        txn.merchantRaw,
+        String(txn.amount),
+        txn.currency,
+        txn.transactionDate,
+        txn.transactionType,
+        txn.transactionMode,
+        txn.category,
+        txn.subcategory,
+        String(txn.confidence),
+        txn.categorizationMethod,
+        String(txn.requiresReview),
+        txn.vpa ?? '',
+        txn.cardLast4 ?? '',
+        JSON.stringify(txn.transactionAttributes ?? {}),
+      ]
+        .map((cell) => escape(String(cell)))
+        .join(','),
+    )
+
+    return [headers.join(','), ...rows].join('\n')
+  }
+
   async getLargestTransactionsForDateRange(
     userId: string,
     startDate: string,
@@ -1286,12 +1380,13 @@ export class ExpensesService implements OnModuleDestroy {
   private async buildUserCategorizationRules(
     userId: string,
   ): Promise<UserCategorizationRules | undefined> {
-    const [rules, categorizedMerchants] = await Promise.all([
+    const [rules, categorizedMerchants, compositeRules] = await Promise.all([
       this.merchantRuleRepository.findAllByUser(userId),
       this.transactionRepository.getCategorizedMerchants(userId),
+      this.categorizationRuleRepository.findEnabledByUser(userId),
     ])
 
-    if (rules.length === 0 && categorizedMerchants.length === 0) {
+    if (rules.length === 0 && categorizedMerchants.length === 0 && compositeRules.length === 0) {
       return undefined
     }
 
@@ -1318,12 +1413,13 @@ export class ExpensesService implements OnModuleDestroy {
     }
 
     this.logger.debug(
-      `Loaded ${rules.length} explicit merchant rules and ${categorizedMerchants.length} inferred merchant categories for user ${userId}`,
+      `Loaded ${rules.length} explicit merchant rules, ${categorizedMerchants.length} inferred merchant categories, and ${compositeRules.length} composite rules for user ${userId}`,
     )
 
     return {
       exact_matches: exactMatches,
       exact_match_details: exactMatchDetails,
+      composite_rules: compositeRules,
     }
   }
 
@@ -1340,10 +1436,14 @@ export class ExpensesService implements OnModuleDestroy {
         {
           id: transaction.id,
           paid_to: transaction.merchantRaw,
+          merchant: transaction.merchant,
+          merchant_raw: transaction.merchantRaw,
           vpa: transaction.vpa,
           transaction_mode: transaction.transactionMode,
           amount: transaction.amount,
           transaction_type: transaction.transactionType,
+          card_last4: transaction.cardLast4 ?? undefined,
+          transaction_date: transaction.transactionDate,
         },
         userRules,
       )

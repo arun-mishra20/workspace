@@ -16,6 +16,10 @@ const TAB_LABELS: Record<AnalyticsTab, string> = {
   cards: 'Cards',
   categories: 'Categories',
   trends: 'Trends',
+  'data-quality': 'Data Quality',
+  rules: 'Rules',
+  patterns: 'Patterns',
+  segments: 'Segments',
 }
 
 export function AnalyticsFilterBar({

@@ -17,6 +17,8 @@ import type {
   TopVpaItem,
   SpendingVelocityItem,
   LargestTransactionItem,
+  ClassificationHealth,
+  SpendAnomalies,
   BusAnalytics,
   InvestmentAnalytics,
 } from '@workspace/domain'
@@ -156,6 +158,16 @@ export interface TransactionRepository {
     limit: number
     cardLast4?: string
   }): Promise<LargestTransactionItem[]>
+  getClassificationHealth(params: {
+    userId: string
+    range: DateRange
+    cardLast4?: string
+  }): Promise<ClassificationHealth>
+  getSpendAnomalies(params: {
+    userId: string
+    range: DateRange
+    cardLast4?: string
+  }): Promise<SpendAnomalies>
 
   // ── Pattern Analytics ──
   getBusAnalytics(params: { userId: string, range: DateRange }): Promise<BusAnalytics>
@@ -210,6 +222,16 @@ export interface TransactionRepository {
       transactionMode?: string
       requiresReview?: boolean
     }
+  }): Promise<number>
+
+  bulkApplyRuleByIds(params: {
+    userId: string
+    ids: string[]
+    category: string
+    subcategory: string
+    categoryMetadata?: { icon: string, color: string, parent: string | null }
+    requiresReview?: boolean
+    transactionAttributes?: Transaction['transactionAttributes']
   }): Promise<number>
 
   listAllForUser(userId: string): Promise<Transaction[]>

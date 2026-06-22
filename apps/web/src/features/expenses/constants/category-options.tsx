@@ -162,6 +162,13 @@ export const CATEGORY_OPTIONS = [
     parent: "expenses",
   },
   {
+    value: "tax",
+    label: "Tax",
+    icon: "file-text",
+    color: "#6C5CE7",
+    parent: "expenses",
+  },
+  {
     value: "insurance",
     label: "Insurance",
     icon: "shield",
@@ -261,7 +268,22 @@ export const SUBCATEGORY_OPTIONS = [
   { value: "salary", label: "Salary", parent: "income_salary" },
   { value: "bonus", label: "Bonus", parent: "income_salary" },
   { value: "reimbursement", label: "Reimbursement", parent: "income_salary" },
+  { value: "flights", label: "Flights", parent: "trips" },
+  { value: "cabs", label: "Cabs", parent: "trips" },
+  { value: "hotels", label: "Hotels", parent: "trips" },
 ] as const;
+
+const DEFAULT_SUBCATEGORY = { value: "general", label: "General" } as const;
+
+export function getSubcategoryOptionsForCategory(
+  category: string,
+): Array<{ value: string; label: string }> {
+  const fromDefaults = SUBCATEGORY_OPTIONS.filter(
+    (option) => option.parent === category,
+  ).map(({ value, label }) => ({ value, label }));
+
+  return fromDefaults.length > 0 ? fromDefaults : [DEFAULT_SUBCATEGORY];
+}
 
 export function getSubcategoryLabel(
   subcategory: string,

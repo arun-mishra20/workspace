@@ -13,7 +13,7 @@ const VALID_CATEGORIES = [
   'apps_and_software', 'banking_and_finance', 'cards_and_finance_charges',
   'education', 'emi', 'entertainment', 'medical', 'health_and_wellness',
   'wallet_and_digital_payment', 'cash_withdrawal', 'reversal_and_refunds',
-  'rent', 'cars_and_rentals', 'government_payments', 'insurance',
+  'rent', 'cars_and_rentals', 'government_payments', 'tax', 'insurance',
   'wallet_loads', 'professional_services', 'credit_card_bills', 'cashback',
   'friends', 'others', 'trips', 'gift_cards', 'investments',
 ] as const

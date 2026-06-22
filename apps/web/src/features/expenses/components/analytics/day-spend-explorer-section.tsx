@@ -3,6 +3,7 @@ import { ArrowDownRight, ArrowUpRight, Calendar, ExternalLink } from 'lucide-rea
 import { Link } from 'react-router-dom'
 
 import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
+import { TransactionMetadataBadges } from '@/features/expenses/components/analytics/transaction-metadata-badges'
 import { SummaryCard } from '@/features/expenses/components/analytics/summary-card'
 import type { Transaction } from '@workspace/domain'
 import { Badge } from '@workspace/ui/components/ui/badge'
@@ -243,6 +244,7 @@ function DayTransactionsList({
                 {transaction.transactionMode.replace(/_/g, ' ')}
               </Badge>
             </div>
+            <TransactionMetadataBadges transaction={transaction} compact />
             <p className="text-xs text-muted-foreground">
               {(() => {
                 try {

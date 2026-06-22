@@ -9,6 +9,7 @@ import {
 } from '@workspace/database'
 import { and, desc, eq, gte, ilike, inArray, lt, lte, ne, or, sql } from 'drizzle-orm'
 
+import { buildAnalyticsRangeWhere } from '@/modules/expenses/infrastructure/repositories/analytics-range-query'
 import { DB_TOKEN } from '@/shared/infrastructure/db/db.port'
 import { decodeCursor, encodeCursor } from '@/shared/infrastructure/utils/cursor.utils'
 
@@ -17,7 +18,6 @@ import type {
   TransactionFilters,
   DateRange,
 } from '@/modules/expenses/application/ports/transaction.repository.port'
-import { buildAnalyticsRangeWhere } from '@/modules/expenses/infrastructure/repositories/analytics-range-query'
 import type { DrizzleDb } from '@/shared/infrastructure/db/db.port'
 import type { InsertTransaction, TransactionRecord } from '@workspace/database'
 import type {
@@ -1067,7 +1067,13 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         amount: transactionsTable.amount,
         transactionDate: transactionsTable.transactionDate,
         category: transactionsTable.category,
+        subcategory: transactionsTable.subcategory,
         transactionMode: transactionsTable.transactionMode,
+        confidence: transactionsTable.confidence,
+        categorizationMethod: transactionsTable.categorizationMethod,
+        requiresReview: transactionsTable.requiresReview,
+        vpa: transactionsTable.vpa,
+        cardLast4: transactionsTable.cardLast4,
       })
       .from(transactionsTable)
       .where(
@@ -1084,10 +1090,263 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         amount: Number(r.amount),
         transactionDate: r.transactionDate.toISOString(),
         category: r.category,
+        subcategory: r.subcategory,
         displayName: meta?.name ?? r.category,
         transactionMode: r.transactionMode,
+        confidence: Number(r.confidence),
+        categorizationMethod: r.categorizationMethod,
+        requiresReview: r.requiresReview,
+        vpa: r.vpa,
+        cardLast4: r.cardLast4,
       }
     })
+  }
+
+  async getClassificationHealth(params: {
+    userId: string
+    range: DateRange
+    cardLast4?: string
+  }): Promise<import('@workspace/domain').ClassificationHealth> {
+    const where = buildAnalyticsRangeWhere(params)
+
+    const [summaryRow] = await this.db
+      .select({
+        reviewPending: sql<number>`count(*) filter (where ${transactionsTable.requiresReview} = true)::int`,
+        totalTransactions: sql<number>`count(*)::int`,
+        uncategorizedCount: sql<number>`count(*) filter (where ${transactionsTable.category} = 'uncategorized')::int`,
+      })
+      .from(transactionsTable)
+      .where(where)
+
+    const methodRows = await this.db
+      .select({
+        method: transactionsTable.categorizationMethod,
+        count: sql<number>`count(*)::int`,
+        amount: sql<string>`coalesce(sum(${transactionsTable.amount}::numeric), 0)`,
+      })
+      .from(transactionsTable)
+      .where(where)
+      .groupBy(transactionsTable.categorizationMethod)
+      .orderBy(sql`count(*) desc`)
+
+    const confidenceRows = await this.db
+      .select({
+        bucket: sql<string>`
+          case
+            when ${transactionsTable.category} = 'uncategorized' then 'uncategorized'
+            when ${transactionsTable.confidence}::numeric >= 0.9 then 'high'
+            when ${transactionsTable.confidence}::numeric >= 0.7 then 'medium'
+            else 'low'
+          end
+        `,
+        count: sql<number>`count(*)::int`,
+        amount: sql<string>`coalesce(sum(${transactionsTable.amount}::numeric), 0)`,
+      })
+      .from(transactionsTable)
+      .where(where)
+      .groupBy(sql`
+        case
+          when ${transactionsTable.category} = 'uncategorized' then 'uncategorized'
+          when ${transactionsTable.confidence}::numeric >= 0.9 then 'high'
+          when ${transactionsTable.confidence}::numeric >= 0.7 then 'medium'
+          else 'low'
+        end
+      `)
+
+    const uncategorizedMerchants = await this.db
+      .select({
+        merchant: transactionsTable.merchant,
+        amount: sql<string>`coalesce(sum(${transactionsTable.amount}::numeric), 0)`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(transactionsTable)
+      .where(
+        buildAnalyticsRangeWhere(
+          params,
+          eq(transactionsTable.category, 'uncategorized'),
+          eq(transactionsTable.transactionType, 'debited'),
+        ),
+      )
+      .groupBy(transactionsTable.merchant)
+      .orderBy(sql`sum(${transactionsTable.amount}::numeric) desc`)
+      .limit(10)
+
+    const bucketLabels: Record<string, string> = {
+      high: 'High (≥90%)',
+      medium: 'Medium (70–89%)',
+      low: 'Low (<70%)',
+      uncategorized: 'Uncategorized',
+    }
+
+    return {
+      reviewPending: summaryRow?.reviewPending ?? 0,
+      totalTransactions: summaryRow?.totalTransactions ?? 0,
+      uncategorizedCount: summaryRow?.uncategorizedCount ?? 0,
+      byMethod: methodRows.map((row) => ({
+        method: row.method,
+        count: row.count,
+        amount: Number(row.amount),
+      })),
+      confidenceBuckets: confidenceRows.map((row) => ({
+        bucket: row.bucket as 'high' | 'medium' | 'low' | 'uncategorized',
+        label: bucketLabels[row.bucket] ?? row.bucket,
+        count: row.count,
+        amount: Number(row.amount),
+      })),
+      topUncategorizedMerchants: uncategorizedMerchants.map((row) => ({
+        merchant: row.merchant,
+        amount: Number(row.amount),
+        count: row.count,
+      })),
+    }
+  }
+
+  async getSpendAnomalies(params: {
+    userId: string
+    range: DateRange
+    cardLast4?: string
+  }): Promise<import('@workspace/domain').SpendAnomalies> {
+    const anomalies: import('@workspace/domain').SpendAnomalyItem[] = []
+
+    const periodLengthMs = params.range.end.getTime() - params.range.start.getTime()
+    const previousRange = {
+      start: new Date(params.range.start.getTime() - periodLengthMs),
+      end: params.range.start,
+    }
+
+    const [currentSpent] = await this.db
+      .select({
+        total: sql<string>`coalesce(sum(case when ${transactionsTable.transactionType} = 'debited' then ${transactionsTable.amount}::numeric else 0 end), 0)`,
+      })
+      .from(transactionsTable)
+      .where(buildAnalyticsRangeWhere(params, eq(transactionsTable.transactionType, 'debited')))
+
+    const [previousSpent] = await this.db
+      .select({
+        total: sql<string>`coalesce(sum(case when ${transactionsTable.transactionType} = 'debited' then ${transactionsTable.amount}::numeric else 0 end), 0)`,
+      })
+      .from(transactionsTable)
+      .where(
+        buildAnalyticsRangeWhere(
+          { ...params, range: previousRange },
+          eq(transactionsTable.transactionType, 'debited'),
+        ),
+      )
+
+    const currentTotal = Number(currentSpent?.total ?? 0)
+    const previousTotal = Number(previousSpent?.total ?? 0)
+
+    if (previousTotal > 0) {
+      const changePercent = ((currentTotal - previousTotal) / previousTotal) * 100
+      if (Math.abs(changePercent) >= 25) {
+        anomalies.push({
+          type: changePercent > 0 ? 'spike' : 'category_drift',
+          label: changePercent > 0 ? 'Spending spike' : 'Spending drop',
+          description: `Total spend changed ${changePercent > 0 ? '+' : ''}${changePercent.toFixed(0)}% vs previous period`,
+          amount: currentTotal,
+          changePercent,
+        })
+      }
+    }
+
+    const newMerchants = await this.db
+      .select({
+        merchant: transactionsTable.merchant,
+        amount: sql<string>`coalesce(sum(${transactionsTable.amount}::numeric), 0)`,
+      })
+      .from(transactionsTable)
+      .where(
+        buildAnalyticsRangeWhere(
+          params,
+          eq(transactionsTable.transactionType, 'debited'),
+          sql`
+            ${transactionsTable.merchant} not in (
+                        select distinct ${transactionsTable.merchant}
+                        from ${transactionsTable}
+                        where ${buildAnalyticsRangeWhere({ ...params, range: previousRange })}
+                      )
+          `,
+        ),
+      )
+      .groupBy(transactionsTable.merchant)
+      .orderBy(sql`sum(${transactionsTable.amount}::numeric) desc`)
+      .limit(5)
+
+    for (const row of newMerchants) {
+      anomalies.push({
+        type: 'new_merchant',
+        label: 'New merchant',
+        description: `First-time spend with ${row.merchant}`,
+        merchant: row.merchant,
+        amount: Number(row.amount),
+      })
+    }
+
+    const categoryShifts = await this.db
+      .select({
+        category: transactionsTable.category,
+        amount: sql<string>`coalesce(sum(${transactionsTable.amount}::numeric), 0)`,
+      })
+      .from(transactionsTable)
+      .where(buildAnalyticsRangeWhere(params, eq(transactionsTable.transactionType, 'debited')))
+      .groupBy(transactionsTable.category)
+      .orderBy(sql`sum(${transactionsTable.amount}::numeric) desc`)
+      .limit(1)
+
+    if (categoryShifts[0]) {
+      const topCategory = categoryShifts[0].category
+      const meta = CATEGORY_META[topCategory]
+      anomalies.push({
+        type: 'category_drift',
+        label: 'Top category',
+        description: `${meta?.name ?? topCategory} is your largest spend category this period`,
+        category: topCategory,
+        amount: Number(categoryShifts[0].amount),
+      })
+    }
+
+    return { anomalies }
+  }
+
+  async bulkApplyRuleByIds(params: {
+    userId: string
+    ids: string[]
+    category: string
+    subcategory: string
+    categoryMetadata?: { icon: string, color: string, parent: string | null }
+    requiresReview?: boolean
+    transactionAttributes?: Transaction['transactionAttributes']
+  }): Promise<number> {
+    if (params.ids.length === 0) return 0
+
+    const setClause: Record<string, unknown> = {
+      category: params.category,
+      subcategory: params.subcategory,
+      categorizationMethod: 'user_rule',
+      confidence: '0.9800',
+      requiresReview: params.requiresReview ?? false,
+      updatedAt: new Date(),
+    }
+
+    if (params.categoryMetadata) {
+      setClause.categoryMetadata = params.categoryMetadata
+    }
+    if (params.transactionAttributes) {
+      setClause.transactionAttributes = params.transactionAttributes
+    }
+
+    const result = await this.db
+      .update(transactionsTable)
+      .set(setClause)
+      .where(
+        and(
+          eq(transactionsTable.userId, params.userId),
+          inArray(transactionsTable.id, params.ids),
+        ),
+      )
+      .returning({ id: transactionsTable.id })
+
+    return result.length
   }
 
   // ── Merchant bulk categorization ──

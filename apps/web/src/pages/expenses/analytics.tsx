@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
+import { Download } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 
 import { MainLayout } from '@/components/layouts'
@@ -30,11 +31,23 @@ import {
 } from '@/features/expenses/api/analytics'
 import { listExpenses } from '@/features/expenses/api/list-expenses'
 import { fetchCreditCards } from '@/features/expenses/api/credit-cards'
+import {
+  fetchClassificationHealth,
+  fetchSpendAnomalies,
+  getTransactionsExportUrl,
+} from '@/features/expenses/api/classification-health'
 import { AnalyticsCardsTab } from '@/features/expenses/components/analytics/analytics-cards-tab'
 import { AnalyticsCategoriesTab } from '@/features/expenses/components/analytics/analytics-categories-tab'
-import { AnalyticsFilterBar } from '@/features/expenses/components/analytics/analytics-filter-bar'
+import { AnalyticsDataQualityTab } from '@/features/expenses/components/analytics/analytics-data-quality-tab'
 import { AnalyticsOverviewTab } from '@/features/expenses/components/analytics/analytics-overview-tab'
 import { AnalyticsPageHeader } from '@/features/expenses/components/analytics/analytics-page-header'
+import { AnalyticsPatternsTab } from '@/features/expenses/components/analytics/analytics-patterns-tab'
+import {
+  AnalyticsRulesTab,
+  buildRuleSeedFromMerchant,
+  type RuleEditorSeed,
+} from '@/features/expenses/components/analytics/analytics-rules-tab'
+import { AnalyticsSegmentsTab } from '@/features/expenses/components/analytics/analytics-segments-tab'
 import { AnalyticsQueryBoundary } from '@/features/expenses/components/analytics/analytics-query-boundary'
 import { AnalyticsTrendsTab } from '@/features/expenses/components/analytics/analytics-trends-tab'
 import {
@@ -49,6 +62,7 @@ import { takeLastMetricTrendPoints } from '@/lib/metric-trends'
 import type { AnalyticsPeriod } from '@workspace/domain'
 
 import { type ChartConfig } from '@workspace/ui/components/ui/chart'
+import { Button } from '@workspace/ui/components/ui/button'
 import {
   Tabs,
   TabsContent,
@@ -74,6 +88,7 @@ const AnalyticsPage = () => {
   const [selectedDate, setSelectedDate] = useState(() =>
     format(new Date(), 'yyyy-MM-dd'),
   )
+  const [ruleSeed, setRuleSeed] = useState<RuleEditorSeed | null>(null)
   const queryClient = useQueryClient()
 
   const handlePeriodChange = (nextPeriod: AnalyticsPeriod) => {
@@ -106,6 +121,11 @@ const AnalyticsPage = () => {
     )
   }
 
+  const openRulesTabWithSeed = (seed: RuleEditorSeed) => {
+    setRuleSeed(seed)
+    handleTabChange('rules')
+  }
+
   const handleCardSelect = (last4: string | undefined) => {
     setSearchParams(
       (prev) => {
@@ -131,6 +151,7 @@ const AnalyticsPage = () => {
   const isCards = activeTab === 'cards'
   const isCategories = activeTab === 'categories'
   const isTrends = activeTab === 'trends'
+  const isDataQuality = activeTab === 'data-quality'
 
   const creditCardsQ = useQuery({
     queryKey: ['expenses', 'credit-cards'],
@@ -257,6 +278,18 @@ const AnalyticsPage = () => {
     enabled: isTrends,
   })
 
+  const classificationHealthQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'classification-health', period, selectedCard],
+    queryFn: () => fetchClassificationHealth(period, cardOptions),
+    enabled: isDataQuality,
+  })
+
+  const spendAnomaliesQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'spend-anomalies', period, selectedCard],
+    queryFn: () => fetchSpendAnomalies(period, cardOptions),
+    enabled: isDataQuality,
+  })
+
   const daySummaryQ = useQuery({
     queryKey: [
       'expenses',
@@ -288,12 +321,6 @@ const AnalyticsPage = () => {
     enabled: isOverview && Boolean(selectedDate),
   })
 
-  const selectedCardProfile = (creditCardsQ.data ?? []).find(
-    (card) => card.cardLast4 === selectedCard,
-  )
-  const cardFilterLabel = selectedCardProfile
-    ? `${selectedCardProfile.cardName} ••${selectedCardProfile.cardLast4}`
-    : undefined
 
   const aiPageContext = useMemo(
     () =>
@@ -425,13 +452,15 @@ const AnalyticsPage = () => {
     (isOverview && summaryQ.isError) ||
     (isCards && cardQ.isError) ||
     (isCategories && categoryQ.isError) ||
-    (isTrends && trendQ.isError)
+    (isTrends && trendQ.isError) ||
+    (isDataQuality && classificationHealthQ.isError)
 
   const retryTabQueries = () => {
     if (isOverview) void summaryQ.refetch()
     if (isCards) void cardQ.refetch()
     if (isCategories) void categoryQ.refetch()
     if (isTrends) void trendQ.refetch()
+    if (isDataQuality) void classificationHealthQ.refetch()
   }
 
   return (
@@ -448,6 +477,15 @@ const AnalyticsPage = () => {
           onReprocess={startReprocess}
         />
 
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" asChild>
+            <a href={getTransactionsExportUrl(period, cardOptions)} download>
+              <Download className="mr-1.5 size-4" />
+              Export CSV
+            </a>
+          </Button>
+        </div>
+
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
@@ -459,6 +497,10 @@ const AnalyticsPage = () => {
               <TabsTrigger value="cards">Cards</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="trends">Trends</TabsTrigger>
+              <TabsTrigger value="data-quality">Data Quality</TabsTrigger>
+              <TabsTrigger value="rules">Rules</TabsTrigger>
+              <TabsTrigger value="patterns">Patterns</TabsTrigger>
+              <TabsTrigger value="segments">Segments</TabsTrigger>
             </TabsList>
           </div>
 
@@ -550,6 +592,38 @@ const AnalyticsPage = () => {
                 topVpasLoading={topVpasQ.isLoading}
                 largestTransactions={largestQ.data}
                 largestLoading={largestQ.isLoading}
+              />
+            </TabsContent>
+
+            <TabsContent value="data-quality" className="mt-2">
+              <AnalyticsDataQualityTab
+                period={period}
+                selectedCardLast4={selectedCard || undefined}
+                health={classificationHealthQ.data}
+                healthLoading={classificationHealthQ.isLoading}
+                anomalies={spendAnomaliesQ.data}
+                anomaliesLoading={spendAnomaliesQ.isLoading}
+                onCreateRuleForMerchant={(merchant) =>
+                  openRulesTabWithSeed(buildRuleSeedFromMerchant(merchant))
+                }
+              />
+            </TabsContent>
+
+            <TabsContent value="rules" className="mt-2">
+              <AnalyticsRulesTab
+                seed={ruleSeed}
+                onSeedConsumed={() => setRuleSeed(null)}
+              />
+            </TabsContent>
+
+            <TabsContent value="patterns" className="mt-2">
+              <AnalyticsPatternsTab period={period} />
+            </TabsContent>
+
+            <TabsContent value="segments" className="mt-2">
+              <AnalyticsSegmentsTab
+                period={period}
+                selectedCardLast4={selectedCard || undefined}
               />
             </TabsContent>
           </AnalyticsQueryBoundary>

@@ -1,11 +1,5 @@
 import { format, parseISO } from 'date-fns'
-import {
-  Gauge,
-  Layers,
-  PiggyBank,
-  Receipt,
-  TrendingUp,
-} from 'lucide-react'
+import { Gauge, Layers, PiggyBank, Receipt, TrendingUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import {
   Area,
@@ -27,6 +21,7 @@ import {
   fmtCurrency,
   getChartTokenColor,
 } from '@/features/expenses/components/analytics/analytics-utils'
+import { TransactionMetadataBadges } from '@/features/expenses/components/analytics/transaction-metadata-badges'
 import { buildExpensesDrillDownUrl } from '@/features/expenses/lib/build-expenses-drill-down-url'
 import type {
   AnalyticsPeriod,
@@ -129,10 +124,7 @@ export function AnalyticsTrendsTab({
             {monthlyTrendLoading ? (
               <Skeleton className="h-75 w-full" />
             ) : monthlyTrend.length > 0 ? (
-              <ChartContainer
-                config={trendChartConfig}
-                className="h-75 w-full"
-              >
+              <ChartContainer config={trendChartConfig} className="h-75 w-full">
                 <LineChart data={monthlyTrend}>
                   <CartesianGrid vertical={false} />
                   <XAxis
@@ -214,7 +206,9 @@ export function AnalyticsTrendsTab({
             <div className="flex items-center gap-2">
               <TrendingUp className="size-4 text-muted-foreground" />
               <div>
-                <CardTitle className="text-base">Day-of-Week Spending</CardTitle>
+                <CardTitle className="text-base">
+                  Day-of-Week Spending
+                </CardTitle>
                 <CardDescription>When do you spend the most?</CardDescription>
               </div>
             </div>
@@ -745,7 +739,36 @@ export function AnalyticsTrendsTab({
                         >
                           {txn.transactionMode.replace(/_/g, ' ')}
                         </Badge>
+                        {txn.categorizationMethod ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] capitalize"
+                          >
+                            {txn.categorizationMethod.replace(/_/g, ' ')}
+                          </Badge>
+                        ) : null}
+                        {txn.requiresReview ? (
+                          <Badge variant="destructive" className="text-[10px]">
+                            Review
+                          </Badge>
+                        ) : null}
                       </div>
+                      {txn.confidence !== undefined ? (
+                        <div className="mt-1">
+                          <TransactionMetadataBadges
+                            transaction={{
+                              confidence: txn.confidence,
+                              categorizationMethod:
+                                txn.categorizationMethod ?? 'default',
+                              requiresReview: txn.requiresReview ?? false,
+                              vpa: txn.vpa ?? undefined,
+                              merchantRaw: undefined,
+                              cardLast4: txn.cardLast4 ?? undefined,
+                            }}
+                            compact
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                   <span className="text-sm font-semibold tabular-nums text-destructive">

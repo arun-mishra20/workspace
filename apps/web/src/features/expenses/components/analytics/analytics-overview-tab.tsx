@@ -16,6 +16,8 @@ import {
   YAxis,
 } from 'recharts'
 
+import { Link } from 'react-router-dom'
+import { appPaths } from '@/config/app-paths'
 import { DaySpendExplorerSection } from '@/features/expenses/components/analytics/day-spend-explorer-section'
 import { PeriodComparisonSection } from '@/features/expenses/components/analytics/period-comparison-section'
 import { RankedSpendListCard } from '@/features/expenses/components/analytics/ranked-spend-list-card'
@@ -155,6 +157,16 @@ export function AnalyticsOverviewTab({
               : undefined
           }
           loading={summaryLoading}
+          footer={
+            summary && summary.reviewPending > 0 ? (
+              <Link
+                to={`${appPaths.auth.expensesEmails.getHref()}?review=true`}
+                className="text-xs text-primary hover:underline"
+              >
+                Open review queue →
+              </Link>
+            ) : undefined
+          }
         />
       </div>
 
@@ -170,10 +182,7 @@ export function AnalyticsOverviewTab({
             {dailyLoading ? (
               <Skeleton className="h-75 w-full" />
             ) : dailyData.length > 0 ? (
-              <ChartContainer
-                config={dailyChartConfig}
-                className="h-75 w-full"
-              >
+              <ChartContainer config={dailyChartConfig} className="h-75 w-full">
                 <BarChart data={dailyData}>
                   <CartesianGrid vertical={false} />
                   <XAxis

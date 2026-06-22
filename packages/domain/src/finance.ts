@@ -437,10 +437,68 @@ export const LargestTransactionItemSchema = z.object({
   category: z.string(),
   displayName: z.string(),
   transactionMode: z.string(),
+  subcategory: z.string().optional(),
+  confidence: z.number().optional(),
+  categorizationMethod: z.string().optional(),
+  requiresReview: z.boolean().optional(),
+  vpa: z.string().nullable().optional(),
+  cardLast4: z.string().nullable().optional(),
 });
 export type LargestTransactionItem = z.infer<
   typeof LargestTransactionItemSchema
 >;
+
+export const ClassificationMethodBreakdownItemSchema = z.object({
+  method: z.string(),
+  count: z.number(),
+  amount: z.number(),
+});
+export type ClassificationMethodBreakdownItem = z.infer<
+  typeof ClassificationMethodBreakdownItemSchema
+>;
+
+export const ConfidenceBucketItemSchema = z.object({
+  bucket: z.enum(['high', 'medium', 'low', 'uncategorized']),
+  label: z.string(),
+  count: z.number(),
+  amount: z.number(),
+});
+export type ConfidenceBucketItem = z.infer<typeof ConfidenceBucketItemSchema>;
+
+export const UncategorizedMerchantItemSchema = z.object({
+  merchant: z.string(),
+  amount: z.number(),
+  count: z.number(),
+});
+export type UncategorizedMerchantItem = z.infer<
+  typeof UncategorizedMerchantItemSchema
+>;
+
+export const ClassificationHealthSchema = z.object({
+  reviewPending: z.number(),
+  totalTransactions: z.number(),
+  uncategorizedCount: z.number(),
+  byMethod: z.array(ClassificationMethodBreakdownItemSchema),
+  confidenceBuckets: z.array(ConfidenceBucketItemSchema),
+  topUncategorizedMerchants: z.array(UncategorizedMerchantItemSchema),
+});
+export type ClassificationHealth = z.infer<typeof ClassificationHealthSchema>;
+
+export const SpendAnomalyItemSchema = z.object({
+  type: z.enum(['spike', 'new_merchant', 'category_drift']),
+  label: z.string(),
+  description: z.string(),
+  amount: z.number().optional(),
+  changePercent: z.number().optional(),
+  merchant: z.string().optional(),
+  category: z.string().optional(),
+});
+export type SpendAnomalyItem = z.infer<typeof SpendAnomalyItemSchema>;
+
+export const SpendAnomaliesSchema = z.object({
+  anomalies: z.array(SpendAnomalyItemSchema),
+});
+export type SpendAnomalies = z.infer<typeof SpendAnomaliesSchema>;
 
 // ── Patterns: Bus Analytics ──
 

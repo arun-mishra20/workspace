@@ -127,6 +127,13 @@
       "when": 1781191772473,
       "tag": "0018_add_transaction_attributes_column",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1782131444063,
+      "tag": "0019_categorization_rules",
+      "breakpoints": true
     }
   ]
 }

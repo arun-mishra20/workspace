@@ -1,10 +1,15 @@
 import { Injectable } from '@nestjs/common'
+import {
+  CreateCategorizationRuleInputSchema,
+  RulePreviewRequestSchema,
+} from '@workspace/domain'
 import { addDays, getYear, isValid, parseISO, startOfDay } from 'date-fns'
 import { z } from 'zod'
 
 import { AiAnalyticsDslService } from '@/modules/ai-assistant/application/services/ai-analytics-dsl.service'
 import { AiDomainIntelligenceService } from '@/modules/ai-assistant/application/services/ai-domain-intelligence.service'
 import { DividendsService } from '@/modules/dividends/application/services/dividends.service'
+import { CategorizationRulesService } from '@/modules/expenses/application/services/categorization-rules.service'
 import { ExpensesService } from '@/modules/expenses/application/services/expenses.service'
 import { FlightAnalyticsService } from '@/modules/flights/application/services/flight-analytics.service'
 import { HoldingsService } from '@/modules/holdings/application/services/holdings.service'
@@ -156,6 +161,7 @@ export class AiToolRegistryService {
 
   constructor(
     private readonly expensesService: ExpensesService,
+    private readonly categorizationRulesService: CategorizationRulesService,
     private readonly holdingsService: HoldingsService,
     private readonly dividendsService: DividendsService,
     private readonly principalService: PrincipalService,
@@ -172,6 +178,8 @@ export class AiToolRegistryService {
       this.createExpenseDailyTrendTool(),
       this.createLargestExpensesTool(),
       this.createExpensePeriodComparisonTool(),
+      this.createPreviewCategorizationRuleTool(),
+      this.createCategorizationRuleTool(),
       this.createPortfolioSummaryTool(),
       this.createHoldingLookupTool(),
       this.createDividendDashboardTool(),
@@ -551,6 +559,52 @@ export class AiToolRegistryService {
       pages: ['expenses-analytics'],
       execute: async (arguments_, context) => {
         return this.expensesService.getPeriodComparison(context.userId, arguments_.period)
+      },
+    }
+  }
+
+  private createPreviewCategorizationRuleTool(): AiToolDefinition<z.infer<typeof RulePreviewRequestSchema>> {
+    return {
+      name: 'previewCategorizationRule',
+      description: 'Preview how many historical transactions match a categorization rule before creating or applying it.',
+      parameters: {
+        type: 'object',
+        properties: {
+          conditions: { type: 'object' },
+          limit: { type: 'number' },
+          offset: { type: 'number' },
+          dateFrom: { type: 'string' },
+          dateTo: { type: 'string' },
+        },
+        required: ['conditions'],
+      },
+      schema: RulePreviewRequestSchema,
+      pages: ['expenses-analytics'],
+      execute: async (arguments_, context) => {
+        return this.categorizationRulesService.previewRule(context.userId, arguments_)
+      },
+    }
+  }
+
+  private createCategorizationRuleTool(): AiToolDefinition<z.infer<typeof CreateCategorizationRuleInputSchema>> {
+    return {
+      name: 'createCategorizationRule',
+      description: 'Create a user categorization rule with conditions and a target category/subcategory.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          enabled: { type: 'boolean' },
+          priority: { type: 'number' },
+          conditions: { type: 'object' },
+          action: { type: 'object' },
+        },
+        required: ['name', 'conditions', 'action'],
+      },
+      schema: CreateCategorizationRuleInputSchema,
+      pages: ['expenses-analytics'],
+      execute: async (arguments_, context) => {
+        return this.categorizationRulesService.createRule(context.userId, arguments_)
       },
     }
   }

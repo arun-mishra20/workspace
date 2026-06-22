@@ -50,6 +50,11 @@ import {
   bulkUpdateTransactions,
   type BulkUpdateRequest,
 } from '@/features/expenses/api/bulk-update-transactions'
+import {
+  applyCategorizationRule,
+  createCategorizationRule,
+} from '@/features/expenses/api/categorization-rules'
+import { buildRuleSeedFromTransaction } from '@/features/expenses/components/analytics/analytics-rules-tab'
 import { CATEGORY_OPTIONS } from '@/features/expenses/constants/category-options'
 
 import type { Transaction } from '@workspace/domain'
@@ -171,6 +176,42 @@ export function LlmCategorizeDialog({
     },
   })
 
+  const saveAsRulesMutation = useMutation({
+    mutationFn: async () => {
+      const included = suggestions.filter((s) => s.included)
+      const txnMap = new Map(transactions.map((t) => [t.id, t]))
+
+      for (const suggestion of included) {
+        const txn = txnMap.get(suggestion.id)
+        if (!txn) continue
+
+        const seed = buildRuleSeedFromTransaction(txn, {
+          category: suggestion.category,
+          subcategory: suggestion.subcategory,
+        })
+
+        const rule = await createCategorizationRule({
+          name: seed.name ?? `Rule for ${txn.merchant}`,
+          enabled: true,
+          conditions: seed.conditions!,
+          action: {
+            category: suggestion.category,
+            subcategory: suggestion.subcategory,
+          },
+        })
+
+        await applyCategorizationRule(rule.id, { force: false })
+      }
+
+      return included.length
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      onComplete()
+      handleClose()
+    },
+  })
+
   const handleClose = useCallback(() => {
     onOpenChange(false)
     setTimeout(() => {
@@ -178,8 +219,9 @@ export function LlmCategorizeDialog({
       setSuggestions([])
       categorizeMutation.reset()
       saveMutation.reset()
+      saveAsRulesMutation.reset()
     }, 200)
-  }, [onOpenChange, categorizeMutation, saveMutation])
+  }, [onOpenChange, categorizeMutation, saveMutation, saveAsRulesMutation])
 
   const handleCategorize = () => {
     setStep('processing')
@@ -525,6 +567,13 @@ export function LlmCategorizeDialog({
             <DialogFooter className="gap-2 border-t pt-4">
               <Button variant="outline" onClick={handleClose}>
                 Discard
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => saveAsRulesMutation.mutate()}
+                disabled={includedCount === 0 || saveAsRulesMutation.isPending}
+              >
+                Save as {includedCount} rule{includedCount !== 1 ? 's' : ''}
               </Button>
               <Button
                 onClick={() => saveMutation.mutate()}

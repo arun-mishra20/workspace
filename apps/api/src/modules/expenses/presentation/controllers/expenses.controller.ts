@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -21,9 +22,17 @@ import { SkipThrottle } from '@nestjs/throttler'
 import { ZodValidationPipe } from '@/app/pipes/zod-validation.pipe'
 import { JwtAuthGuard } from '@/modules/auth/presentation/guards/jwt-auth.guard'
 import { ExpenseLlmCategorizationService } from '@/modules/expenses/application/services/expense-llm-categorization.service'
+import { CategorizationRulesService } from '@/modules/expenses/application/services/categorization-rules.service'
 import { ExpensesService } from '@/modules/expenses/application/services/expenses.service'
 import { GmailOAuthService } from '@/modules/expenses/application/services/gmail-oauth.service'
 import { BulkCategorizeDto } from '@/modules/expenses/presentation/dtos/bulk-categorize.dto'
+import {
+  CreateCategorizationRuleInputSchema,
+  ReorderRulesRequestSchema,
+  RuleApplyRequestSchema,
+  RulePreviewRequestSchema,
+  UpdateCategorizationRuleInputSchema,
+} from '@/modules/expenses/presentation/dtos/categorization-rule.dto'
 import { BulkUpdateTransactionsDto } from '@/modules/expenses/presentation/dtos/bulk-update-transactions.dto'
 import { ListExpensesCursorSchema } from '@/modules/expenses/presentation/dtos/expenses.schema'
 import { ListExpenseEmailsDto } from '@/modules/expenses/presentation/dtos/list-expense-emails.dto'
@@ -44,6 +53,7 @@ export class ExpensesController {
     private readonly expensesService: ExpensesService,
     private readonly gmailOAuthService: GmailOAuthService,
     private readonly llmCategorizationService: ExpenseLlmCategorizationService,
+    private readonly categorizationRulesService: CategorizationRulesService,
   ) {}
 
   @Post('sync')
@@ -689,6 +699,185 @@ export class ExpensesController {
     )
 
     return { suggestions }
+  }
+
+  // ── Classification health & anomalies ──
+
+  @Get('analytics/classification-health')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Classification health metrics for a period' })
+  @ApiQuery({ name: 'card_last4', required: false })
+  async getClassificationHealth(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Query('period') period: AnalyticsPeriod = 'month',
+    @Query('card_last4') cardLast4?: string,
+  ) {
+    return this.expensesService.getClassificationHealth(req.user.id, period, cardLast4)
+  }
+
+  @Get('analytics/spend-anomalies')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Spending anomalies for a period' })
+  @ApiQuery({ name: 'card_last4', required: false })
+  async getSpendAnomalies(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Query('period') period: AnalyticsPeriod = 'month',
+    @Query('card_last4') cardLast4?: string,
+  ) {
+    return this.expensesService.getSpendAnomalies(req.user.id, period, cardLast4)
+  }
+
+  @Get('analytics/export')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Export transactions as CSV with full metadata' })
+  @ApiQuery({ name: 'card_last4', required: false })
+  async exportTransactions(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Query('period') period: AnalyticsPeriod = 'month',
+    @Query('card_last4') cardLast4?: string,
+    @Res() res?: FastifyReply,
+  ) {
+    const csv = await this.expensesService.exportTransactionsCsv(
+      req.user.id,
+      period,
+      cardLast4,
+    )
+    res?.header('Content-Type', 'text/csv')
+    res?.header('Content-Disposition', 'attachment; filename="transactions-export.csv"')
+    return res?.send(csv)
+  }
+
+  // ── Categorization rules ──
+
+  @Get('categories')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'List available expense categories and subcategories' })
+  getCategories() {
+    return this.categorizationRulesService.getCategories()
+  }
+
+  @Get('rules')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'List user categorization rules' })
+  listRules(@Request() req: FastifyRequest & { user: { id: string } }) {
+    return this.categorizationRulesService.listRules(req.user.id)
+  }
+
+  @Get('rules/suggested')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Suggest categorization rules from transaction patterns' })
+  suggestRules(@Request() req: FastifyRequest & { user: { id: string } }) {
+    return this.categorizationRulesService.suggestRules(req.user.id)
+  }
+
+  @Get('rules/conflicts')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Detect transactions matching multiple enabled rules' })
+  detectRuleConflicts(@Request() req: FastifyRequest & { user: { id: string } }) {
+    return this.categorizationRulesService.detectConflicts(req.user.id)
+  }
+
+  @Patch('rules/reorder')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Reorder categorization rules by priority' })
+  reorderRules(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Body(new ZodValidationPipe(ReorderRulesRequestSchema)) body: unknown,
+  ) {
+    const parsed = ReorderRulesRequestSchema.parse(body)
+    return this.categorizationRulesService.reorderRules(req.user.id, parsed.orderedIds)
+  }
+
+  @Post('rules/reapply-all')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reapply all enabled rules to historical transactions' })
+  reapplyAllRules(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Query('force') force?: string,
+  ) {
+    return this.categorizationRulesService.reapplyAllRules(
+      req.user.id,
+      force === 'true',
+    )
+  }
+
+  @Post('rules/preview')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Preview rule matches against historical transactions' })
+  previewRule(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Body(new ZodValidationPipe(RulePreviewRequestSchema)) body: unknown,
+  ) {
+    return this.categorizationRulesService.previewRule(
+      req.user.id,
+      RulePreviewRequestSchema.parse(body),
+    )
+  }
+
+  @Get('rules/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get a categorization rule by ID' })
+  getRule(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Param('id') id: string,
+  ) {
+    return this.categorizationRulesService.getRule(req.user.id, id)
+  }
+
+  @Post('rules')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Create a categorization rule' })
+  createRule(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Body(new ZodValidationPipe(CreateCategorizationRuleInputSchema)) body: unknown,
+  ) {
+    return this.categorizationRulesService.createRule(
+      req.user.id,
+      CreateCategorizationRuleInputSchema.parse(body),
+    )
+  }
+
+  @Patch('rules/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update a categorization rule' })
+  updateRule(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(UpdateCategorizationRuleInputSchema)) body: unknown,
+  ) {
+    return this.categorizationRulesService.updateRule(
+      req.user.id,
+      id,
+      UpdateCategorizationRuleInputSchema.parse(body),
+    )
+  }
+
+  @Delete('rules/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Delete a categorization rule' })
+  deleteRule(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Param('id') id: string,
+  ) {
+    return this.categorizationRulesService.deleteRule(req.user.id, id)
+  }
+
+  @Post('rules/:id/apply')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Apply a rule to matching historical transactions' })
+  applyRule(
+    @Request() req: FastifyRequest & { user: { id: string } },
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(RuleApplyRequestSchema)) body: unknown,
+  ) {
+    return this.categorizationRulesService.applyRule(
+      req.user.id,
+      id,
+      RuleApplyRequestSchema.parse(body),
+    )
   }
 
   @Get('gmail/connect')
