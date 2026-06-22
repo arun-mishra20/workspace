@@ -17,6 +17,7 @@ import type {
   TransactionFilters,
   DateRange,
 } from '@/modules/expenses/application/ports/transaction.repository.port'
+import { buildAnalyticsRangeWhere } from '@/modules/expenses/infrastructure/repositories/analytics-range-query'
 import type { DrizzleDb } from '@/shared/infrastructure/db/db.port'
 import type { InsertTransaction, TransactionRecord } from '@workspace/database'
 import type {
@@ -24,6 +25,8 @@ import type {
   UpdateTransactionInput,
   SpendingSummary,
   SpendingByCategoryItem,
+  SpendingBySubcategoryItem,
+  TransactionAttributes,
   SpendingByModeItem,
   SpendingByMerchantItem,
   DailySpendingItem,
@@ -183,6 +186,13 @@ export class TransactionRepositoryImpl implements TransactionRepository {
                                           ELSE excluded.category_metadata
                                       END
             `,
+            transactionAttributes: sql`
+              CASE
+                                          WHEN excluded.transaction_attributes IS NULL
+                                          THEN ${transactionsTable.transactionAttributes}
+                                          ELSE excluded.transaction_attributes
+                                      END
+            `,
             statementId: sql`COALESCE(excluded.statement_id, ${transactionsTable.statementId})`,
             updatedAt: new Date(),
           },
@@ -320,6 +330,9 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     if (filters?.search) {
       conditions.push(ilike(transactionsTable.merchant, `%${filters.search}%`))
     }
+    if (filters?.cardLast4) {
+      conditions.push(eq(transactionsTable.cardLast4, filters.cardLast4))
+    }
 
     return and(...conditions)
   }
@@ -420,6 +433,9 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     if (filters?.search) {
       conditions.push(ilike(transactionsTable.merchant, `%${filters.search}%`))
     }
+    if (filters?.cardLast4) {
+      conditions.push(eq(transactionsTable.cardLast4, filters.cardLast4))
+    }
 
     return conditions
   }
@@ -429,12 +445,9 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getSpendingSummary(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<SpendingSummary> {
-    const where = and(
-      eq(transactionsTable.userId, params.userId),
-      gte(transactionsTable.transactionDate, params.range.start),
-      lt(transactionsTable.transactionDate, params.range.end),
-    )
+    const where = buildAnalyticsRangeWhere(params)
 
     const [row] = await this.db
       .select({
@@ -485,6 +498,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getSpendingByCategory(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<SpendingByCategoryItem[]> {
     const rows = await this.db
       .select({
@@ -494,12 +508,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-          eq(transactionsTable.transactionType, 'debited'),
-        ),
+        buildAnalyticsRangeWhere(params, eq(transactionsTable.transactionType, 'debited')),
       )
       .groupBy(transactionsTable.category)
       .orderBy(sql`sum(${transactionsTable.amount}::numeric) desc`)
@@ -518,9 +527,55 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     })
   }
 
+  async getSpendingBySubcategory(params: {
+    userId: string
+    range: DateRange
+    cardLast4?: string
+  }): Promise<SpendingBySubcategoryItem[]> {
+    const rows = await this.db
+      .select({
+        subcategory: transactionsTable.subcategory,
+        category: transactionsTable.category,
+        amount: sql<string>`sum(${transactionsTable.amount}::numeric)`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(transactionsTable)
+      .where(
+        buildAnalyticsRangeWhere(
+          params,
+          eq(transactionsTable.transactionType, 'debited'),
+          ne(transactionsTable.subcategory, 'uncategorized'),
+        ),
+      )
+      .groupBy(transactionsTable.subcategory, transactionsTable.category)
+      .orderBy(sql`sum(${transactionsTable.amount}::numeric) desc`)
+
+    const total = rows.reduce((sum, row) => sum + Number(row.amount), 0)
+
+    return rows.map((row) => {
+      const categoryMeta = CATEGORY_META[row.category]
+      const subcategoryLabel = this.formatSubcategoryLabel(row.subcategory)
+      const categoryLabel = categoryMeta?.name ?? row.category
+      const displayName
+        = row.subcategory === row.category
+          ? categoryLabel
+          : `${categoryLabel} › ${subcategoryLabel}`
+
+      return {
+        subcategory: row.subcategory,
+        category: row.category,
+        displayName,
+        amount: Number(row.amount),
+        count: row.count,
+        percentage: total > 0 ? (Number(row.amount) / total) * 100 : 0,
+      }
+    })
+  }
+
   async getSpendingByMode(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<SpendingByModeItem[]> {
     const rows = await this.db
       .select({
@@ -529,13 +584,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         count: sql<number>`count(*)::int`,
       })
       .from(transactionsTable)
-      .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-        ),
-      )
+      .where(buildAnalyticsRangeWhere(params))
       .groupBy(transactionsTable.transactionMode)
       .orderBy(sql`sum(${transactionsTable.amount}::numeric) desc`)
 
@@ -550,6 +599,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     userId: string
     range: DateRange
     limit: number
+    cardLast4?: string
   }): Promise<SpendingByMerchantItem[]> {
     const rows = await this.db
       .select({
@@ -559,12 +609,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-          eq(transactionsTable.transactionType, 'debited'),
-        ),
+        buildAnalyticsRangeWhere(params, eq(transactionsTable.transactionType, 'debited')),
       )
       .groupBy(transactionsTable.merchant)
       .orderBy(sql`sum(${transactionsTable.amount}::numeric) desc`)
@@ -580,6 +625,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getDailySpending(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<DailySpendingItem[]> {
     const rows = await this.db
       .select({
@@ -588,13 +634,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         credited: sql<string>`coalesce(sum(case when ${transactionsTable.transactionType} = 'credited' then ${transactionsTable.amount}::numeric else 0 end), 0)`,
       })
       .from(transactionsTable)
-      .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-        ),
-      )
+      .where(buildAnalyticsRangeWhere(params))
       .groupBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD')`)
       .orderBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD') asc`)
 
@@ -644,6 +684,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getSpendingByCard(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<SpendingByCardItem[]> {
     const rows = await this.db
       .select({
@@ -654,10 +695,8 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
+        buildAnalyticsRangeWhere(
+          params,
           eq(transactionsTable.transactionType, 'debited'),
           eq(transactionsTable.transactionMode, 'credit_card'),
           sql`${transactionsTable.cardLast4} is not null`,
@@ -740,6 +779,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getDayOfWeekSpending(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<DayOfWeekSpendingItem[]> {
     const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -751,12 +791,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-          eq(transactionsTable.transactionType, 'debited'),
-        ),
+        buildAnalyticsRangeWhere(params, eq(transactionsTable.transactionType, 'debited')),
       )
       .groupBy(sql`extract(dow from ${transactionsTable.transactionDate})`)
       .orderBy(sql`extract(dow from ${transactionsTable.transactionDate}) asc`)
@@ -824,6 +859,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getPeriodTotals(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<{ totalSpent: number, totalReceived: number, transactionCount: number }> {
     const [row] = await this.db
       .select({
@@ -832,13 +868,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         transactionCount: sql<number>`count(*)::int`,
       })
       .from(transactionsTable)
-      .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-        ),
-      )
+      .where(buildAnalyticsRangeWhere(params))
 
     return {
       totalSpent: Number(row?.totalSpent ?? 0),
@@ -850,6 +880,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getCumulativeSpend(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<CumulativeSpendItem[]> {
     const rows = await this.db
       .select({
@@ -858,12 +889,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-          eq(transactionsTable.transactionType, 'debited'),
-        ),
+        buildAnalyticsRangeWhere(params, eq(transactionsTable.transactionType, 'debited')),
       )
       .groupBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD')`)
       .orderBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD') asc`)
@@ -917,6 +943,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getCardCategoryBreakdown(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<CardCategoryItem[]> {
     const rows = await this.db
       .select({
@@ -928,10 +955,8 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
+        buildAnalyticsRangeWhere(
+          params,
           eq(transactionsTable.transactionType, 'debited'),
           eq(transactionsTable.transactionMode, 'credit_card'),
           sql`${transactionsTable.cardLast4} is not null`,
@@ -964,6 +989,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     userId: string
     range: DateRange
     limit: number
+    cardLast4?: string
   }): Promise<TopVpaItem[]> {
     const rows = await this.db
       .select({
@@ -974,10 +1000,8 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
+        buildAnalyticsRangeWhere(
+          params,
           eq(transactionsTable.transactionMode, 'upi'),
           sql`${transactionsTable.vpa} is not null`,
         ),
@@ -997,6 +1021,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
   async getSpendingVelocity(params: {
     userId: string
     range: DateRange
+    cardLast4?: string
   }): Promise<SpendingVelocityItem[]> {
     // Get daily spending, then compute 7-day rolling average
     const rows = await this.db
@@ -1006,12 +1031,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-          eq(transactionsTable.transactionType, 'debited'),
-        ),
+        buildAnalyticsRangeWhere(params, eq(transactionsTable.transactionType, 'debited')),
       )
       .groupBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD')`)
       .orderBy(sql`to_char(${transactionsTable.transactionDate}, 'YYYY-MM-DD') asc`)
@@ -1038,6 +1058,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     userId: string
     range: DateRange
     limit: number
+    cardLast4?: string
   }): Promise<LargestTransactionItem[]> {
     const rows = await this.db
       .select({
@@ -1050,12 +1071,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       })
       .from(transactionsTable)
       .where(
-        and(
-          eq(transactionsTable.userId, params.userId),
-          gte(transactionsTable.transactionDate, params.range.start),
-          lt(transactionsTable.transactionDate, params.range.end),
-          eq(transactionsTable.transactionType, 'debited'),
-        ),
+        buildAnalyticsRangeWhere(params, eq(transactionsTable.transactionType, 'debited')),
       )
       .orderBy(sql`${transactionsTable.amount}::numeric desc`)
       .limit(params.limit)
@@ -1254,6 +1270,52 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     return result.length
   }
 
+  async listAllForUser(userId: string): Promise<Transaction[]> {
+    const records = await this.db
+      .select()
+      .from(transactionsTable)
+      .where(eq(transactionsTable.userId, userId))
+      .orderBy(desc(transactionsTable.transactionDate))
+
+    return records.map((record) => this.toDomain(record))
+  }
+
+  async updateTransactionAttributesBatch(params: {
+    userId: string
+    updates: { id: string, transactionAttributes: Transaction['transactionAttributes'] }[]
+  }): Promise<void> {
+    if (params.updates.length === 0) {
+      return
+    }
+
+    const batchSize = 100
+    for (let index = 0; index < params.updates.length; index += batchSize) {
+      const chunk = params.updates.slice(index, index + batchSize)
+      await Promise.all(
+        chunk.map((update) =>
+          this.db
+            .update(transactionsTable)
+            .set({
+              transactionAttributes: update.transactionAttributes ?? null,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(transactionsTable.userId, params.userId),
+                eq(transactionsTable.id, update.id),
+              ),
+            ),
+        ),
+      )
+    }
+  }
+
+  private formatSubcategoryLabel(subcategory: string): string {
+    return subcategory
+      .replaceAll('_', ' ')
+      .replaceAll(/\b\w/g, (char) => char.toUpperCase())
+  }
+
   /**
      * Bus merchant regex: matches "KA01AR4188", "BMTC BUS KA57F0015", etc.
      */
@@ -1272,6 +1334,27 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     return null
   }
 
+  private resolveAssetType(txn: {
+    merchant: string
+    subcategory?: string
+    transactionAttributes?: TransactionAttributes | null
+  }): 'stocks' | 'mutual_funds' | 'gold' | null {
+    const fromAttributes = txn.transactionAttributes?.assetClass
+    if (fromAttributes === 'stocks' || fromAttributes === 'mutual_funds' || fromAttributes === 'gold') {
+      return fromAttributes
+    }
+
+    if (
+      txn.subcategory === 'stocks'
+      || txn.subcategory === 'mutual_funds'
+      || txn.subcategory === 'gold'
+    ) {
+      return txn.subcategory
+    }
+
+    return this.classifyAssetType(txn.merchant)
+  }
+
   private getPlatformName(merchant: string): string {
     const lower = merchant.toLowerCase()
     if (lower.includes('groww')) return 'Groww'
@@ -1279,6 +1362,13 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     if (lower.includes('mutual funds iccl')) return 'ICCL'
     if (lower.includes('mmtc pamp')) return 'MMTC-PAMP'
     return merchant
+  }
+
+  private resolvePlatformName(txn: {
+    merchant: string
+    transactionAttributes?: TransactionAttributes | null
+  }): string {
+    return txn.transactionAttributes?.platform ?? this.getPlatformName(txn.merchant)
   }
 
   async getBusAnalytics(params: { userId: string, range: DateRange }): Promise<BusAnalytics> {
@@ -1425,7 +1515,10 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       gte(transactionsTable.transactionDate, params.range.start),
       lt(transactionsTable.transactionDate, params.range.end),
       eq(transactionsTable.transactionType, 'debited'),
-      sql`${transactionsTable.merchant} ~* ${this.INVESTMENT_MERCHANT_REGEX}`,
+      or(
+        eq(transactionsTable.category, 'investments'),
+        sql`${transactionsTable.merchant} ~* ${this.INVESTMENT_MERCHANT_REGEX}`,
+      ),
     )
 
     // Summary
@@ -1468,6 +1561,8 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     const allInvestments = await this.db
       .select({
         merchant: transactionsTable.merchant,
+        subcategory: transactionsTable.subcategory,
+        transactionAttributes: transactionsTable.transactionAttributes,
         amount: transactionsTable.amount,
         date: transactionsTable.transactionDate,
         id: transactionsTable.id,
@@ -1502,7 +1597,11 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     >()
 
     for (const inv of allInvestments) {
-      const assetType = this.classifyAssetType(inv.merchant)
+      const assetType = this.resolveAssetType({
+        merchant: inv.merchant,
+        subcategory: inv.subcategory,
+        transactionAttributes: inv.transactionAttributes as TransactionAttributes | null,
+      })
       if (!assetType) continue
 
       const existing = assetTypeMap.get(assetType)
@@ -1546,8 +1645,15 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     >()
 
     for (const inv of allInvestments) {
-      const platform = this.getPlatformName(inv.merchant)
-      const assetType = this.classifyAssetType(inv.merchant)
+      const platform = this.resolvePlatformName({
+        merchant: inv.merchant,
+        transactionAttributes: inv.transactionAttributes as TransactionAttributes | null,
+      })
+      const assetType = this.resolveAssetType({
+        merchant: inv.merchant,
+        subcategory: inv.subcategory,
+        transactionAttributes: inv.transactionAttributes as TransactionAttributes | null,
+      })
       const amount = Number(inv.amount)
 
       const existing = platformMap.get(platform)
@@ -1588,7 +1694,11 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     for (const inv of allInvestments) {
       const date = new Date(inv.date)
       const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-      const assetType = this.classifyAssetType(inv.merchant)
+      const assetType = this.resolveAssetType({
+        merchant: inv.merchant,
+        subcategory: inv.subcategory,
+        transactionAttributes: inv.transactionAttributes as TransactionAttributes | null,
+      })
       const amount = Number(inv.amount)
 
       const existing = monthlyMap.get(month)
@@ -1698,7 +1808,11 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         date: inv.date.toISOString(),
         merchant: inv.merchant,
         amount: Number(inv.amount),
-        assetType: this.classifyAssetType(inv.merchant) ?? 'unknown',
+        assetType: this.resolveAssetType({
+          merchant: inv.merchant,
+          subcategory: inv.subcategory,
+          transactionAttributes: inv.transactionAttributes as TransactionAttributes | null,
+        }) ?? 'unknown',
       }))
 
     // SIP Detection
@@ -1713,7 +1827,11 @@ export class TransactionRepositoryImpl implements TransactionRepository {
 
     for (const inv of allInvestments) {
       const merchant = inv.merchant
-      const assetType = this.classifyAssetType(merchant)
+      const assetType = this.resolveAssetType({
+        merchant: inv.merchant,
+        subcategory: inv.subcategory,
+        transactionAttributes: inv.transactionAttributes as TransactionAttributes | null,
+      })
       if (!assetType) continue
 
       const existing = sipMap.get(merchant)
@@ -1817,6 +1935,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       categorizationMethod: transaction.categorizationMethod,
       requiresReview: transaction.requiresReview,
       categoryMetadata: transaction.categoryMetadata,
+      transactionAttributes: transaction.transactionAttributes ?? null,
       statementId: transaction.statementId ?? null,
       sourceEmailId: transaction.sourceEmailId,
     }
@@ -1849,6 +1968,9 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       sourceEmailId: record.sourceEmailId,
       cardLast4: record.cardLast4 ?? undefined,
       cardName: record.cardName ?? undefined,
+      transactionAttributes: record.transactionAttributes
+        ? (record.transactionAttributes as TransactionAttributes)
+        : undefined,
     }
   }
 }

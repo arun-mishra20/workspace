@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, Logger  } from '@nestjs/common'
-import { addDays, format, isValid, parseISO, startOfDay } from 'date-fns'
+import { addDays, format, isValid, parseISO, startOfDay, subDays } from 'date-fns'
 
 import {
   EMAIL_PARSERS,
@@ -18,10 +18,14 @@ import {
 
 } from '@/modules/expenses/application/ports/transaction.repository.port'
 import { CardResolver } from '@/modules/expenses/infrastructure/categorization/card-resolver'
+import { computeMilestoneDateRange } from '@/modules/expenses/infrastructure/categorization/milestone-date-range'
+import { computeMilestoneEtaForecast } from '@/modules/expenses/infrastructure/categorization/milestone-eta-forecast'
+import { RecurringPatternService } from '@/modules/expenses/infrastructure/categorization/recurring-pattern.service'
 import {
   TransactionCategorizer,
 
 } from '@/modules/expenses/infrastructure/categorization/transaction-categorizer'
+import { TransactionEnricher } from '@/modules/expenses/infrastructure/categorization/transaction-enricher'
 import { RAW_EMAIL_REPOSITORY  } from '@/shared/application/ports/raw-email.repository.port'
 import { SYNC_JOB_REPOSITORY  } from '@/shared/application/ports/sync-job.repository.port'
 import { EmailSyncService } from '@/shared/application/services/email-sync.service'
@@ -43,12 +47,14 @@ import type {
   AnalyticsPeriod,
   SpendingSummary,
   SpendingByCategoryItem,
+  SpendingBySubcategoryItem,
   SpendingByModeItem,
   SpendingByMerchantItem,
   DailySpendingItem,
   MonthlyTrendItem,
   SpendingByCardItem,
   MilestoneProgress,
+  CreditCardProfile,
   DayOfWeekSpendingItem,
   CategoryTrendItem,
   PeriodComparison,
@@ -74,6 +80,8 @@ export class ExpensesService implements OnModuleDestroy {
 
   private readonly logger = new Logger(ExpensesService.name)
   private readonly transactionCategorizer = TransactionCategorizer.getInstance()
+  private readonly transactionEnricher = TransactionEnricher.getInstance()
+  private readonly recurringPatternService = RecurringPatternService.getInstance()
   private readonly cardResolver = CardResolver.getInstance()
 
   constructor(
@@ -337,6 +345,11 @@ export class ExpensesService implements OnModuleDestroy {
         }
       }
 
+      const recurringUpdated = await this.recurringPatternService.applyForUser(
+        userId,
+        this.transactionRepository,
+      )
+
       this.invalidateUserAnalyticsCache(userId)
 
       await this.syncJobRepository.update(jobId, {
@@ -345,7 +358,7 @@ export class ExpensesService implements OnModuleDestroy {
       })
 
       this.logger.log(
-        `Reprocess job ${jobId} completed: ${totalTransactions} transactions, ${totalStatements} statements from ${totalEmails} emails`,
+        `Reprocess job ${jobId} completed: ${totalTransactions} transactions, ${totalStatements} statements from ${totalEmails} emails (${recurringUpdated} recurring flags updated)`,
       )
     } catch (error) {
       this.logger.error(`Reprocess job ${jobId} failed`, error)
@@ -418,8 +431,15 @@ export class ExpensesService implements OnModuleDestroy {
       processedEmails += chunk.length
     }
 
+    const recurringUpdated = await this.recurringPatternService.applyForUser(
+      userId,
+      this.transactionRepository,
+    )
+
     this.invalidateUserAnalyticsCache(userId)
-    this.logger.log(`Post-sync processing for job ${jobId} completed: ${totalTransactions} transactions, ${totalStatements} statements processed from ${processedEmails} synced emails`)
+    this.logger.log(
+      `Post-sync processing for job ${jobId} completed: ${totalTransactions} transactions, ${totalStatements} statements processed from ${processedEmails} synced emails (${recurringUpdated} recurring flags updated)`,
+    )
   }
 
   private async processEmailForReprocess(
@@ -522,6 +542,25 @@ export class ExpensesService implements OnModuleDestroy {
     filters?: TransactionFilters
   }): Promise<{ data: Transaction[], nextCursor?: string, hasMore: boolean }> {
     return this.transactionRepository.listByUserCursor(params)
+  }
+
+  listCreditCards(): CreditCardProfile[] {
+    return this.cardResolver.listAllCards().map((card) => ({
+      cardLast4: card.cardLast4,
+      cardName: card.cardName,
+      bank: card.bank,
+      icon: card.icon,
+      network: card.network,
+      cardTier: card.cardTier,
+      imageKey: card.imageKey,
+      status: card.status,
+      upgradedTo: card.upgradedTo,
+      upgradedFrom: card.upgradedFrom,
+      annualFee: card.annualFee,
+      rewardCurrency: card.rewardCurrency,
+      tracking: card.tracking,
+      benefits: card.benefits,
+    }))
   }
 
   async getTransactionById(params: { userId: string, id: string }): Promise<Transaction | null> {
@@ -629,22 +668,39 @@ export class ExpensesService implements OnModuleDestroy {
     return { start, end }
   }
 
-  async getSpendingSummary(userId: string, period: AnalyticsPeriod): Promise<SpendingSummary> {
+  async getSpendingSummary(
+    userId: string,
+    period: AnalyticsPeriod,
+    cardLast4?: string,
+  ): Promise<SpendingSummary> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingSummary', { period }),
-      () => this.transactionRepository.getSpendingSummary({ userId, range }),
+      this.cacheKey(userId, 'getSpendingSummary', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getSpendingSummary({ userId, range, cardLast4 }),
     )
   }
 
   async getSpendingByCategory(
     userId: string,
     period: AnalyticsPeriod,
+    cardLast4?: string,
   ): Promise<SpendingByCategoryItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingByCategory', { period }),
-      () => this.transactionRepository.getSpendingByCategory({ userId, range }),
+      this.cacheKey(userId, 'getSpendingByCategory', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getSpendingByCategory({ userId, range, cardLast4 }),
+    )
+  }
+
+  async getSpendingBySubcategory(
+    userId: string,
+    period: AnalyticsPeriod,
+    cardLast4?: string,
+  ): Promise<SpendingBySubcategoryItem[]> {
+    const range = this.computeDateRange(period)
+    return this.getCachedOrCompute(
+      this.cacheKey(userId, 'getSpendingBySubcategory', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getSpendingBySubcategory({ userId, range, cardLast4 }),
     )
   }
 
@@ -652,22 +708,28 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     startDate: string,
     endDate: string,
+    cardLast4?: string,
   ): Promise<SpendingByCategoryItem[]> {
     const range = this.computeExplicitDateRange(startDate, endDate)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingByCategoryForDateRange', { startDate, endDate }),
-      () => this.transactionRepository.getSpendingByCategory({ userId, range }),
+      this.cacheKey(userId, 'getSpendingByCategoryForDateRange', {
+        startDate,
+        endDate,
+        ...(cardLast4 && { cardLast4 }),
+      }),
+      () => this.transactionRepository.getSpendingByCategory({ userId, range, cardLast4 }),
     )
   }
 
   async getSpendingByMode(
     userId: string,
     period: AnalyticsPeriod,
+    cardLast4?: string,
   ): Promise<SpendingByModeItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingByMode', { period }),
-      () => this.transactionRepository.getSpendingByMode({ userId, range }),
+      this.cacheKey(userId, 'getSpendingByMode', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getSpendingByMode({ userId, range, cardLast4 }),
     )
   }
 
@@ -675,11 +737,12 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     period: AnalyticsPeriod,
     limit = 10,
+    cardLast4?: string,
   ): Promise<SpendingByMerchantItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getTopMerchants', { period, limit }),
-      () => this.transactionRepository.getTopMerchants({ userId, range, limit }),
+      this.cacheKey(userId, 'getTopMerchants', { period, limit, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getTopMerchants({ userId, range, limit, cardLast4 }),
     )
   }
 
@@ -688,19 +751,29 @@ export class ExpensesService implements OnModuleDestroy {
     startDate: string,
     endDate: string,
     limit = 10,
+    cardLast4?: string,
   ): Promise<SpendingByMerchantItem[]> {
     const range = this.computeExplicitDateRange(startDate, endDate)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getTopMerchantsForDateRange', { startDate, endDate, limit }),
-      () => this.transactionRepository.getTopMerchants({ userId, range, limit }),
+      this.cacheKey(userId, 'getTopMerchantsForDateRange', {
+        startDate,
+        endDate,
+        limit,
+        ...(cardLast4 && { cardLast4 }),
+      }),
+      () => this.transactionRepository.getTopMerchants({ userId, range, limit, cardLast4 }),
     )
   }
 
-  async getDailySpending(userId: string, period: AnalyticsPeriod): Promise<DailySpendingItem[]> {
+  async getDailySpending(
+    userId: string,
+    period: AnalyticsPeriod,
+    cardLast4?: string,
+  ): Promise<DailySpendingItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getDailySpending', { period }),
-      () => this.transactionRepository.getDailySpending({ userId, range }),
+      this.cacheKey(userId, 'getDailySpending', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getDailySpending({ userId, range, cardLast4 }),
     )
   }
 
@@ -708,11 +781,16 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     startDate: string,
     endDate: string,
+    cardLast4?: string,
   ): Promise<DailySpendingItem[]> {
     const range = this.computeExplicitDateRange(startDate, endDate)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getDailySpendingForDateRange', { startDate, endDate }),
-      () => this.transactionRepository.getDailySpending({ userId, range }),
+      this.cacheKey(userId, 'getDailySpendingForDateRange', {
+        startDate,
+        endDate,
+        ...(cardLast4 && { cardLast4 }),
+      }),
+      () => this.transactionRepository.getDailySpending({ userId, range, cardLast4 }),
     )
   }
 
@@ -726,22 +804,29 @@ export class ExpensesService implements OnModuleDestroy {
   async getSpendingByCard(
     userId: string,
     period: AnalyticsPeriod,
+    cardLast4?: string,
   ): Promise<SpendingByCardItem[]> {
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingByCard', { period }),
+      this.cacheKey(userId, 'getSpendingByCard', { period, ...(cardLast4 && { cardLast4 }) }),
       async () => {
         const range = this.computeDateRange(period)
-        const rows = await this.transactionRepository.getSpendingByCard({ userId, range })
+        const rows = await this.transactionRepository.getSpendingByCard({ userId, range, cardLast4 })
 
         const milestonesByCard = new Map<
           string,
-          NonNullable<ReturnType<CardResolver['resolve']>>['milestones']
+          {
+            milestones: NonNullable<ReturnType<CardResolver['resolve']>>['milestones']
+            membershipStart?: string
+          }
         >()
 
         for (const row of rows) {
           const resolved = this.cardResolver.resolve(row.cardLast4)
-          if (resolved?.milestones) {
-            milestonesByCard.set(row.cardLast4, resolved.milestones)
+          if (resolved?.milestones && resolved.status !== 'upgraded') {
+            milestonesByCard.set(row.cardLast4, {
+              milestones: resolved.milestones,
+              membershipStart: resolved.membershipStart,
+            })
           }
         }
 
@@ -749,8 +834,14 @@ export class ExpensesService implements OnModuleDestroy {
 
         return rows.map((row) => {
           const resolved = this.cardResolver.resolve(row.cardLast4)
-          const milestones = resolved?.milestones
-            ? this.computeMilestoneProgress(row.cardLast4, resolved.milestones, spendIndex)
+          const isUpgraded = resolved?.status === 'upgraded'
+          const milestones = resolved?.milestones && !isUpgraded
+            ? this.computeMilestoneProgress(
+                row.cardLast4,
+                resolved.milestones,
+                spendIndex,
+                resolved.membershipStart,
+              )
             : []
 
           return {
@@ -758,6 +849,9 @@ export class ExpensesService implements OnModuleDestroy {
             cardName: resolved?.cardName ?? row.cardName,
             bank: resolved?.bank ?? row.bank,
             icon: resolved?.icon ?? row.icon,
+            imageKey: resolved?.imageKey,
+            status: resolved?.status,
+            upgradedTo: resolved?.upgradedTo,
             milestones: milestones.length > 0 ? milestones : undefined,
           }
         })
@@ -773,11 +867,12 @@ export class ExpensesService implements OnModuleDestroy {
   async getDayOfWeekSpending(
     userId: string,
     period: AnalyticsPeriod,
+    cardLast4?: string,
   ): Promise<DayOfWeekSpendingItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getDayOfWeekSpending', { period }),
-      () => this.transactionRepository.getDayOfWeekSpending({ userId, range }),
+      this.cacheKey(userId, 'getDayOfWeekSpending', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getDayOfWeekSpending({ userId, range, cardLast4 }),
     )
   }
 
@@ -788,9 +883,13 @@ export class ExpensesService implements OnModuleDestroy {
     )
   }
 
-  async getPeriodComparison(userId: string, period: AnalyticsPeriod): Promise<PeriodComparison> {
+  async getPeriodComparison(
+    userId: string,
+    period: AnalyticsPeriod,
+    cardLast4?: string,
+  ): Promise<PeriodComparison> {
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getPeriodComparison', { period }),
+      this.cacheKey(userId, 'getPeriodComparison', { period, ...(cardLast4 && { cardLast4 }) }),
       async () => {
         const currentRange = this.computeDateRange(period)
 
@@ -801,8 +900,8 @@ export class ExpensesService implements OnModuleDestroy {
         }
 
         const [current, previous] = await Promise.all([
-          this.transactionRepository.getPeriodTotals({ userId, range: currentRange }),
-          this.transactionRepository.getPeriodTotals({ userId, range: previousRange }),
+          this.transactionRepository.getPeriodTotals({ userId, range: currentRange, cardLast4 }),
+          this.transactionRepository.getPeriodTotals({ userId, range: previousRange, cardLast4 }),
         ])
 
         const currentAvg
@@ -837,11 +936,12 @@ export class ExpensesService implements OnModuleDestroy {
   async getCumulativeSpend(
     userId: string,
     period: AnalyticsPeriod,
+    cardLast4?: string,
   ): Promise<CumulativeSpendItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getCumulativeSpend', { period }),
-      () => this.transactionRepository.getCumulativeSpend({ userId, range }),
+      this.cacheKey(userId, 'getCumulativeSpend', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getCumulativeSpend({ userId, range, cardLast4 }),
     )
   }
 
@@ -855,30 +955,37 @@ export class ExpensesService implements OnModuleDestroy {
   async getCardCategoryBreakdown(
     userId: string,
     period: AnalyticsPeriod,
+    cardLast4?: string,
   ): Promise<CardCategoryItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getCardCategoryBreakdown', { period }),
-      () => this.transactionRepository.getCardCategoryBreakdown({ userId, range }),
+      this.cacheKey(userId, 'getCardCategoryBreakdown', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getCardCategoryBreakdown({ userId, range, cardLast4 }),
     )
   }
 
-  async getTopVpas(userId: string, period: AnalyticsPeriod, limit = 10): Promise<TopVpaItem[]> {
+  async getTopVpas(
+    userId: string,
+    period: AnalyticsPeriod,
+    limit = 10,
+    cardLast4?: string,
+  ): Promise<TopVpaItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getTopVpas', { period, limit }),
-      () => this.transactionRepository.getTopVpas({ userId, range, limit }),
+      this.cacheKey(userId, 'getTopVpas', { period, limit, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getTopVpas({ userId, range, limit, cardLast4 }),
     )
   }
 
   async getSpendingVelocity(
     userId: string,
     period: AnalyticsPeriod,
+    cardLast4?: string,
   ): Promise<SpendingVelocityItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingVelocity', { period }),
-      () => this.transactionRepository.getSpendingVelocity({ userId, range }),
+      this.cacheKey(userId, 'getSpendingVelocity', { period, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getSpendingVelocity({ userId, range, cardLast4 }),
     )
   }
 
@@ -890,12 +997,18 @@ export class ExpensesService implements OnModuleDestroy {
         const results: MilestoneEta[] = []
         const milestonesByCard = new Map<
           string,
-          NonNullable<ReturnType<CardResolver['resolve']>>['milestones']
+          {
+            milestones: NonNullable<ReturnType<CardResolver['resolve']>>['milestones']
+            membershipStart?: string
+          }
         >()
 
         for (const [cardLast4, card] of allCards.entries()) {
           if (card.milestones && Object.keys(card.milestones).length > 0) {
-            milestonesByCard.set(cardLast4, card.milestones)
+            milestonesByCard.set(cardLast4, {
+              milestones: card.milestones,
+              membershipStart: card.membershipStart,
+            })
           }
         }
 
@@ -906,40 +1019,24 @@ export class ExpensesService implements OnModuleDestroy {
 
           for (const [id, milestone] of Object.entries(card.milestones)) {
             const duration = milestone.durations[0] ?? 'yearly'
-            const { start, end } = this.computeMilestoneDateRange(
-              duration,
-              milestone.milestone_start_date,
-              milestone.milestone_end_date,
-            )
+            const { start, end } = computeMilestoneDateRange(duration, {
+              startDate: milestone.milestone_start_date,
+              endDate: milestone.milestone_end_date,
+              membershipStart: card.membershipStart,
+            })
 
             const currentSpend = this.sumCardSpendInRange(
               spendIndex.get(cardLast4) ?? [],
               start,
               end,
             )
-            const percentage = Math.min(100, (currentSpend / milestone.amount) * 100)
-            const remaining = Math.max(0, milestone.amount - currentSpend)
 
-            const elapsedMs = Date.now() - start.getTime()
-            const elapsedDays = Math.max(1, elapsedMs / (1000 * 60 * 60 * 24))
-            const dailyRate = currentSpend / elapsedDays
-
-            let daysRemaining: number | null = null
-            let estimatedCompletionDate: string | null = null
-            const periodEndStr = end.toISOString().split('T')[0]!
-
-            if (dailyRate > 0 && remaining > 0) {
-              daysRemaining = Math.ceil(remaining / dailyRate)
-              const eta = new Date()
-              eta.setDate(eta.getDate() + daysRemaining)
-              estimatedCompletionDate = eta.toISOString().split('T')[0]!
-            } else if (remaining <= 0) {
-              daysRemaining = 0
-            }
-
-            const onTrack
-              = remaining <= 0
-                || (estimatedCompletionDate != null && estimatedCompletionDate <= periodEndStr)
+            const forecast = computeMilestoneEtaForecast({
+              currentSpend,
+              targetAmount: milestone.amount,
+              periodStart: start,
+              periodEndExclusive: end,
+            })
 
             results.push({
               id,
@@ -948,12 +1045,14 @@ export class ExpensesService implements OnModuleDestroy {
               description: milestone.description,
               targetAmount: milestone.amount,
               currentSpend,
-              percentage: Math.round(percentage * 100) / 100,
-              dailyRate: Math.round(dailyRate * 100) / 100,
-              daysRemaining,
-              estimatedCompletionDate,
-              periodEnd: periodEndStr,
-              onTrack,
+              percentage: forecast.percentage,
+              dailyRate: forecast.dailyRate,
+              daysRemaining: forecast.daysRemaining,
+              estimatedCompletionDate: forecast.estimatedCompletionDate,
+              periodEnd: forecast.periodEnd,
+              daysLeftInPeriod: forecast.daysLeftInPeriod,
+              requiredDailyRate: forecast.requiredDailyRate,
+              onTrack: forecast.onTrack,
             })
           }
         }
@@ -967,11 +1066,12 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     period: AnalyticsPeriod,
     limit = 10,
+    cardLast4?: string,
   ): Promise<LargestTransactionItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getLargestTransactions', { period, limit }),
-      () => this.transactionRepository.getLargestTransactions({ userId, range, limit }),
+      this.cacheKey(userId, 'getLargestTransactions', { period, limit, ...(cardLast4 && { cardLast4 }) }),
+      () => this.transactionRepository.getLargestTransactions({ userId, range, limit, cardLast4 }),
     )
   }
 
@@ -980,11 +1080,17 @@ export class ExpensesService implements OnModuleDestroy {
     startDate: string,
     endDate: string,
     limit = 10,
+    cardLast4?: string,
   ): Promise<LargestTransactionItem[]> {
     const range = this.computeExplicitDateRange(startDate, endDate)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getLargestTransactionsForDateRange', { startDate, endDate, limit }),
-      () => this.transactionRepository.getLargestTransactions({ userId, range, limit }),
+      this.cacheKey(userId, 'getLargestTransactionsForDateRange', {
+        startDate,
+        endDate,
+        limit,
+        ...(cardLast4 && { cardLast4 }),
+      }),
+      () => this.transactionRepository.getLargestTransactions({ userId, range, limit, cardLast4 }),
     )
   }
 
@@ -992,11 +1098,16 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     startDate: string,
     endDate: string,
+    cardLast4?: string,
   ): Promise<SpendingSummary> {
     const range = this.computeExplicitDateRange(startDate, endDate)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingSummaryForDateRange', { startDate, endDate }),
-      () => this.transactionRepository.getSpendingSummary({ userId, range }),
+      this.cacheKey(userId, 'getSpendingSummaryForDateRange', {
+        startDate,
+        endDate,
+        ...(cardLast4 && { cardLast4 }),
+      }),
+      () => this.transactionRepository.getSpendingSummary({ userId, range, cardLast4 }),
     )
   }
 
@@ -1046,6 +1157,7 @@ export class ExpensesService implements OnModuleDestroy {
     cardLast4: string,
     milestones: NonNullable<ReturnType<CardResolver['resolve']>>['milestones'],
     spendIndex: Map<string, { transactionDate: Date, amount: number }[]>,
+    membershipStart?: string,
   ): MilestoneProgress[] {
     const entries = Object.entries(milestones)
     if (entries.length === 0) return []
@@ -1054,11 +1166,11 @@ export class ExpensesService implements OnModuleDestroy {
 
     for (const [id, milestone] of entries) {
       const duration = milestone.durations[0] ?? 'yearly'
-      const { start, end, label } = this.computeMilestoneDateRange(
-        duration,
-        milestone.milestone_start_date,
-        milestone.milestone_end_date,
-      )
+      const { start, end, label } = computeMilestoneDateRange(duration, {
+        startDate: milestone.milestone_start_date,
+        endDate: milestone.milestone_end_date,
+        membershipStart,
+      })
 
       const currentSpend = this.sumCardSpendInRange(
         spendIndex.get(cardLast4) ?? [],
@@ -1078,8 +1190,8 @@ export class ExpensesService implements OnModuleDestroy {
         percentage: Math.round(percentage * 100) / 100,
         remaining,
         periodLabel: label,
-        periodStart: start.toISOString().split('T')[0]!,
-        periodEnd: end.toISOString().split('T')[0]!,
+        periodStart: format(startOfDay(start), 'yyyy-MM-dd'),
+        periodEnd: format(subDays(startOfDay(end), 1), 'yyyy-MM-dd'),
       })
     }
 
@@ -1088,7 +1200,13 @@ export class ExpensesService implements OnModuleDestroy {
 
   private async buildMilestoneSpendIndex(
     userId: string,
-    milestonesByCard: Map<string, NonNullable<ReturnType<CardResolver['resolve']>>['milestones']>,
+    milestonesByCard: Map<
+      string,
+      {
+        milestones: NonNullable<ReturnType<CardResolver['resolve']>>['milestones']
+        membershipStart?: string
+      }
+    >,
   ): Promise<Map<string, { transactionDate: Date, amount: number }[]>> {
     if (milestonesByCard.size === 0) {
       return new Map()
@@ -1097,14 +1215,14 @@ export class ExpensesService implements OnModuleDestroy {
     let minStart: Date | null = null
     let maxEnd: Date | null = null
 
-    for (const milestones of milestonesByCard.values()) {
+    for (const { milestones, membershipStart } of milestonesByCard.values()) {
       for (const milestone of Object.values(milestones)) {
         const duration = milestone.durations[0] ?? 'yearly'
-        const { start, end } = this.computeMilestoneDateRange(
-          duration,
-          milestone.milestone_start_date,
-          milestone.milestone_end_date,
-        )
+        const { start, end } = computeMilestoneDateRange(duration, {
+          startDate: milestone.milestone_start_date,
+          endDate: milestone.milestone_end_date,
+          membershipStart,
+        })
 
         if (!minStart || start < minStart) {
           minStart = start
@@ -1154,53 +1272,6 @@ export class ExpensesService implements OnModuleDestroy {
     return total
   }
 
-  /**
-     * Compute the date range for a milestone based on its duration type.
-     * - "quarterly": Current calendar quarter (Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec)
-     * - "yearly" with custom dates: Uses milestone_start_date/milestone_end_date
-     * - "yearly" without custom dates: Current calendar year
-     */
-  private computeMilestoneDateRange(
-    duration: string,
-    startDate?: string,
-    endDate?: string,
-  ): { start: Date, end: Date, label: string } {
-    const now = new Date()
-
-    if (duration === 'quarterly') {
-      const quarter = Math.floor(now.getMonth() / 3)
-      const quarterNames = ['Jan–Mar', 'Apr–Jun', 'Jul–Sep', 'Oct–Dec']
-      const start = new Date(now.getFullYear(), quarter * 3, 1)
-      const end = new Date(now.getFullYear(), quarter * 3 + 3, 1)
-      return {
-        start,
-        end,
-        label: `Q${quarter + 1} ${now.getFullYear()} (${quarterNames[quarter]})`,
-      }
-    }
-
-    // Yearly with custom dates
-    if (startDate && endDate) {
-      const start = new Date(startDate)
-      const end = new Date(endDate)
-      start.setHours(0, 0, 0, 0)
-      end.setHours(23, 59, 59, 999)
-
-      const fmtDate = (d: Date) =>
-        d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-      return {
-        start,
-        end,
-        label: `${fmtDate(start)} – ${fmtDate(end)}`,
-      }
-    }
-
-    // Yearly default: calendar year
-    const start = new Date(now.getFullYear(), 0, 1)
-    const end = new Date(now.getFullYear() + 1, 0, 1)
-    return { start, end, label: `FY ${now.getFullYear()}` }
-  }
-
   private findParser(email: RawEmail): EmailParser | null {
     return this.parsers.find((parser) => parser.canParse(email)) ?? null
   }
@@ -1225,23 +1296,35 @@ export class ExpensesService implements OnModuleDestroy {
     }
 
     const exactMatches: Record<string, string> = {}
+    const exactMatchDetails: UserCategorizationRules['exact_match_details'] = {}
 
     // Lower priority: inferred from existing transactions (added first so
     // explicit rules can overwrite them below)
     for (const entry of categorizedMerchants) {
       exactMatches[entry.merchant] = entry.category
+      exactMatchDetails[entry.merchant] = {
+        category: entry.category,
+        subcategory: entry.subcategory,
+      }
     }
 
     // Higher priority: explicit merchant rules (overwrites any inferred entry)
     for (const rule of rules) {
       exactMatches[rule.merchant] = rule.category
+      exactMatchDetails[rule.merchant] = {
+        category: rule.category,
+        subcategory: rule.subcategory,
+      }
     }
 
     this.logger.debug(
       `Loaded ${rules.length} explicit merchant rules and ${categorizedMerchants.length} inferred merchant categories for user ${userId}`,
     )
 
-    return { exact_matches: exactMatches }
+    return {
+      exact_matches: exactMatches,
+      exact_match_details: exactMatchDetails,
+    }
   }
 
   private categorizeTransactions(
@@ -1270,14 +1353,25 @@ export class ExpensesService implements OnModuleDestroy {
         ? this.cardResolver.resolveCardName(transaction.cardLast4)
         : undefined
 
+      const enriched = this.transactionEnricher.enrich({
+        merchant: transaction.merchant,
+        merchantRaw: transaction.merchantRaw,
+        vpa: transaction.vpa,
+        category: category.category,
+        subcategory: category.subcategory,
+        amount: transaction.amount,
+        transactionType: transaction.transactionType,
+      })
+
       return {
         ...transaction,
         category: category.category,
-        subcategory: category.subcategory,
+        subcategory: enriched.subcategory,
         confidence: category.confidence,
         categorizationMethod: category.method,
         requiresReview: category.requiresReview,
         categoryMetadata: category.categoryMetadata,
+        transactionAttributes: enriched.transactionAttributes,
         cardName,
       }
     })

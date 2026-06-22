@@ -1,12 +1,19 @@
 import { LoaderCircle } from 'lucide-react'
 import { useMemo } from 'react'
+import rehypeHighlight from 'rehype-highlight'
 import rehypeKatex from 'rehype-katex'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
-import { AssistantMetricCard, parseMetricBlock } from '@/features/ai-assistant/components/assistant-metric-card'
+import { AssistantChart } from '@/features/ai-assistant/components/assistant-chart'
+import { AssistantMermaid } from '@/features/ai-assistant/components/assistant-mermaid'
+import { AssistantMetricCard } from '@/features/ai-assistant/components/assistant-metric-card'
 import { AssistantSuggestedActions } from '@/features/ai-assistant/components/assistant-suggested-actions'
+import {
+  parseStructuredContent,
+  type ParsedBlock,
+} from '@/features/ai-assistant/components/block-registry'
 
 interface AssistantMessageProps {
   content: string
@@ -15,53 +22,89 @@ interface AssistantMessageProps {
   onSuggestedAction?: (action: string) => void
 }
 
-type ParsedBlock =
-  | { type: 'markdown'; content: string }
-  | { type: 'actions'; items: string[] }
-  | { type: 'metric'; data: { label: string; value: string; trend?: 'up' | 'down' | 'flat'; change?: string } }
+const PROSE_CLASSES =
+  'prose prose-sm max-w-none wrap-anywhere prose-headings:mb-2 prose-headings:mt-4 prose-headings:text-foreground prose-p:my-2 prose-p:text-foreground prose-strong:text-foreground prose-ul:my-2 prose-li:my-1 prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:text-foreground prose-pre:overflow-x-auto prose-pre:rounded-xl prose-pre:border prose-pre:border-border/60 prose-pre:bg-background prose-table:block prose-table:overflow-x-auto prose-table:text-sm prose-th:text-left prose-td:align-top [&_.katex-display]:overflow-x-auto [&_.katex-display]:py-2 [&_.katex]:text-foreground dark:prose-invert'
 
-function parseStructuredContent(raw: string): ParsedBlock[] {
-  const blocks: ParsedBlock[] = []
-  const blockRegex = /:::(actions|metric)\n([\s\S]*?):::/g
-  let lastIndex = 0
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const REHYPE_PLUGINS = [
+  rehypeKatex,
+  [rehypeHighlight, { ignoreMissing: true }],
+] as any[]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const REMARK_PLUGINS = [remarkGfm, remarkMath] as any[]
 
-  for (const match of raw.matchAll(blockRegex)) {
-    const beforeText = raw.slice(lastIndex, match.index)
-    if (beforeText.trim()) {
-      blocks.push({ type: 'markdown', content: beforeText })
-    }
-
-    const blockType = match[1]
-    const blockContent = match[2]?.trim() ?? ''
-
-    if (blockType === 'actions') {
-      const items = blockContent.split('\n').map((l) => l.trim()).filter(Boolean)
-      if (items.length > 0) {
-        blocks.push({ type: 'actions', items })
-      }
-    } else if (blockType === 'metric') {
-      const metric = parseMetricBlock(blockContent)
-      if (metric) {
-        blocks.push({ type: 'metric', data: metric })
-      }
-    }
-
-    lastIndex = (match.index ?? 0) + match[0].length
-  }
-
-  const remaining = raw.slice(lastIndex)
-  if (remaining.trim()) {
-    blocks.push({ type: 'markdown', content: remaining })
-  }
-
-  if (blocks.length === 0 && raw.trim()) {
-    blocks.push({ type: 'markdown', content: raw })
-  }
-
-  return blocks
+function MarkdownBlock({ content }: { content: string }) {
+  return (
+    <div className={PROSE_CLASSES}>
+      <ReactMarkdown
+        remarkPlugins={REMARK_PLUGINS}
+        rehypePlugins={REHYPE_PLUGINS}
+        components={{
+          code(props) {
+            const { children, className, ...rest } = props as {
+              children?: React.ReactNode
+              className?: string
+              node?: unknown
+            }
+            // Intercept mermaid fenced code blocks — render as diagram
+            if (className?.includes('language-mermaid')) {
+              const codeText =
+                typeof children === 'string' ? children.replace(/\n$/, '') : ''
+              return <AssistantMermaid code={codeText} />
+            }
+            return (
+              <code
+                className={[className, 'wrap-anywhere']
+                  .filter(Boolean)
+                  .join(' ')}
+                {...rest}
+              >
+                {children}
+              </code>
+            )
+          },
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  )
 }
 
-export function AssistantMessage({ content, isStreaming, activeTools, onSuggestedAction }: AssistantMessageProps) {
+function renderBlock(
+  block: ParsedBlock,
+  onSuggestedAction?: (action: string) => void,
+): React.ReactNode {
+  switch (block.type) {
+    case 'markdown': {
+      return <MarkdownBlock content={block.content} />
+    }
+    case 'metric': {
+      return <AssistantMetricCard metric={block.data} />
+    }
+    case 'actions': {
+      return onSuggestedAction ? (
+        <AssistantSuggestedActions
+          actions={block.items}
+          onAction={onSuggestedAction}
+        />
+      ) : null
+    }
+    case 'chart': {
+      return <AssistantChart spec={block.spec} />
+    }
+    default: {
+      return null
+    }
+  }
+}
+
+export function AssistantMessage({
+  content,
+  isStreaming,
+  activeTools,
+  onSuggestedAction,
+}: AssistantMessageProps) {
   const hasActiveTools = activeTools && activeTools.length > 0
 
   const blocks = useMemo(() => {
@@ -87,8 +130,11 @@ export function AssistantMessage({ content, isStreaming, activeTools, onSuggeste
 
       {isStreaming ? (
         content ? (
-          <div className="prose prose-sm max-w-none wrap-anywhere prose-headings:mb-2 prose-headings:mt-4 prose-headings:text-foreground prose-p:my-2 prose-p:text-foreground prose-strong:text-foreground prose-ul:my-2 prose-li:my-1 prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:text-foreground prose-pre:overflow-x-auto prose-pre:rounded-xl prose-pre:border prose-pre:border-border/60 prose-pre:bg-background prose-table:block prose-table:overflow-x-auto prose-table:text-sm prose-th:text-left prose-td:align-top [&_.katex-display]:overflow-x-auto [&_.katex-display]:py-2 [&_.katex]:text-foreground dark:prose-invert">
-            <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+          <div className={PROSE_CLASSES}>
+            <ReactMarkdown
+              remarkPlugins={REMARK_PLUGINS}
+              rehypePlugins={REHYPE_PLUGINS}
+            >
               {content}
             </ReactMarkdown>
             <span className="inline-block size-2 animate-pulse rounded-full bg-foreground/40" />
@@ -101,40 +147,9 @@ export function AssistantMessage({ content, isStreaming, activeTools, onSuggeste
         )
       ) : blocks.length > 0 ? (
         <div>
-          {blocks.map((block, i) => {
-            if (block.type === 'markdown') {
-              return (
-                <div key={i} className="prose prose-sm max-w-none wrap-anywhere prose-headings:mb-2 prose-headings:mt-4 prose-headings:text-foreground prose-p:my-2 prose-p:text-foreground prose-strong:text-foreground prose-ul:my-2 prose-li:my-1 prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:text-foreground prose-pre:overflow-x-auto prose-pre:rounded-xl prose-pre:border prose-pre:border-border/60 prose-pre:bg-background prose-table:block prose-table:overflow-x-auto prose-table:text-sm prose-th:text-left prose-td:align-top [&_.katex-display]:overflow-x-auto [&_.katex-display]:py-2 [&_.katex]:text-foreground dark:prose-invert">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkMath]}
-                    rehypePlugins={[rehypeKatex]}
-                    components={{
-                      code(props) {
-                        const { children, className, ...rest } = props as {
-                          children?: React.ReactNode
-                          className?: string
-                        }
-                        return (
-                          <code className={[className, 'wrap-anywhere'].filter(Boolean).join(' ')} {...rest}>
-                            {children}
-                          </code>
-                        )
-                      },
-                    }}
-                  >
-                    {block.content}
-                  </ReactMarkdown>
-                </div>
-              )
-            }
-            if (block.type === 'metric') {
-              return <AssistantMetricCard key={i} metric={block.data} />
-            }
-            if (block.type === 'actions' && onSuggestedAction) {
-              return <AssistantSuggestedActions key={i} actions={block.items} onAction={onSuggestedAction} />
-            }
-            return null
-          })}
+          {blocks.map((block, i) => (
+            <div key={i}>{renderBlock(block, onSuggestedAction)}</div>
+          ))}
         </div>
       ) : null}
     </div>

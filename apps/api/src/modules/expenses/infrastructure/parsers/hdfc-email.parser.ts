@@ -151,7 +151,9 @@ export class HdfcEmailParser implements EmailParser {
         effectiveText = ''
       }
     }
-    const searchableText = `${subject ?? ''}\n${effectiveText}\n${snippet ?? ''}`
+    const searchableText = this.decodeHtmlEntities(
+      `${subject ?? ''}\n${effectiveText}\n${snippet ?? ''}`,
+    )
     const textLower = searchableText.toLowerCase()
 
     const amount = this.extractAmount(textLower)
@@ -229,8 +231,17 @@ export class HdfcEmailParser implements EmailParser {
   } {
     if (/\bupi\b/i.test(textLower)) {
       // UPI transaction — also look for card info (RuPay Credit Card UPI)
-      const cardMatch = /(?:rupay\s+)?credit\s+card\s+(?:xx|\*\*)(\d{4})/i.exec(textLower)
-      return { mode: 'upi', cardLast4: cardMatch?.[1] ?? null }
+      const cardPatterns = [
+        /(?:rupay\s+)?credit\s+card\s+(?:xx|\*\*)(\d{4})/i,
+        /(?:rupay\s+)?credit\s+card\s+ending\s+(\d{4})/i,
+      ]
+      for (const pattern of cardPatterns) {
+        const cardMatch = pattern.exec(textLower)
+        if (cardMatch?.[1]) {
+          return { mode: 'upi', cardLast4: cardMatch[1] }
+        }
+      }
+      return { mode: 'upi', cardLast4: null }
     }
     if (/\bneft\b/i.test(textLower)) {
       return { mode: 'neft', cardLast4: null }
@@ -264,6 +275,9 @@ export class HdfcEmailParser implements EmailParser {
 
   private extractPaidTo(text: string): string | null {
     const paidToPatterns = [
+      /towards\s+vpa\s+[\w.\-]+@[\w]+\s*\(([^)]+)\)/i,
+      /credited\s+to\s+vpa\s+[\w.\-]+@[\w]+\s*\(([^)]+)\)/i,
+      /sender:\s*([A-Za-z][A-Za-z0-9\s.\-]+?)\s*\(\s*vpa:/i,
       /(?:neft|imps|rtgs)\s+cr-[a-z0-9]+-([A-Z][A-Z0-9\s&.\-]+?)(?:\s+(?:CLIENT|LLP|PVT|PRIVATE|LIMITED))?\s*-/i,
       /towards\s+([A-Z][A-Z0-9\s*,.&\-]+?)(?:\s+on\s+\d|\s+at\s+\d)/i,
       /to\s+[\w.\-]+@[\w]+\s+([A-Z][A-Z0-9]+)(?:\s+on\s+\d)/i,
@@ -290,8 +304,9 @@ export class HdfcEmailParser implements EmailParser {
 
   private extractTransactionDate(text: string): string | null {
     const datePatterns = [
+      /\bdate\s*:\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)/i,
       /\b(?:on|dated)\s+(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)/i,
-      /\b(?:on|dated)\s+(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{2,4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)/i,
+      /\b(?:on|dated)\s+(\d{1,2}\s+[A-Za-z]{3,9},?\s+\d{2,4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)/i,
       /\btxn(?:\.|\s)?date\s*[:\-]?\s*([A-Za-z0-9:/\-\s]{6,30})/i,
       /\btransaction\s*date\s*[:\-]?\s*([A-Za-z0-9:/\-\s]{6,30})/i,
     ]
@@ -313,21 +328,25 @@ export class HdfcEmailParser implements EmailParser {
   }
 
   private extractVpa(text: string): string | null {
-    const vpaWithPrefix = /(?:to|by)\s+vpa\s+([\w.\-]+@[\w]+)/i.exec(text)
-    if (vpaWithPrefix?.[1]) {
-      return vpaWithPrefix[1].toLowerCase()
-    }
+    const vpaPatterns = [
+      /towards\s+vpa\s+([\w.\-]+@[\w]+)/i,
+      /\(vpa:\s*([\w.\-]+@[\w]+)\)/i,
+      /(?:to|by)\s+vpa\s+([\w.\-]+@[\w]+)/i,
+      /(?:to|by)\s+([\w.\-]+@[\w]+)/i,
+    ]
 
-    const vpaWithoutPrefix = /(?:to|by)\s+([\w.\-]+@[\w]+)/i.exec(text)
-    if (vpaWithoutPrefix?.[1]) {
-      return vpaWithoutPrefix[1].toLowerCase()
+    for (const pattern of vpaPatterns) {
+      const match = pattern.exec(text)
+      if (match?.[1]) {
+        return match[1].toLowerCase()
+      }
     }
 
     return null
   }
 
   private parseDateCandidate(candidate: string): string | null {
-    const cleaned = normalizeWhitespace(candidate.replace(/,$/, ''))
+    const cleaned = normalizeWhitespace(candidate.replaceAll(',', ' ').replaceAll(/\s+/g, ' ').trim())
 
     const numericMatch = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(cleaned)
     if (numericMatch) {
@@ -444,15 +463,8 @@ export class HdfcEmailParser implements EmailParser {
     return score
   }
 
-  /**
-     * Strip HTML tags and decode common entities to produce plain text.
-     * Used as a fallback when bodyText is empty (HTML-only emails).
-     */
-  private stripHtmlTags(html: string): string {
-    return html
-      .replaceAll(/<br\s*\/?>/gi, '\n')
-      .replaceAll(/<\/(?:p|div|tr|li|h[1-6])>/gi, '\n')
-      .replaceAll(/<[^>]+>/g, '')
+  private decodeHtmlEntities(text: string): string {
+    return text
       .replaceAll(/&nbsp;/gi, ' ')
       .replaceAll(/&amp;/gi, '&')
       .replaceAll(/&lt;/gi, '<')
@@ -460,7 +472,20 @@ export class HdfcEmailParser implements EmailParser {
       .replaceAll(/&quot;/gi, '"')
       .replaceAll(/&#39;/gi, '\'')
       .replaceAll(/&rupee;|&#8377;/gi, 'Rs.')
-      .replaceAll(/\n{3,}/g, '\n\n')
-      .trim()
+  }
+
+  /**
+     * Strip HTML tags and decode common entities to produce plain text.
+     * Used as a fallback when bodyText is empty (HTML-only emails).
+     */
+  private stripHtmlTags(html: string): string {
+    return this.decodeHtmlEntities(
+      html
+        .replaceAll(/<br\s*\/?>/gi, '\n')
+        .replaceAll(/<\/(?:p|div|tr|li|h[1-6])>/gi, '\n')
+        .replaceAll(/<[^>]+>/g, '')
+        .replaceAll(/\n{3,}/g, '\n\n')
+        .trim(),
+    )
   }
 }

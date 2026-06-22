@@ -67,15 +67,19 @@ export async function syncExpenses(
  * Start a reprocess job — re-parse all stored emails without fetching from Gmail.
  * Returns immediately with a job ID for polling (same as sync jobs).
  */
-export async function startReprocessJob(): Promise<StartSyncJobResponse> {
+export async function startReprocessJob(
+  forceProcessAll = false,
+): Promise<StartSyncJobResponse> {
   const json = await apiRequest({
     method: "POST",
-    url: "/api/expenses/reprocess",
+    url: `/api/expenses/reprocess${forceProcessAll ? "?forceProcessAll=true" : ""}`,
     headers: {
       Accept: "application/json",
     },
     toastSuccess: true,
-    successMessage: "Reprocessing started",
+    successMessage: forceProcessAll
+      ? "Force refresh started for all emails"
+      : "Reprocessing started",
   });
 
   return StartSyncJobResponseSchema.parse(json);

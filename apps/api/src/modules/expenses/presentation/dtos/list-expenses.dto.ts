@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger'
-import { IsOptional, IsString, IsEnum, IsDateString, MaxLength } from 'class-validator'
+import { IsOptional, IsString, IsEnum, IsDateString, MaxLength, Matches } from 'class-validator'
 
 import { OffsetPaginationDto } from '@/shared/infrastructure/dtos/offset-pagination.dto'
 
@@ -48,4 +48,10 @@ export class ListExpensesDto extends OffsetPaginationDto {
   @MaxLength(200)
   @IsOptional()
   search?: string
+
+  @ApiPropertyOptional({ description: 'Filter by credit card last 4 digits' })
+  @IsString()
+  @Matches(/^\d{4}$/)
+  @IsOptional()
+  card_last4?: string
 }

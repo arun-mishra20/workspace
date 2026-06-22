@@ -23,6 +23,7 @@ export interface ListExpensesParams {
   date_from?: string;
   date_to?: string;
   search?: string;
+  card_last4?: string;
 }
 
 export async function listExpenses(
@@ -60,6 +61,10 @@ export async function listExpenses(
 
   if (params?.search) {
     searchParams.set("search", params.search);
+  }
+
+  if (params?.card_last4) {
+    searchParams.set("card_last4", params.card_last4);
   }
 
   const url = `/api/expenses/transactions${searchParams.toString() ? `?${searchParams}` : ""}`;

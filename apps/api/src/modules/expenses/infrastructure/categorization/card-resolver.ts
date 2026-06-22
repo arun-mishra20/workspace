@@ -2,12 +2,33 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+export type CreditCardStatus = 'active' | 'upgraded'
+
+export interface CreditCardTracking {
+  primary_card?: boolean
+  legacy_card?: boolean
+  optimize_for?: string[]
+}
+
+export type CreditCardBenefits = Record<string, number | boolean>
+
 export interface CreditCardConfig {
   type: string
   name: string
   bank: string
   icon: string
   last_four_digits: string
+  network?: string
+  card_tier?: string
+  image_key?: string
+  status?: CreditCardStatus
+  upgraded_to?: string
+  upgraded_from?: string
+  annual_fee?: number
+  reward_currency?: string
+  membership_start?: string
+  tracking?: CreditCardTracking
+  benefits?: CreditCardBenefits
   milestones: Record<
     string,
     {
@@ -23,9 +44,21 @@ export interface CreditCardConfig {
 }
 
 export interface ResolvedCard {
+  cardLast4: string
   cardName: string
   bank: string
   icon: string
+  network?: string
+  cardTier?: string
+  imageKey?: string
+  status: CreditCardStatus
+  upgradedTo?: string
+  upgradedFrom?: string
+  annualFee?: number
+  rewardCurrency?: string
+  membershipStart?: string
+  tracking?: CreditCardTracking
+  benefits?: CreditCardBenefits
   milestones: CreditCardConfig['milestones']
 }
 
@@ -74,6 +107,21 @@ export class CardResolver {
     return this.cardMap
   }
 
+  /** List all configured cards sorted active-first, primary card next, then by name */
+  listAllCards(): ResolvedCard[] {
+    return [...this.cardMap.values()].sort((a, b) => {
+      if (a.status !== b.status) {
+        return a.status === 'active' ? -1 : 1
+      }
+      const aPrimary = a.tracking?.primary_card ?? false
+      const bPrimary = b.tracking?.primary_card ?? false
+      if (aPrimary !== bPrimary) {
+        return aPrimary ? -1 : 1
+      }
+      return a.cardName.localeCompare(b.cardName)
+    })
+  }
+
   private loadCardConfig(): Map<string, ResolvedCard> {
     const moduleDir = dirname(fileURLToPath(import.meta.url))
     const candidatePaths = [
@@ -87,7 +135,7 @@ export class CardResolver {
 
     for (const p of candidatePaths) {
       if (existsSync(p)) {
-        const raw = JSON.parse(readFileSync(p, 'utf-8')) as Record<
+        const raw = JSON.parse(readFileSync(p, 'utf8')) as Record<
           string,
           CreditCardConfig
         >
@@ -95,9 +143,21 @@ export class CardResolver {
 
         for (const [_key, card] of Object.entries(raw)) {
           map.set(card.last_four_digits, {
+            cardLast4: card.last_four_digits,
             cardName: card.name,
             bank: card.bank,
             icon: card.icon,
+            network: card.network,
+            cardTier: card.card_tier,
+            imageKey: card.image_key,
+            status: card.status ?? 'active',
+            upgradedTo: card.upgraded_to,
+            upgradedFrom: card.upgraded_from,
+            annualFee: card.annual_fee,
+            rewardCurrency: card.reward_currency,
+            membershipStart: card.membership_start,
+            tracking: card.tracking,
+            benefits: card.benefits,
             milestones: card.milestones,
           })
         }

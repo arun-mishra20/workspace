@@ -119,8 +119,8 @@ export function ConversationSidebar() {
         </Button>
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className="py-2">
+      <ScrollArea className="flex-1 min-h-[calc(100dvh-10rem)]">
+        <div className="py-2 min-w-[300px]">
           {isLoading ? (
             <div className="px-3 py-4 text-center text-xs text-muted-foreground">
               Loading…

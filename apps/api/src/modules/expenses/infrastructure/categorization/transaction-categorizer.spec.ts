@@ -80,4 +80,32 @@ describe('transactionCategorizer', () => {
     expect(result.method).toBe('default')
     expect(result.requiresReview).toBe(true)
   })
+
+  it('uses subcategory from user exact_match_details', () => {
+    const categorizer = TransactionCategorizer.getInstance()
+
+    const result = categorizer.categorizeTransaction(
+      {
+        paid_to: 'My Custom Merchant',
+        transaction_mode: 'upi',
+        amount: 500,
+        transaction_type: 'debited',
+      },
+      {
+        exact_matches: {
+          'My Custom Merchant': 'investments',
+        },
+        exact_match_details: {
+          'My Custom Merchant': {
+            category: 'investments',
+            subcategory: 'mutual_funds',
+          },
+        },
+      },
+    )
+
+    expect(result.category).toBe('investments')
+    expect(result.subcategory).toBe('mutual_funds')
+    expect(result.method).toBe('merchant_rule')
+  })
 })

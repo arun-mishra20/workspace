@@ -35,7 +35,7 @@ interface UseSyncJobOptions {
 
 interface UseSyncJobReturn {
   startSync: (input?: StartSyncJobInput) => void
-  startReprocess: () => void
+  startReprocess: (forceProcessAll?: boolean) => void
   job: SyncJob | null
   isStarting: boolean
   isPolling: boolean
@@ -173,11 +173,14 @@ export function useSyncJob(options: UseSyncJobOptions = {}): UseSyncJobReturn {
     startMutation.mutate(input)
   }, [startMutation])
 
-  const startReprocess = useCallback(() => {
-    setError(null)
-    setJob(null)
-    reprocessMutation.mutate()
-  }, [reprocessMutation])
+  const startReprocess = useCallback(
+    (forceProcessAll = false) => {
+      setError(null)
+      setJob(null)
+      reprocessMutation.mutate(forceProcessAll)
+    },
+    [reprocessMutation],
+  )
 
   const reset = useCallback(() => {
     setJob(null)

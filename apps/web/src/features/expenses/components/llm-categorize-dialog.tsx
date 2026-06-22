@@ -224,8 +224,10 @@ export function LlmCategorizeDialog({
               <DialogDescription>
                 Send {transactions.length} transaction
                 {transactions.length !== 1 ? 's' : ''} to an AI model for
-                smarter categorization. You can review and edit the suggestions
-                before saving.
+                smarter categorization (~{transactions.length} API call
+                {transactions.length !== 1 ? 's' : ''}). You review every
+                suggestion before anything is saved — nothing runs automatically
+                on sync.
               </DialogDescription>
             </DialogHeader>
 

@@ -13,6 +13,7 @@ type CategorizationMethod
 
 interface CategoryInfo {
   category: string
+  subcategory?: string
   confidence: number
   method: CategorizationMethod
   requiresReview: boolean
@@ -20,6 +21,7 @@ interface CategoryInfo {
 
 interface MerchantPatternRule {
   category: string
+  subcategory?: string
   confidence?: number
   keywords: string[]
 }
@@ -27,6 +29,7 @@ interface MerchantPatternRule {
 interface VpaAmountRule {
   vpa?: string
   category?: string
+  subcategory?: string
   confidence?: number
   min_amount?: number
   max_amount?: number
@@ -36,11 +39,13 @@ interface VpaAmountRule {
 interface VpaPatternRule {
   pattern: string
   category?: string
+  subcategory?: string
   confidence?: number
 }
 
 interface NeftPatternConfig {
   category?: string
+  subcategory?: string
   confidence?: number
   salary_keywords?: string[]
 }
@@ -66,9 +71,15 @@ interface DefaultCategoriesConfig {
 
 type UserVpaRule = string | { category?: string, default_category?: string, confidence?: number, requires_manual?: boolean }
 
+export interface MerchantCategoryRule {
+  category: string
+  subcategory?: string
+}
+
 export interface UserCategorizationRules {
   manual_overrides?: Record<string, string>
   exact_matches?: Record<string, string>
+  exact_match_details?: Record<string, MerchantCategoryRule>
   merchant_patterns?: MerchantPatternRule[]
   vpa_amount_rules?: VpaAmountRule[]
   vpa_rules?: Record<string, UserVpaRule>
@@ -175,6 +186,20 @@ export class TransactionCategorizer {
     paidTo: string,
     userRules?: UserCategorizationRules,
   ): CategoryInfo | null {
+    if (userRules?.exact_match_details) {
+      for (const [merchant, rule] of Object.entries(userRules.exact_match_details)) {
+        if (paidTo === merchant.toLowerCase()) {
+          return {
+            category: rule.category,
+            subcategory: rule.subcategory,
+            confidence: 1,
+            method: 'merchant_rule',
+            requiresReview: false,
+          }
+        }
+      }
+    }
+
     if (userRules?.exact_matches) {
       for (const [merchant, category] of Object.entries(userRules.exact_matches)) {
         if (paidTo === merchant.toLowerCase()) {
@@ -219,6 +244,7 @@ export class TransactionCategorizer {
             bestConfidence = confidence
             bestMatch = {
               category: pattern.category,
+              subcategory: pattern.subcategory,
               confidence,
               method: 'merchant_rule',
               requiresReview: false,
@@ -237,6 +263,7 @@ export class TransactionCategorizer {
             bestConfidence = confidence
             bestMatch = {
               category: pattern.category,
+              subcategory: pattern.subcategory,
               confidence,
               method: 'merchant_rule',
               requiresReview: false,
@@ -275,6 +302,7 @@ export class TransactionCategorizer {
 
       return {
         category: rule.category,
+        subcategory: rule.subcategory,
         confidence: rule.confidence ?? 0.95,
         method: 'vpa_rule',
         requiresReview: rule.requires_manual ?? false,
@@ -297,6 +325,7 @@ export class TransactionCategorizer {
 
       return {
         category: rule.category,
+        subcategory: rule.subcategory,
         confidence: rule.confidence ?? 0.95,
         method: 'vpa_rule',
         requiresReview: rule.requires_manual ?? false,
@@ -343,6 +372,7 @@ export class TransactionCategorizer {
 
       return {
         category: patternRule.category,
+        subcategory: patternRule.subcategory,
         confidence: patternRule.confidence ?? 0.9,
         method: 'vpa_rule',
         requiresReview: false,
@@ -363,6 +393,7 @@ export class TransactionCategorizer {
       if (paidTo.includes(keyword.toLowerCase())) {
         return {
           category: neftConfig.category ?? 'income_salary',
+          subcategory: neftConfig.subcategory,
           confidence: neftConfig.confidence ?? 0.9,
           method: 'neft_rule',
           requiresReview: false,
@@ -387,7 +418,7 @@ export class TransactionCategorizer {
     const categoryData = this.defaultCategories.categories?.[categoryInfo.category]
     return {
       category: categoryInfo.category,
-      subcategory: categoryInfo.category,
+      subcategory: categoryInfo.subcategory ?? categoryInfo.category,
       confidence: categoryInfo.confidence,
       method: categoryInfo.method,
       requiresReview: categoryInfo.requiresReview,
