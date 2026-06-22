@@ -5,6 +5,7 @@ import {
   ArrowUpRight,
   Receipt,
   TrendingDown,
+  Wallet,
 } from 'lucide-react'
 import {
   Bar,
@@ -23,6 +24,10 @@ import {
   ChartCardToolbar,
   type ChartCardView,
 } from '@/features/expenses/components/analytics/chart-card-toolbar'
+import {
+  ChartWithSideLegend,
+  type ChartLegendItem,
+} from '@/features/expenses/components/analytics/chart-with-side-legend'
 import { topNWithOther } from '@/features/expenses/components/analytics/chart-data-utils'
 import { DaySpendExplorerSection } from '@/features/expenses/components/analytics/day-spend-explorer-section'
 import { SpendHeatmapCalendar } from '@/features/expenses/components/analytics/spend-heatmap-calendar'
@@ -35,6 +40,7 @@ import {
 } from '@/features/expenses/components/analytics/analytics-utils'
 import { buildExpensesDrillDownUrl } from '@/features/expenses/lib/build-expenses-drill-down-url'
 import { periodLabel } from '@/features/expenses/lib/period-to-date-range'
+import { getPaymentModeMeta } from '@/features/expenses/lib/payment-mode-meta'
 import type { MetricTrendPoint } from '@/lib/metric-trends'
 import type {
   AnalyticsPeriod,
@@ -58,6 +64,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@workspace/ui/components/ui/chart'
+import { Separator } from '@workspace/ui/components/ui/separator'
 import { Skeleton } from '@workspace/ui/components/ui/skeleton'
 
 interface AnalyticsOverviewTabProps {
@@ -75,6 +82,7 @@ interface AnalyticsOverviewTabProps {
     amount: number
     count: number
     chartColor: string
+    displayLabel?: string
   }>
   modeChartConfig: ChartConfig
   modeLoading: boolean
@@ -297,70 +305,105 @@ export function AnalyticsOverviewTab({
     if (modeView === 'table') {
       return (
         <div className="divide-y">
-          {displayModeData.map((entry) => (
-            <div
-              key={entry.mode}
-              className="flex items-center justify-between py-3"
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="size-3 rounded-full"
-                  style={{ backgroundColor: entry.chartColor }}
-                />
-                <span className="text-sm font-medium capitalize">
-                  {entry.mode === '__other__'
-                    ? 'Other'
-                    : entry.mode.replace(/_/g, ' ')}
+          {displayModeData.map((entry) => {
+            const meta =
+              entry.mode === '__other__' ? null : getPaymentModeMeta(entry.mode)
+            const ModeIcon = meta?.icon
+            return (
+              <div
+                key={entry.mode}
+                className="flex items-center justify-between py-3"
+              >
+                <div className="flex items-center gap-3">
+                  {ModeIcon ? (
+                    <ModeIcon
+                      className="size-4 shrink-0"
+                      style={{ color: entry.chartColor }}
+                    />
+                  ) : (
+                    <div
+                      className="size-3 rounded-full"
+                      style={{ backgroundColor: entry.chartColor }}
+                    />
+                  )}
+                  <span className="text-sm font-medium capitalize">
+                    {entry.mode === '__other__'
+                      ? 'Other'
+                      : (entry.displayLabel ??
+                        meta?.label ??
+                        entry.mode.replace(/_/g, ' '))}
+                  </span>
+                </div>
+                <span className="text-sm font-semibold tabular-nums">
+                  {fmtCurrency(entry.amount)}
                 </span>
               </div>
-              <span className="text-sm font-semibold tabular-nums">
-                {fmtCurrency(entry.amount)}
-              </span>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )
     }
 
+    const modeLegendItems: ChartLegendItem[] = displayModeData.map((entry) => {
+      const meta =
+        entry.mode === '__other__' ? null : getPaymentModeMeta(entry.mode)
+      const ModeIcon = meta?.icon
+      return {
+        key: entry.mode,
+        label:
+          entry.mode === '__other__'
+            ? 'Other'
+            : (entry.displayLabel ??
+              meta?.label ??
+              entry.mode.replace(/_/g, ' ')),
+        amount: entry.amount,
+        color: entry.chartColor,
+        icon: ModeIcon ? (
+          <ModeIcon className="size-3.5" style={{ color: entry.chartColor }} />
+        ) : undefined,
+      }
+    })
+
     return (
-      <ChartContainer
-        config={modeChartConfig}
-        chartType="pie"
-        className="mx-auto aspect-square h-65"
-      >
-        <PieChart>
-          <ChartTooltip
-            wrapperStyle={{ zIndex: 100 }}
-            content={
-              <ChartTooltipContent
-                formatter={(value, name) => (
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-muted-foreground">
-                      {String(name).replace(/_/g, ' ')}
-                    </span>
-                    <span className="font-mono font-medium tabular-nums">
-                      {fmtCurrency(Number(value))}
-                    </span>
-                  </div>
-                )}
-              />
-            }
-          />
-          <Pie
-            data={displayModeData}
-            dataKey="amount"
-            nameKey="mode"
-            innerRadius={55}
-            outerRadius={100}
-            paddingAngle={2}
-          >
-            {displayModeData.map((entry) => (
-              <Cell key={entry.mode} fill={entry.chartColor} />
-            ))}
-          </Pie>
-          <ChartLegend content={<ChartLegendContent nameKey="mode" />} />
-        </PieChart>
-      </ChartContainer>
+      <ChartWithSideLegend items={modeLegendItems} chartClassName="max-w-56">
+        <ChartContainer
+          config={modeChartConfig}
+          chartType="pie"
+          className="mx-auto aspect-square h-56 w-full"
+        >
+          <PieChart>
+            <ChartTooltip
+              wrapperStyle={{ zIndex: 100 }}
+              content={
+                <ChartTooltipContent
+                  formatter={(value, name) => (
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">
+                        {String(name).replace(/_/g, ' ')}
+                      </span>
+                      <span className="font-mono font-medium tabular-nums">
+                        {fmtCurrency(Number(value))}
+                      </span>
+                    </div>
+                  )}
+                />
+              }
+            />
+            <Pie
+              data={displayModeData}
+              dataKey="amount"
+              nameKey="mode"
+              innerRadius={50}
+              outerRadius={88}
+              paddingAngle={2}
+            >
+              {displayModeData.map((entry) => (
+                <Cell key={entry.mode} fill={entry.chartColor} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ChartContainer>
+      </ChartWithSideLegend>
     )
   }
 
@@ -450,9 +493,12 @@ export function AnalyticsOverviewTab({
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <CardTitle className="text-base">Payment Modes</CardTitle>
-                <CardDescription>How you pay</CardDescription>
+              <div className="flex items-center gap-2">
+                <Wallet className="size-4 text-muted-foreground" />
+                <div>
+                  <CardTitle className="text-base">Payment Modes</CardTitle>
+                  <CardDescription>How you pay</CardDescription>
+                </div>
               </div>
               <ChartCardToolbar
                 view={modeView}
@@ -463,6 +509,7 @@ export function AnalyticsOverviewTab({
                 onTopNChange={setModeTopN}
               />
             </div>
+            <Separator className="w-full mt-2" />
           </CardHeader>
           <CardContent>{renderModeContent()}</CardContent>
         </Card>

@@ -1,3 +1,4 @@
+import { Tags } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
 
 import { CategoryBreakdownCard } from '@/features/expenses/components/analytics/category-breakdown-card'
@@ -20,6 +21,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@workspace/ui/components/ui/chart'
+import { Separator } from '@workspace/ui/components/ui/separator'
 import { Skeleton } from '@workspace/ui/components/ui/skeleton'
 
 type CategoryChartItem = {
@@ -61,7 +63,7 @@ export function AnalyticsCategoriesTab({
   subcategoryLoading,
 }: AnalyticsCategoriesTabProps) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="grid gap-6 xl:grid-cols-2">
       <CategoryBreakdownCard
         data={categoryChartData}
         chartConfig={categoryChartConfig}
@@ -75,13 +77,19 @@ export function AnalyticsCategoriesTab({
         }
       />
 
-      <Card>
+      <Card className="xl:self-start">
         <CardHeader>
-          <CardTitle className="text-base">By Subcategory</CardTitle>
-          <CardDescription>
-            Finer-grained spend breakdown (investments, transport,
-            subscriptions, etc.)
-          </CardDescription>
+          <div className="flex items-center gap-2">
+            <Tags className="size-4 text-muted-foreground" />
+            <div>
+              <CardTitle className="text-base">By Subcategory</CardTitle>
+              <CardDescription>
+                Finer-grained spend breakdown (investments, transport,
+                subscriptions, etc.)
+              </CardDescription>
+            </div>
+          </div>
+          <Separator className="w-full mt-2" />
         </CardHeader>
         <CardContent>
           {subcategoryLoading ? (

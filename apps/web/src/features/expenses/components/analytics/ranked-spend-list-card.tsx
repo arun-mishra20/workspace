@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
+import { cn } from '@/lib/utils'
 import { Badge } from '@workspace/ui/components/ui/badge'
 import {
   Card,
@@ -19,6 +21,7 @@ interface RankedSpendItem {
   amount: number
   count: number
   href?: string
+  leading?: ReactNode
 }
 
 interface RankedSpendListCardProps {
@@ -60,9 +63,16 @@ export function RankedSpendListCard({
               const pct = maxAmount > 0 ? (item.amount / maxAmount) * 100 : 0
               const rowContent = (
                 <>
-                  <span className="w-5 text-xs text-muted-foreground">
-                    {i + 1}
-                  </span>
+                  {item.leading ?? (
+                    <span
+                      className={cn(
+                        'flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground',
+                        i < 3 && 'bg-primary/10 text-primary',
+                      )}
+                    >
+                      {i + 1}
+                    </span>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between text-sm gap-2">
                       <div className="min-w-0">

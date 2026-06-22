@@ -11,6 +11,10 @@ import {
   fmtCurrency,
   getChartTokenColor,
 } from '@/features/expenses/components/analytics/analytics-utils'
+import {
+  ChartWithSideLegend,
+  type ChartLegendItem,
+} from '@/features/expenses/components/analytics/chart-with-side-legend'
 import { appPaths } from '@/config/app-paths'
 import { buildExpensesDrillDownUrl } from '@/features/expenses/lib/build-expenses-drill-down-url'
 import type {
@@ -89,6 +93,15 @@ export function AnalyticsDataQualityTab({
       item.bucket,
       { label: item.label, color: item.chartColor },
     ]),
+  )
+
+  const confidenceLegendItems: ChartLegendItem[] = confidenceChartData.map(
+    (item) => ({
+      key: item.bucket,
+      label: item.label,
+      amount: item.count,
+      color: item.chartColor,
+    }),
   )
 
   return (
@@ -188,27 +201,32 @@ export function AnalyticsDataQualityTab({
             {healthLoading ? (
               <Skeleton className="mx-auto size-55 rounded-full" />
             ) : confidenceChartData.length > 0 ? (
-              <ChartContainer
-                config={confidenceChartConfig}
-                chartType="pie"
-                className="mx-auto aspect-square h-60"
+              <ChartWithSideLegend
+                items={confidenceLegendItems}
+                formatValue={(value) => String(value)}
               >
-                <PieChart>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Pie
-                    data={confidenceChartData}
-                    dataKey="count"
-                    nameKey="label"
-                    innerRadius={50}
-                    outerRadius={90}
-                    paddingAngle={2}
-                  >
-                    {confidenceChartData.map((entry) => (
-                      <Cell key={entry.bucket} fill={entry.chartColor} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ChartContainer>
+                <ChartContainer
+                  config={confidenceChartConfig}
+                  chartType="pie"
+                  className="mx-auto aspect-square h-56 w-full"
+                >
+                  <PieChart>
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Pie
+                      data={confidenceChartData}
+                      dataKey="count"
+                      nameKey="label"
+                      innerRadius={50}
+                      outerRadius={88}
+                      paddingAngle={2}
+                    >
+                      {confidenceChartData.map((entry) => (
+                        <Cell key={entry.bucket} fill={entry.chartColor} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ChartContainer>
+              </ChartWithSideLegend>
             ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">No data.</p>
             )}

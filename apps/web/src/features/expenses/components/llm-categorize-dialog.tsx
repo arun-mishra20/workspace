@@ -55,6 +55,7 @@ import {
   createCategorizationRule,
 } from '@/features/expenses/api/categorization-rules'
 import { buildRuleSeedFromTransaction } from '@/features/expenses/components/analytics/analytics-rules-tab'
+import { getCategoryMeta } from '@/features/expenses/lib/category-meta'
 import { CATEGORY_OPTIONS } from '@/features/expenses/constants/category-options'
 
 import type { Transaction } from '@workspace/domain'
@@ -73,10 +74,6 @@ interface EditableSuggestion extends LlmCategorizationSuggestion {
   originalCategory: string
   merchantName: string
   amount: number
-}
-
-function getCategoryMeta(value: string) {
-  return CATEGORY_OPTIONS.find((c) => c.value === value)
 }
 
 function getConfidenceLabel(confidence: number) {

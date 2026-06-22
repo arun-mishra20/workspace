@@ -28,11 +28,8 @@ import {
   type MerchantCategoryInfo,
   type BulkCategorizeRequest,
 } from "@/features/expenses/api/bulk-categorize";
+import { getCategoryMeta } from '@/features/expenses/lib/category-meta'
 import { CATEGORY_OPTIONS } from "../constants/category-options";
-
-function getCategoryMeta(value: string) {
-  return CATEGORY_OPTIONS.find((c) => c.value === value);
-}
 
 export function MerchantCategorizeDialog() {
   const queryClient = useQueryClient();

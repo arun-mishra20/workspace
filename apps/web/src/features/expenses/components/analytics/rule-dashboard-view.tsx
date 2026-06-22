@@ -22,6 +22,10 @@ import {
   ChartCardToolbar,
   type ChartCardView,
 } from '@/features/expenses/components/analytics/chart-card-toolbar'
+import {
+  ChartWithSideLegend,
+  type ChartLegendItem,
+} from '@/features/expenses/components/analytics/chart-with-side-legend'
 import { SpendHeatmapCalendar } from '@/features/expenses/components/analytics/spend-heatmap-calendar'
 import { TransactionMetadataBadges } from '@/features/expenses/components/analytics/transaction-metadata-badges'
 import {
@@ -102,6 +106,15 @@ export function RuleDashboardView({
       item.ruleId,
       { label: item.name, color: getChartTokenColor(index) },
     ]),
+  )
+
+  const byRuleLegendItems: ChartLegendItem[] = (analytics?.byRule ?? []).map(
+    (item, index) => ({
+      key: item.ruleId,
+      label: item.name,
+      amount: item.amount,
+      color: getChartTokenColor(index),
+    }),
   )
 
   return (
@@ -276,39 +289,44 @@ export function RuleDashboardView({
               <Skeleton className="h-56 w-full" />
             ) : (analytics?.byRule.length ?? 0) > 0 ? (
               byRuleView === 'radial' ? (
-                <ChartContainer config={byRuleChartConfig} className="h-56 w-full">
-                  <RadialBarChart
-                    cx="50%"
-                    cy="50%"
-                    innerRadius="15%"
-                    outerRadius="90%"
-                    data={analytics!.byRule.map((item, index) => ({
-                      ...item,
-                      label: item.name,
-                      fill: getChartTokenColor(index),
-                    }))}
-                    startAngle={90}
-                    endAngle={-270}
+                <ChartWithSideLegend items={byRuleLegendItems}>
+                  <ChartContainer
+                    config={byRuleChartConfig}
+                    className="mx-auto aspect-square h-56 w-full"
                   >
-                    <ChartTooltip
-                      content={
-                        <ChartTooltipContent
-                          formatter={(value, _name, item) => (
-                            <div className="flex items-center justify-between gap-4">
-                              <span className="text-muted-foreground">
-                                {item.payload?.name ?? item.name}
-                              </span>
-                              <span className="font-mono font-medium tabular-nums">
-                                {fmtCurrency(Number(value))}
-                              </span>
-                            </div>
-                          )}
-                        />
-                      }
-                    />
-                    <RadialBar dataKey="amount" background cornerRadius={4} />
-                  </RadialBarChart>
-                </ChartContainer>
+                    <RadialBarChart
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="15%"
+                      outerRadius="90%"
+                      data={analytics!.byRule.map((item, index) => ({
+                        ...item,
+                        label: item.name,
+                        fill: getChartTokenColor(index),
+                      }))}
+                      startAngle={90}
+                      endAngle={-270}
+                    >
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            formatter={(value, _name, item) => (
+                              <div className="flex items-center justify-between gap-4">
+                                <span className="text-muted-foreground">
+                                  {item.payload?.name ?? item.name}
+                                </span>
+                                <span className="font-mono font-medium tabular-nums">
+                                  {fmtCurrency(Number(value))}
+                                </span>
+                              </div>
+                            )}
+                          />
+                        }
+                      />
+                      <RadialBar dataKey="amount" background cornerRadius={4} />
+                    </RadialBarChart>
+                  </ChartContainer>
+                </ChartWithSideLegend>
               ) : (
                 <ChartContainer config={byRuleChartConfig} className="h-56 w-full">
                   <BarChart

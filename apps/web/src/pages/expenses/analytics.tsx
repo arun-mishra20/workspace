@@ -55,8 +55,20 @@ import {
   isAnalyticsTab,
   type AnalyticsTab,
 } from '@/features/expenses/components/analytics/analytics-utils'
+import { createCategoryChartIcon } from '@/features/expenses/components/category-icon'
+import {
+  getCategoryColor,
+  getSubcategoryParentCategory,
+} from '@/features/expenses/lib/category-meta'
+import {
+  getPaymentModeLabel,
+  getPaymentModeMeta,
+} from '@/features/expenses/lib/payment-mode-meta'
 import { useSyncJob } from '@/features/expenses/hooks/use-sync-job'
-import { periodLabel, periodToDateRange } from '@/features/expenses/lib/period-to-date-range'
+import {
+  periodLabel,
+  periodToDateRange,
+} from '@/features/expenses/lib/period-to-date-range'
 import { takeLastMetricTrendPoints } from '@/lib/metric-trends'
 
 import type { AnalyticsPeriod } from '@workspace/domain'
@@ -85,7 +97,9 @@ const AnalyticsPage = () => {
     : undefined
 
   const dashboardPeriodParam = searchParams.get('dashboardPeriod')
-  const dashboardPeriod: AnalyticsPeriod = isAnalyticsPeriod(dashboardPeriodParam)
+  const dashboardPeriod: AnalyticsPeriod = isAnalyticsPeriod(
+    dashboardPeriodParam,
+  )
     ? dashboardPeriodParam
     : 'month'
 
@@ -351,13 +365,25 @@ const AnalyticsPage = () => {
   })
 
   const classificationHealthQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'classification-health', period, selectedCard],
+    queryKey: [
+      'expenses',
+      'analytics',
+      'classification-health',
+      period,
+      selectedCard,
+    ],
     queryFn: () => fetchClassificationHealth(period, cardOptions),
     enabled: isDataQuality,
   })
 
   const spendAnomaliesQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'spend-anomalies', period, selectedCard],
+    queryKey: [
+      'expenses',
+      'analytics',
+      'spend-anomalies',
+      period,
+      selectedCard,
+    ],
     queryFn: () => fetchSpendAnomalies(period, cardOptions),
     enabled: isDataQuality,
   })
@@ -393,7 +419,6 @@ const AnalyticsPage = () => {
     enabled: isOverview && Boolean(selectedDate),
   })
 
-
   const aiPageContext = useMemo(
     () =>
       buildExpensesAnalyticsPageContext({
@@ -420,20 +445,29 @@ const AnalyticsPage = () => {
 
   const categoryChartData = (categoryQ.data ?? []).map((category, index) => ({
     ...category,
-    chartColor: getChartTokenColor(index),
+    chartColor: category.color ?? getCategoryColor(category.category, index),
   }))
 
   const subcategoryChartData = (subcategoryQ.data ?? [])
     .slice(0, 12)
-    .map((item, index) => ({
-      ...item,
-      chartColor: getChartTokenColor(index),
-    }))
+    .map((item, index) => {
+      const parentCategory = getSubcategoryParentCategory(item.subcategory)
+      return {
+        ...item,
+        chartColor: parentCategory
+          ? getCategoryColor(parentCategory, index)
+          : getChartTokenColor(index),
+      }
+    })
 
-  const modeChartData = (modeQ.data ?? []).map((mode, index) => ({
-    ...mode,
-    chartColor: getChartTokenColor(index),
-  }))
+  const modeChartData = (modeQ.data ?? []).map((mode, index) => {
+    const meta = getPaymentModeMeta(mode.mode, index)
+    return {
+      ...mode,
+      chartColor: meta.color,
+      displayLabel: meta.label,
+    }
+  })
 
   const dailyChartConfig: ChartConfig = {
     debited: { label: 'Spent', color: 'var(--color-chart-1)' },
@@ -449,7 +483,11 @@ const AnalyticsPage = () => {
   const categoryChartConfig: ChartConfig = Object.fromEntries(
     categoryChartData.map((c) => [
       c.category,
-      { label: c.displayName, color: c.chartColor },
+      {
+        label: c.displayName,
+        color: c.chartColor,
+        icon: createCategoryChartIcon(c.category),
+      },
     ]),
   )
 
@@ -461,13 +499,17 @@ const AnalyticsPage = () => {
   )
 
   const modeChartConfig: ChartConfig = Object.fromEntries(
-    modeChartData.map((m) => [
-      m.mode,
-      {
-        label: m.mode.replace(/_/g, ' '),
-        color: m.chartColor,
-      },
-    ]),
+    modeChartData.map((m, index) => {
+      const meta = getPaymentModeMeta(m.mode, index)
+      return [
+        m.mode,
+        {
+          label: m.displayLabel ?? getPaymentModeLabel(m.mode),
+          color: m.chartColor,
+          icon: meta.icon,
+        },
+      ]
+    }),
   )
 
   const dayOfWeekConfig: ChartConfig = {
@@ -554,11 +596,11 @@ const AnalyticsPage = () => {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="cards">Cards</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
+              <TabsTrigger value="rules">Rules</TabsTrigger>
+              <TabsTrigger value="dashboards">Dashboards</TabsTrigger>
               <TabsTrigger value="trends">Trends</TabsTrigger>
               <TabsTrigger value="data-quality">Data Quality</TabsTrigger>
-              <TabsTrigger value="rules">Rules</TabsTrigger>
               <TabsTrigger value="patterns">Patterns</TabsTrigger>
-              <TabsTrigger value="dashboards">Dashboards</TabsTrigger>
             </TabsList>
 
             <div className="py-3">

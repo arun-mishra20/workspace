@@ -38,7 +38,7 @@ export function AnalyticsCardsTab({
     : (cardCategories ?? [])
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <SpendingByCardSection
         cards={cards}
         cardSpend={cardSpend}
@@ -66,7 +66,7 @@ export function AnalyticsCardsTab({
             ))}
           </div>
         ) : filteredCategories.length > 0 ? (
-          <CardCategoryBreakdown data={filteredCategories} />
+          <CardCategoryBreakdown data={filteredCategories} cards={cards} />
         ) : (
           <p className="py-8 text-center text-sm text-muted-foreground">
             No card category data.

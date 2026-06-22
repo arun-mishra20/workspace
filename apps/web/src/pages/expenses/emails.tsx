@@ -116,9 +116,7 @@ const TRANSACTION_MODES = [
   'imps',
   'rtgs',
 ] as const
-function getCategoryMeta(value: string) {
-  return CATEGORY_OPTIONS.find((c) => c.value === value)
-}
+import { getCategoryMeta } from '@/features/expenses/lib/category-meta'
 
 const CATEGORY_FILTER_OPTIONS: FilterOption[] = CATEGORY_OPTIONS.map((c) => ({
   value: c.value,
