@@ -18,8 +18,7 @@ import {
   YAxis,
 } from 'recharts'
 
-import { Link } from 'react-router-dom'
-import { appPaths } from '@/config/app-paths'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   ChartCardToolbar,
   type ChartCardView,
@@ -38,7 +37,12 @@ import {
   fmtCompact,
   fmtCurrency,
 } from '@/features/expenses/components/analytics/analytics-utils'
-import { buildExpensesDrillDownUrl } from '@/features/expenses/lib/build-expenses-drill-down-url'
+import { AnalyticsEmptyHint } from '@/features/expenses/components/analytics/analytics-empty-hint'
+import {
+  buildSparsePeriodActions,
+  type AnalyticsFilterActions,
+} from '@/features/expenses/components/analytics/analytics-filter-actions'
+import { useAnalyticsDrillDown } from '@/features/expenses/hooks/use-analytics-drill-down'
 import { periodLabel } from '@/features/expenses/lib/period-to-date-range'
 import { getPaymentModeMeta } from '@/features/expenses/lib/payment-mode-meta'
 import type { MetricTrendPoint } from '@/lib/metric-trends'
@@ -103,6 +107,7 @@ interface AnalyticsOverviewTabProps {
   periodComparisonLoading: boolean
   merchants?: SpendingByMerchantItem[]
   merchantsLoading: boolean
+  filterActions?: AnalyticsFilterActions
 }
 
 export function AnalyticsOverviewTab({
@@ -130,7 +135,10 @@ export function AnalyticsOverviewTab({
   periodComparisonLoading,
   merchants,
   merchantsLoading,
+  filterActions,
 }: AnalyticsOverviewTabProps) {
+  const drillDown = useAnalyticsDrillDown()
+  const navigate = useNavigate()
   const [dailyView, setDailyView] = useState<ChartCardView>('chart')
   const [showDebited, setShowDebited] = useState(true)
   const [showCredited, setShowCredited] = useState(true)
@@ -148,10 +156,10 @@ export function AnalyticsOverviewTab({
     [modeChartData, modeTopN],
   )
 
-  const emptyDailyHint =
-    selectedCardLast4 == null
-      ? 'Try selecting 90 days or 1 year.'
-      : 'Try clearing the card filter or selecting a longer period.'
+  const sparseActions = buildSparsePeriodActions(filterActions ?? {}, {
+    hasCardFilter: selectedCardLast4 != null,
+    period,
+  })
 
   const renderDailyContent = () => {
     if (dailyLoading) {
@@ -160,10 +168,10 @@ export function AnalyticsOverviewTab({
 
     if (dailyData.length === 0) {
       return (
-        <div className="py-12 text-center text-sm text-muted-foreground">
-          <p>No data for this period.</p>
-          <p className="mt-1 text-xs">{emptyDailyHint}</p>
-        </div>
+        <AnalyticsEmptyHint
+          title="No spending data for this period."
+          actions={sparseActions}
+        />
       )
     }
 
@@ -296,11 +304,19 @@ export function AnalyticsOverviewTab({
 
     if (displayModeData.length === 0) {
       return (
-        <p className="py-12 text-center text-sm text-muted-foreground">
-          No mode data.
-        </p>
+        <AnalyticsEmptyHint
+          title="No payment mode data for this period."
+          actions={sparseActions}
+        />
       )
     }
+
+    const modeDrillDown = (mode: string) =>
+      drillDown({
+        period,
+        cardLast4: selectedCardLast4,
+        mode,
+      })
 
     if (modeView === 'table') {
       return (
@@ -309,11 +325,8 @@ export function AnalyticsOverviewTab({
             const meta =
               entry.mode === '__other__' ? null : getPaymentModeMeta(entry.mode)
             const ModeIcon = meta?.icon
-            return (
-              <div
-                key={entry.mode}
-                className="flex items-center justify-between py-3"
-              >
+            const row = (
+              <>
                 <div className="flex items-center gap-3">
                   {ModeIcon ? (
                     <ModeIcon
@@ -337,7 +350,28 @@ export function AnalyticsOverviewTab({
                 <span className="text-sm font-semibold tabular-nums">
                   {fmtCurrency(entry.amount)}
                 </span>
-              </div>
+              </>
+            )
+
+            if (entry.mode === '__other__') {
+              return (
+                <div
+                  key={entry.mode}
+                  className="flex items-center justify-between py-3"
+                >
+                  {row}
+                </div>
+              )
+            }
+
+            return (
+              <Link
+                key={entry.mode}
+                to={modeDrillDown(entry.mode)}
+                className="flex items-center justify-between py-3 transition-colors hover:bg-muted/50"
+              >
+                {row}
+              </Link>
             )
           })}
         </div>
@@ -361,6 +395,8 @@ export function AnalyticsOverviewTab({
         icon: ModeIcon ? (
           <ModeIcon className="size-3.5" style={{ color: entry.chartColor }} />
         ) : undefined,
+        href:
+          entry.mode === '__other__' ? undefined : modeDrillDown(entry.mode),
       }
     })
 
@@ -396,6 +432,13 @@ export function AnalyticsOverviewTab({
               innerRadius={50}
               outerRadius={88}
               paddingAngle={2}
+              cursor="pointer"
+              onClick={(_data, index) => {
+                const entry = displayModeData[index]
+                if (entry && entry.mode !== '__other__') {
+                  void navigate(modeDrillDown(entry.mode))
+                }
+              }}
             >
               {displayModeData.map((entry) => (
                 <Cell key={entry.mode} fill={entry.chartColor} />
@@ -452,7 +495,7 @@ export function AnalyticsOverviewTab({
           footer={
             summary && summary.reviewPending > 0 ? (
               <Link
-                to={`${appPaths.auth.expensesEmails.getHref()}?review=true`}
+                to={drillDown({ period, cardLast4: selectedCardLast4, review: 'true' })}
                 className="text-xs text-primary hover:underline"
               >
                 Open review queue →
@@ -525,7 +568,7 @@ export function AnalyticsOverviewTab({
         receivedTransactions={receivedTransactions}
         loading={daySummaryLoading || dayTransactionsLoading}
         selectedCardLast4={selectedCardLast4}
-        viewAllHref={buildExpensesDrillDownUrl({
+        viewAllHref={drillDown({
           date: selectedDate,
           cardLast4: selectedCardLast4,
         })}
@@ -545,14 +588,15 @@ export function AnalyticsOverviewTab({
           label: m.merchant,
           amount: m.amount,
           count: m.count,
-          href: buildExpensesDrillDownUrl({
+          href: drillDown({
             period,
             cardLast4: selectedCardLast4,
             merchant: m.merchant,
           }),
         }))}
         loading={merchantsLoading}
-        emptyMessage="No merchant data."
+        emptyMessage="No merchant data for this period."
+        emptyActions={sparseActions}
       />
     </div>
   )

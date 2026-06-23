@@ -6,6 +6,7 @@ import {
   Receipt,
   TrendingDown,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import {
   Bar,
   BarChart,
@@ -26,6 +27,7 @@ import {
   ChartWithSideLegend,
   type ChartLegendItem,
 } from '@/features/expenses/components/analytics/chart-with-side-legend'
+import { PeriodComparisonSection } from '@/features/expenses/components/analytics/period-comparison-section'
 import { SpendHeatmapCalendar } from '@/features/expenses/components/analytics/spend-heatmap-calendar'
 import { TransactionMetadataBadges } from '@/features/expenses/components/analytics/transaction-metadata-badges'
 import {
@@ -33,7 +35,12 @@ import {
   fmtCurrency,
   getChartTokenColor,
 } from '@/features/expenses/components/analytics/analytics-utils'
-import type { RuleDashboardAnalytics } from '@workspace/domain'
+import { useAnalyticsDrillDown } from '@/features/expenses/hooks/use-analytics-drill-down'
+import type {
+  AnalyticsPeriod,
+  PeriodComparison,
+  RuleDashboardAnalytics,
+} from '@workspace/domain'
 import { Alert, AlertDescription } from '@workspace/ui/components/ui/alert'
 import { Badge } from '@workspace/ui/components/ui/badge'
 import { Button } from '@workspace/ui/components/ui/button'
@@ -77,6 +84,10 @@ interface RuleDashboardViewProps {
   startDate: string
   endDate: string
   rangeSummary: string
+  selectedCardLast4?: string
+  dashboardPeriod?: AnalyticsPeriod
+  periodComparison?: PeriodComparison
+  periodComparisonLoading?: boolean
   onRefresh: () => void
   onBack: () => void
 }
@@ -91,11 +102,17 @@ export function RuleDashboardView({
   startDate,
   endDate,
   rangeSummary,
+  selectedCardLast4,
+  dashboardPeriod = 'month',
+  periodComparison,
+  periodComparisonLoading = false,
   onRefresh,
   onBack,
 }: RuleDashboardViewProps) {
   const [dailyView, setDailyView] = useState<ChartCardView>('chart')
   const [byRuleView, setByRuleView] = useState<ChartCardView>('chart')
+  const drillDown = useAnalyticsDrillDown()
+  const navigate = useNavigate()
 
   const totalPages = analytics
     ? Math.max(1, Math.ceil(analytics.transactions.total / analytics.transactions.pageSize))
@@ -167,6 +184,14 @@ export function RuleDashboardView({
         <Alert variant="destructive">
           <AlertDescription>Failed to load dashboard analytics.</AlertDescription>
         </Alert>
+      ) : null}
+
+      {periodComparison || periodComparisonLoading ? (
+        <PeriodComparisonSection
+          data={periodComparison}
+          loading={periodComparisonLoading}
+          period={dashboardPeriod}
+        />
       ) : null}
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -257,7 +282,23 @@ export function RuleDashboardView({
                       }
                     />
                     <ChartLegend content={<ChartLegendContent />} />
-                    <Bar dataKey="debited" fill="var(--color-debited)" radius={[4, 4, 0, 0]} />
+                    <Bar
+                      dataKey="debited"
+                      fill="var(--color-debited)"
+                      radius={[4, 4, 0, 0]}
+                      cursor="pointer"
+                      onClick={(data) => {
+                        const payload = data as { date?: string }
+                        if (payload.date) {
+                          void navigate(
+                            drillDown({
+                              date: payload.date,
+                              cardLast4: selectedCardLast4,
+                            }),
+                          )
+                        }
+                      }}
+                    />
                     <Bar dataKey="credited" fill="var(--color-credited)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ChartContainer>

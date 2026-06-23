@@ -2,6 +2,10 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
+import {
+  AnalyticsEmptyHint,
+  type AnalyticsEmptyAction,
+} from '@/features/expenses/components/analytics/analytics-empty-hint'
 import { cn } from '@/lib/utils'
 import { Badge } from '@workspace/ui/components/ui/badge'
 import {
@@ -30,6 +34,7 @@ interface RankedSpendListCardProps {
   items: RankedSpendItem[]
   loading: boolean
   emptyMessage?: string
+  emptyActions?: AnalyticsEmptyAction[]
   barColor?: string
 }
 
@@ -39,6 +44,7 @@ export function RankedSpendListCard({
   items,
   loading,
   emptyMessage = 'No data.',
+  emptyActions,
   barColor = 'bg-primary/70',
 }: RankedSpendListCardProps) {
   const maxAmount = items[0]?.amount ?? 0
@@ -125,9 +131,10 @@ export function RankedSpendListCard({
             })}
           </div>
         ) : (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            {emptyMessage}
-          </p>
+          <AnalyticsEmptyHint
+            title={emptyMessage}
+            actions={emptyActions}
+          />
         )}
       </CardContent>
     </Card>

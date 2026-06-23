@@ -172,6 +172,8 @@ export class ExpensesController {
       userId: req.user.id,
       limit: page_size,
       offset,
+      sortBy: query.sort_by,
+      sortOrder: query.sort_order,
     })
 
     return {
@@ -201,12 +203,18 @@ export class ExpensesController {
 
     const filters: Record<string, unknown> = {}
     if (query.category) filters.category = query.category
+    if (query.subcategory) filters.subcategory = query.subcategory
     if (query.mode) filters.mode = query.mode
+    if (query.categorization_method) {
+      filters.categorizationMethod = query.categorization_method
+    }
     if (query.review !== undefined) filters.requiresReview = query.review === 'true'
     if (query.date_from) filters.dateFrom = new Date(query.date_from)
     if (query.date_to) filters.dateTo = new Date(query.date_to)
     if (query.search) filters.search = query.search
     if (query.card_last4) filters.cardLast4 = query.card_last4
+    if (query.sort_by) filters.sortBy = query.sort_by
+    if (query.sort_order) filters.sortOrder = query.sort_order
 
     const { data, total } = await this.expensesService.listExpenses({
       userId: req.user.id,
@@ -238,12 +246,18 @@ export class ExpensesController {
   ): Promise<ListResponseDto<Transaction>> {
     const filters: Record<string, unknown> = {}
     if (query.category) filters.category = query.category
+    if (query.subcategory) filters.subcategory = query.subcategory
     if (query.mode) filters.mode = query.mode
+    if (query.categorization_method) {
+      filters.categorizationMethod = query.categorization_method
+    }
     if (query.review !== undefined) filters.requiresReview = query.review === 'true'
     if (query.from) filters.dateFrom = new Date(query.from)
     if (query.to) filters.dateTo = new Date(query.to)
     if (query.search) filters.search = query.search
     if (query.card_last4) filters.cardLast4 = query.card_last4
+    if (query.sort_by) filters.sortBy = query.sort_by
+    if (query.sort_order) filters.sortOrder = query.sort_order
 
     const { data, nextCursor, hasMore } = await this.expensesService.listExpensesCursor({
       userId: req.user.id,

@@ -30,13 +30,32 @@ export interface DateRange {
 
 export interface TransactionFilters {
   category?: string
+  subcategory?: string
   mode?: string
+  categorizationMethod?: string
   requiresReview?: boolean
   dateFrom?: Date
   dateTo?: Date
   search?: string
   cardLast4?: string
+  sortBy?: TransactionSortField
+  sortOrder?: SortOrder
 }
+
+export const TRANSACTION_SORT_FIELDS = [
+  'transactionDate',
+  'merchant',
+  'amount',
+  'category',
+  'subcategory',
+  'transactionMode',
+  'categorizationMethod',
+  'confidence',
+  'requiresReview',
+] as const
+
+export type TransactionSortField = (typeof TRANSACTION_SORT_FIELDS)[number]
+export type SortOrder = 'asc' | 'desc'
 
 /**
  * Transaction Repository interface

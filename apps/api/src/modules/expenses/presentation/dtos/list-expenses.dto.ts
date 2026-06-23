@@ -1,5 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger'
-import { IsOptional, IsString, IsEnum, IsDateString, MaxLength, Matches } from 'class-validator'
+import { IsOptional, IsString, IsEnum, IsDateString, MaxLength, Matches, IsIn } from 'class-validator'
+
+import { TRANSACTION_SORT_FIELDS } from '@/modules/expenses/application/ports/transaction.repository.port'
 
 import { OffsetPaginationDto } from '@/shared/infrastructure/dtos/offset-pagination.dto'
 
@@ -18,6 +20,12 @@ export class ListExpensesDto extends OffsetPaginationDto {
   @IsOptional()
   category?: string
 
+  @ApiPropertyOptional({ description: 'Filter by subcategory slug' })
+  @IsString()
+  @MaxLength(100)
+  @IsOptional()
+  subcategory?: string
+
   @ApiPropertyOptional({
     description: 'Filter by transaction mode',
     enum: transactionModes,
@@ -25,6 +33,14 @@ export class ListExpensesDto extends OffsetPaginationDto {
   @IsEnum(transactionModes)
   @IsOptional()
   mode?: (typeof transactionModes)[number]
+
+  @ApiPropertyOptional({
+    description: 'Filter by categorization method (e.g. default, manual, merchant_rule)',
+  })
+  @IsString()
+  @MaxLength(50)
+  @IsOptional()
+  categorization_method?: string
 
   @ApiPropertyOptional({
     description: 'Filter by review state (\'true\' = needs review, \'false\' = reviewed)',
@@ -54,4 +70,28 @@ export class ListExpensesDto extends OffsetPaginationDto {
   @Matches(/^\d{4}$/)
   @IsOptional()
   card_last4?: string
+
+  @ApiPropertyOptional({
+    description: 'Sort field',
+    enum: [
+      'transactionDate',
+      'merchant',
+      'amount',
+      'category',
+      'subcategory',
+      'transactionMode',
+      'categorizationMethod',
+      'confidence',
+      'requiresReview',
+    ],
+  })
+  @IsString()
+  @IsOptional()
+  @IsIn(TRANSACTION_SORT_FIELDS)
+  sort_by?: string
+
+  @ApiPropertyOptional({ description: 'Sort direction', enum: ['asc', 'desc'] })
+  @IsString()
+  @IsOptional()
+  sort_order?: 'asc' | 'desc'
 }

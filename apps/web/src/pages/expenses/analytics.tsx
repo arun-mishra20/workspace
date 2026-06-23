@@ -34,6 +34,7 @@ import {
   fetchClassificationHealth,
   fetchSpendAnomalies,
 } from '@/features/expenses/api/classification-health'
+import type { AnalyticsFilterActions } from '@/features/expenses/components/analytics/analytics-filter-actions'
 import { AnalyticsCardsTab } from '@/features/expenses/components/analytics/analytics-cards-tab'
 import { AnalyticsCategoriesTab } from '@/features/expenses/components/analytics/analytics-categories-tab'
 import { AnalyticsDataQualityTab } from '@/features/expenses/components/analytics/analytics-data-quality-tab'
@@ -140,9 +141,24 @@ const AnalyticsPage = () => {
     dashboardStartDate,
   ])
 
-  const [selectedDate, setSelectedDate] = useState(() =>
-    format(new Date(), 'yyyy-MM-dd'),
-  )
+  const today = format(new Date(), 'yyyy-MM-dd')
+  const selectedDate = searchParams.get('date') ?? today
+
+  const handleSelectedDateChange = (date: string) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (date === today) {
+          next.delete('date')
+        } else {
+          next.set('date', date)
+        }
+        return next
+      },
+      { replace: true },
+    )
+  }
+
   const [ruleSeed, setRuleSeed] = useState<RuleEditorSeed | null>(null)
   const queryClient = useQueryClient()
 
@@ -238,6 +254,16 @@ const AnalyticsPage = () => {
   const isCategories = activeTab === 'categories'
   const isTrends = activeTab === 'trends'
   const isDataQuality = activeTab === 'data-quality'
+  const isDashboards = activeTab === 'dashboards'
+
+  const comparisonPeriod =
+    isDashboards && !dashboardRangeCustom ? dashboardPeriod : period
+
+  const filterActions: AnalyticsFilterActions = {
+    onWidenPeriod: handlePeriodChange,
+    onClearCard: () => handleCardSelect(undefined),
+    onOpenTab: handleTabChange,
+  }
 
   const creditCardsQ = useQuery({
     queryKey: ['expenses', 'credit-cards'],
@@ -309,11 +335,15 @@ const AnalyticsPage = () => {
       'expenses',
       'analytics',
       'period-comparison',
-      period,
+      comparisonPeriod,
       selectedCard,
     ],
-    queryFn: () => fetchPeriodComparison(period, cardOptions),
-    enabled: isOverview,
+    queryFn: () => fetchPeriodComparison(comparisonPeriod, cardOptions),
+    enabled:
+      isOverview ||
+      isTrends ||
+      isCategories ||
+      (isDashboards && !dashboardRangeCustom),
   })
 
   const cumulativeQ = useQuery({
@@ -493,7 +523,7 @@ const AnalyticsPage = () => {
 
   const subcategoryChartConfig: ChartConfig = Object.fromEntries(
     subcategoryChartData.map((item) => [
-      item.subcategory,
+      `${item.category}:${item.subcategory}`,
       { label: item.displayName, color: item.chartColor },
     ]),
   )
@@ -637,7 +667,8 @@ const AnalyticsPage = () => {
                 modeChartConfig={modeChartConfig}
                 modeLoading={modeQ.isLoading}
                 selectedDate={selectedDate}
-                onSelectedDateChange={setSelectedDate}
+                onSelectedDateChange={handleSelectedDateChange}
+                filterActions={filterActions}
                 daySummary={daySummaryQ.data}
                 daySummaryLoading={daySummaryQ.isLoading}
                 transactionsTotal={dayTransactionsQ.data?.total ?? 0}
@@ -673,6 +704,9 @@ const AnalyticsPage = () => {
                 subcategoryChartData={subcategoryChartData}
                 subcategoryChartConfig={subcategoryChartConfig}
                 subcategoryLoading={subcategoryQ.isLoading}
+                periodComparison={periodComparisonQ.data}
+                periodComparisonLoading={periodComparisonQ.isLoading}
+                filterActions={filterActions}
               />
             </TabsContent>
 
@@ -703,6 +737,9 @@ const AnalyticsPage = () => {
                 topVpasLoading={topVpasQ.isLoading}
                 largestTransactions={largestQ.data}
                 largestLoading={largestQ.isLoading}
+                periodComparison={periodComparisonQ.data}
+                periodComparisonLoading={periodComparisonQ.isLoading}
+                filterActions={filterActions}
               />
             </TabsContent>
 
@@ -714,6 +751,7 @@ const AnalyticsPage = () => {
                 healthLoading={classificationHealthQ.isLoading}
                 anomalies={spendAnomaliesQ.data}
                 anomaliesLoading={spendAnomaliesQ.isLoading}
+                filterActions={filterActions}
                 onCreateRuleForMerchant={(merchant) =>
                   openRulesTabWithSeed(buildRuleSeedFromMerchant(merchant))
                 }
@@ -737,6 +775,10 @@ const AnalyticsPage = () => {
                 startDate={effectiveDashboardRange.startDate}
                 endDate={effectiveDashboardRange.endDate}
                 rangeSummary={dashboardRangeSummary}
+                dashboardPeriod={dashboardPeriod}
+                dashboardRangeCustom={dashboardRangeCustom}
+                periodComparison={periodComparisonQ.data}
+                periodComparisonLoading={periodComparisonQ.isLoading}
               />
             </TabsContent>
           </AnalyticsQueryBoundary>

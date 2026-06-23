@@ -12,7 +12,12 @@ import { RuleDashboardBuilder } from '@/features/expenses/components/analytics/r
 import { RuleDashboardView } from '@/features/expenses/components/analytics/rule-dashboard-view'
 import { SavedDashboardsList } from '@/features/expenses/components/analytics/saved-dashboards-list'
 import { periodToDateRange } from '@/features/expenses/lib/period-to-date-range'
-import type { DashboardInlineRule, RuleDashboardListItem } from '@workspace/domain'
+import type {
+  AnalyticsPeriod,
+  DashboardInlineRule,
+  PeriodComparison,
+  RuleDashboardListItem,
+} from '@workspace/domain'
 
 type DashboardMode = 'library' | 'view'
 
@@ -21,6 +26,10 @@ interface AnalyticsDashboardsTabProps {
   startDate: string
   endDate: string
   rangeSummary: string
+  dashboardPeriod: AnalyticsPeriod
+  dashboardRangeCustom: boolean
+  periodComparison?: PeriodComparison
+  periodComparisonLoading: boolean
 }
 
 export function AnalyticsDashboardsTab({
@@ -28,6 +37,10 @@ export function AnalyticsDashboardsTab({
   startDate,
   endDate,
   rangeSummary,
+  dashboardPeriod,
+  dashboardRangeCustom,
+  periodComparison,
+  periodComparisonLoading,
 }: AnalyticsDashboardsTabProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const builderRef = useRef<HTMLDivElement>(null)
@@ -217,6 +230,12 @@ export function AnalyticsDashboardsTab({
         startDate={startDate}
         endDate={endDate}
         rangeSummary={rangeSummary}
+        selectedCardLast4={selectedCardLast4}
+        dashboardPeriod={dashboardPeriod}
+        periodComparison={
+          dashboardRangeCustom ? undefined : periodComparison
+        }
+        periodComparisonLoading={periodComparisonLoading}
         onRefresh={() => void analyticsQ.refetch()}
         onBack={backToLibrary}
       />

@@ -42,7 +42,7 @@ import type { MerchantCategoryRuleRepository } from '@/modules/expenses/applicat
 import type { StatementRepository } from '@/modules/expenses/application/ports/statement.repository.port'
 import type { TransactionRepository, TransactionFilters, DateRange } from '@/modules/expenses/application/ports/transaction.repository.port'
 import type { UserCategorizationRules } from '@/modules/expenses/infrastructure/categorization/transaction-categorizer'
-import type {RawEmailRepository} from '@/shared/application/ports/raw-email.repository.port';
+import type {RawEmailRepository, EmailSortField} from '@/shared/application/ports/raw-email.repository.port';
 import type {SyncJobRepository} from '@/shared/application/ports/sync-job.repository.port';
 import type {OnModuleDestroy} from '@nestjs/common';
 import type {
@@ -523,9 +523,18 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string
     limit: number
     offset: number
+    sortBy?: EmailSortField
+    sortOrder?: 'asc' | 'desc'
   }): Promise<{ data: RawEmail[], total: number }> {
     const [data, total] = await Promise.all([
-      this.rawEmailRepository.listByUser({ ...params, category: EXPENSE_CATEGORY }),
+      this.rawEmailRepository.listByUser({
+        userId: params.userId,
+        limit: params.limit,
+        offset: params.offset,
+        category: EXPENSE_CATEGORY,
+        sortBy: params.sortBy,
+        sortOrder: params.sortOrder,
+      }),
       this.rawEmailRepository.countByUser(params.userId, EXPENSE_CATEGORY),
     ])
     return { data, total }

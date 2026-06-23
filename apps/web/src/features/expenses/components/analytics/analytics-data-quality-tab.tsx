@@ -15,8 +15,12 @@ import {
   ChartWithSideLegend,
   type ChartLegendItem,
 } from '@/features/expenses/components/analytics/chart-with-side-legend'
-import { appPaths } from '@/config/app-paths'
-import { buildExpensesDrillDownUrl } from '@/features/expenses/lib/build-expenses-drill-down-url'
+import { AnalyticsEmptyHint } from '@/features/expenses/components/analytics/analytics-empty-hint'
+import {
+  buildSparsePeriodActions,
+  type AnalyticsFilterActions,
+} from '@/features/expenses/components/analytics/analytics-filter-actions'
+import { useAnalyticsDrillDown } from '@/features/expenses/hooks/use-analytics-drill-down'
 import type {
   AnalyticsPeriod,
   ClassificationHealth,
@@ -54,6 +58,7 @@ interface AnalyticsDataQualityTabProps {
   healthLoading: boolean
   anomalies?: SpendAnomalies
   anomaliesLoading: boolean
+  filterActions?: AnalyticsFilterActions
   onCreateRuleForMerchant?: (merchant: string) => void
 }
 
@@ -64,9 +69,27 @@ export function AnalyticsDataQualityTab({
   healthLoading,
   anomalies,
   anomaliesLoading,
+  filterActions,
   onCreateRuleForMerchant,
 }: AnalyticsDataQualityTabProps) {
-  const reviewHref = `${appPaths.auth.expensesEmails.getHref()}?review=true`
+  const drillDown = useAnalyticsDrillDown()
+
+  const sparseActions = buildSparsePeriodActions(filterActions ?? {}, {
+    hasCardFilter: selectedCardLast4 != null,
+    period,
+  })
+
+  const reviewHref = drillDown({
+    period,
+    cardLast4: selectedCardLast4,
+    review: 'true',
+  })
+
+  const uncategorizedHref = drillDown({
+    period,
+    cardLast4: selectedCardLast4,
+    category: 'uncategorized',
+  })
 
   const methodChartData = (health?.byMethod ?? []).map((item, index) => ({
     ...item,
@@ -131,10 +154,16 @@ export function AnalyticsDataQualityTab({
               {healthLoading ? '—' : health?.uncategorizedCount ?? 0}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <p className="text-xs text-muted-foreground">
               of {health?.totalTransactions ?? 0} transactions this period
             </p>
+            <Button variant="outline" size="sm" asChild>
+              <Link to={uncategorizedHref}>
+                View uncategorized
+                <ExternalLink className="ml-1.5 size-3.5" />
+              </Link>
+            </Button>
           </CardContent>
         </Card>
 
@@ -266,10 +295,11 @@ export function AnalyticsDataQualityTab({
                       <div className="flex justify-end gap-2">
                         <Button variant="ghost" size="sm" asChild>
                           <Link
-                            to={buildExpensesDrillDownUrl({
+                            to={drillDown({
                               period,
                               cardLast4: selectedCardLast4,
                               merchant: row.merchant,
+                              category: 'uncategorized',
                             })}
                           >
                             View
@@ -291,9 +321,10 @@ export function AnalyticsDataQualityTab({
               </TableBody>
             </Table>
           ) : (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              No uncategorized merchants in this period.
-            </p>
+            <AnalyticsEmptyHint
+              title="No uncategorized merchants in this period."
+              actions={sparseActions}
+            />
           )}
         </CardContent>
       </Card>

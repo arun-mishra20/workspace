@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Layers } from 'lucide-react'
 import {
   Cell,
@@ -19,6 +19,7 @@ import {
   type ChartLegendItem,
 } from '@/features/expenses/components/analytics/chart-with-side-legend'
 import { topNWithOther } from '@/features/expenses/components/analytics/chart-data-utils'
+import { AnalyticsEmptyHint, type AnalyticsEmptyAction } from '@/features/expenses/components/analytics/analytics-empty-hint'
 import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
 import { CategoryIcon } from '@/features/expenses/components/category-icon'
 import { Badge } from '@workspace/ui/components/ui/badge'
@@ -52,6 +53,7 @@ interface CategoryBreakdownCardProps {
   chartConfig: ChartConfig
   loading: boolean
   getCategoryHref?: (category: string) => string
+  emptyActions?: AnalyticsEmptyAction[]
 }
 
 export function CategoryBreakdownCard({
@@ -59,7 +61,9 @@ export function CategoryBreakdownCard({
   chartConfig,
   loading,
   getCategoryHref,
+  emptyActions,
 }: CategoryBreakdownCardProps) {
+  const navigate = useNavigate()
   const [view, setView] = useState<ChartCardView>('chart')
   const [topN, setTopN] = useState(6)
 
@@ -95,6 +99,13 @@ export function CategoryBreakdownCard({
     [displayData, getCategoryHref],
   )
 
+  const handleCategoryClick = (category: string) => {
+    const href = getCategoryHref?.(category)
+    if (href) {
+      void navigate(href)
+    }
+  }
+
   if (loading) {
     return (
       <Card>
@@ -116,9 +127,10 @@ export function CategoryBreakdownCard({
           <CardDescription>Where your money goes</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="py-12 text-center text-sm text-muted-foreground">
-            No category data for this period.
-          </p>
+          <AnalyticsEmptyHint
+            title="No category data for this period."
+            actions={emptyActions}
+          />
         </CardContent>
       </Card>
     )
@@ -209,6 +221,7 @@ export function CategoryBreakdownCard({
             <Treemap
               data={displayData.map((item) => ({
                 name: item.displayName,
+                category: item.category,
                 size: item.amount,
                 fill: item.chartColor,
               }))}
@@ -216,6 +229,12 @@ export function CategoryBreakdownCard({
               nameKey="name"
               aspectRatio={4 / 3}
               stroke="var(--color-border)"
+              onClick={(node) => {
+                const category = node?.category as string | undefined
+                if (category && category !== '__other__') {
+                  handleCategoryClick(category)
+                }
+              }}
             >
               <ChartTooltip
                 wrapperStyle={{ zIndex: 100 }}
@@ -308,6 +327,13 @@ export function CategoryBreakdownCard({
                   innerRadius={60}
                   outerRadius={100}
                   paddingAngle={2}
+                  cursor="pointer"
+                  onClick={(_data, index) => {
+                    const entry = displayData[index]
+                    if (entry && entry.category !== '__other__') {
+                      handleCategoryClick(entry.category)
+                    }
+                  }}
                 >
                   {displayData.map((entry) => (
                     <Cell key={entry.category} fill={entry.chartColor} />

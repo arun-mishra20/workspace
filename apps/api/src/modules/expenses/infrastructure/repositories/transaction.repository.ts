@@ -7,7 +7,7 @@ import {
   transactionsTable,
 
 } from '@workspace/database'
-import { and, desc, eq, gte, ilike, inArray, lt, lte, ne, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, ilike, inArray, lt, lte, ne, or, sql } from 'drizzle-orm'
 
 import { buildAnalyticsRangeWhere } from '@/modules/expenses/infrastructure/repositories/analytics-range-query'
 import { DB_TOKEN } from '@/shared/infrastructure/db/db.port'
@@ -16,6 +16,7 @@ import { decodeCursor, encodeCursor } from '@/shared/infrastructure/utils/cursor
 import type {
   TransactionRepository,
   TransactionFilters,
+  TransactionSortField,
   DateRange,
 } from '@/modules/expenses/application/ports/transaction.repository.port'
 import type { DrizzleDb } from '@/shared/infrastructure/db/db.port'
@@ -312,8 +313,16 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     if (filters?.category) {
       conditions.push(eq(transactionsTable.category, filters.category))
     }
+    if (filters?.subcategory) {
+      conditions.push(eq(transactionsTable.subcategory, filters.subcategory))
+    }
     if (filters?.mode) {
       conditions.push(eq(transactionsTable.transactionMode, filters.mode))
+    }
+    if (filters?.categorizationMethod) {
+      conditions.push(
+        eq(transactionsTable.categorizationMethod, filters.categorizationMethod),
+      )
     }
     if (filters?.requiresReview !== undefined) {
       conditions.push(eq(transactionsTable.requiresReview, filters.requiresReview))
@@ -337,6 +346,28 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     return and(...conditions)
   }
 
+  private resolveTransactionOrderBy(filters?: TransactionFilters) {
+    const sortBy: TransactionSortField = filters?.sortBy ?? 'transactionDate'
+    const sortOrder = filters?.sortOrder ?? 'desc'
+
+    const columns = {
+      transactionDate: transactionsTable.transactionDate,
+      merchant: transactionsTable.merchant,
+      amount: transactionsTable.amount,
+      category: transactionsTable.category,
+      subcategory: transactionsTable.subcategory,
+      transactionMode: transactionsTable.transactionMode,
+      categorizationMethod: transactionsTable.categorizationMethod,
+      confidence: transactionsTable.confidence,
+      requiresReview: transactionsTable.requiresReview,
+    } as const
+
+    const column = columns[sortBy] ?? transactionsTable.transactionDate
+    const direction = sortOrder === 'asc' ? asc : desc
+
+    return [direction(column), desc(transactionsTable.id)] as const
+  }
+
   async listByUser(params: {
     userId: string
     limit: number
@@ -349,7 +380,7 @@ export class TransactionRepositoryImpl implements TransactionRepository {
       .select()
       .from(transactionsTable)
       .where(where)
-      .orderBy(desc(transactionsTable.transactionDate))
+      .orderBy(...this.resolveTransactionOrderBy(params.filters))
       .limit(params.limit)
       .offset(params.offset)
 
@@ -416,8 +447,16 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     if (filters?.category) {
       conditions.push(eq(transactionsTable.category, filters.category))
     }
+    if (filters?.subcategory) {
+      conditions.push(eq(transactionsTable.subcategory, filters.subcategory))
+    }
     if (filters?.mode) {
       conditions.push(eq(transactionsTable.transactionMode, filters.mode))
+    }
+    if (filters?.categorizationMethod) {
+      conditions.push(
+        eq(transactionsTable.categorizationMethod, filters.categorizationMethod),
+      )
     }
     if (filters?.requiresReview !== undefined) {
       conditions.push(eq(transactionsTable.requiresReview, filters.requiresReview))

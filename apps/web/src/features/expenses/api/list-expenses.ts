@@ -18,12 +18,16 @@ export interface ListExpensesParams {
   page?: number;
   page_size?: number;
   category?: string;
+  subcategory?: string;
   mode?: string;
+  categorization_method?: string;
   review?: string;
   date_from?: string;
   date_to?: string;
   search?: string;
   card_last4?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
 }
 
 export async function listExpenses(
@@ -43,8 +47,16 @@ export async function listExpenses(
     searchParams.set("category", params.category);
   }
 
+  if (params?.subcategory) {
+    searchParams.set("subcategory", params.subcategory);
+  }
+
   if (params?.mode) {
     searchParams.set("mode", params.mode);
+  }
+
+  if (params?.categorization_method) {
+    searchParams.set("categorization_method", params.categorization_method);
   }
 
   if (params?.review) {
@@ -65,6 +77,14 @@ export async function listExpenses(
 
   if (params?.card_last4) {
     searchParams.set("card_last4", params.card_last4);
+  }
+
+  if (params?.sort_by) {
+    searchParams.set("sort_by", params.sort_by);
+  }
+
+  if (params?.sort_order) {
+    searchParams.set("sort_order", params.sort_order);
   }
 
   const url = `/api/expenses/transactions${searchParams.toString() ? `?${searchParams}` : ""}`;
