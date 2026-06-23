@@ -42,7 +42,7 @@ const EXPRESSIVE_PRESET_DETAILS: Partial<
     description: 'Calm minimal surfaces with soft blue-tinted shadows and generous rounding.',
     family: 'classic',
     tags: ['blue', 'calm', 'minimal'],
-    styleControlId: 'ocean',
+    styleControlId: 'none',
     cleanupPrefixes: ['--ocean-'],
     loadStyles: () => import('@workspace/ui/styles/ocean.css'),
   },
@@ -51,7 +51,7 @@ const EXPRESSIVE_PRESET_DETAILS: Partial<
     description: 'Warm soft surfaces with rosy ambient shadows and generous pill rounding.',
     family: 'classic',
     tags: ['warm', 'soft', 'pink'],
-    styleControlId: 'rose',
+    styleControlId: 'none',
     cleanupPrefixes: ['--rose-'],
     loadStyles: () => import('@workspace/ui/styles/rose.css'),
   },
@@ -60,8 +60,7 @@ const EXPRESSIVE_PRESET_DETAILS: Partial<
     description: 'Energetic warmth with crisp amber shadows and tight snappy corners.',
     family: 'classic',
     tags: ['warm', 'amber', 'energetic'],
-    styleControlId: 'sunset',
-    cleanupPrefixes: ['--sunset-'],
+    styleControlId: 'none',
     loadStyles: () => import('@workspace/ui/styles/sunset.css'),
   },
   forest: {
@@ -69,8 +68,7 @@ const EXPRESSIVE_PRESET_DETAILS: Partial<
     description: 'Earthy natural surfaces with green-tinted ambient shadows and organic rounding.',
     family: 'classic',
     tags: ['green', 'earthy', 'natural'],
-    styleControlId: 'forest',
-    cleanupPrefixes: ['--forest-'],
+    styleControlId: 'none',
     loadStyles: () => import('@workspace/ui/styles/forest.css'),
   },
   lavender: {
@@ -78,8 +76,7 @@ const EXPRESSIVE_PRESET_DETAILS: Partial<
     description: 'Ethereal dreamlike surfaces with diffused purple glow and generous rounding.',
     family: 'classic',
     tags: ['purple', 'ethereal', 'dreamy'],
-    styleControlId: 'lavender',
-    cleanupPrefixes: ['--lavender-'],
+    styleControlId: 'none',
     loadStyles: () => import('@workspace/ui/styles/lavender.css'),
   },
   supabase: {
@@ -87,8 +84,7 @@ const EXPRESSIVE_PRESET_DETAILS: Partial<
     description: 'Clean tech aesthetic with precise teal shadows and sharp compact corners.',
     family: 'classic',
     tags: ['teal', 'tech', 'precise'],
-    styleControlId: 'supabase',
-    cleanupPrefixes: ['--supabase-'],
+    styleControlId: 'none',
     loadStyles: () => import('@workspace/ui/styles/supabase.css'),
   },
   neumorphism: {
@@ -210,14 +206,26 @@ const EXPRESSIVE_PRESET_DETAILS: Partial<
   },
 }
 
+const PRESET_METADATA_OVERRIDES: Partial<
+  Record<string, Pick<ThemePresetMeta, 'label' | 'description'>>
+> = {
+  default: {
+    label: 'Neutral',
+    description:
+      'Monochrome baseline with sharp contrast. Distinct from the app default (Neumorphism) used for FOUC and first load.',
+  },
+}
+
 function createDefinition(name: string, theme: ThemePreset): ThemePresetDefinition {
   const expressiveDetails = EXPRESSIVE_PRESET_DETAILS[name]
+  const metadataOverride = PRESET_METADATA_OVERRIDES[name]
 
   return {
     meta: {
       name,
-      label: expressiveDetails?.label ?? titleCasePresetName(name),
+      label: metadataOverride?.label ?? expressiveDetails?.label ?? titleCasePresetName(name),
       description:
+        metadataOverride?.description ??
         expressiveDetails?.description ??
         `${titleCasePresetName(name)} preset for the workspace theme system.`,
       family: expressiveDetails?.family ?? 'classic',

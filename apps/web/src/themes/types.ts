@@ -185,6 +185,13 @@ export const THEME_VARIABLES = {
     '--shadow-xl',
     '--shadow-2xl',
   ],
+  semantic: [
+    '--positive',
+    '--negative',
+    '--info',
+    '--warning',
+    '--success',
+  ],
 } as const
 
 /**
@@ -202,4 +209,5 @@ export const CATEGORY_LABELS: Record<keyof typeof THEME_VARIABLES, string> = {
   typography: 'Typography',
   layout: 'Layout',
   shadows: 'Shadows',
+  semantic: 'Semantic Status',
 }

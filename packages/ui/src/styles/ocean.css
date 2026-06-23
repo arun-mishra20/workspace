@@ -125,4 +125,19 @@
   :root[data-theme-preset='ocean'] [data-slot='tabs-trigger'][data-state='active'] {
     box-shadow: inset 0 -2px 0 0 oklch(0.55 0.20 240);
   }
+
+  /* ── Dialogs: floating panel ───────────────────────────────── */
+  :root[data-theme-preset='ocean'] [data-slot='dialog-content'] {
+    border-color: var(--ocean-card-border);
+    box-shadow:
+      0 4px 12px -2px oklch(0.55 0.10 240 / 0.08),
+      0 16px 40px -8px var(--ocean-glow-strong);
+  }
+
+  :root.dark[data-theme-preset='ocean'] [data-slot='dialog-content'] {
+    border-color: var(--ocean-card-border);
+    box-shadow:
+      0 4px 16px -2px oklch(0.10 0.04 240 / 0.3),
+      0 16px 44px -8px var(--ocean-glow-strong);
+  }
 }

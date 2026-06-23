@@ -5,6 +5,8 @@
  * Each preset must contain ALL tokens - no partial presets allowed.
  */
 
+import { applyOklchColorTokens } from './expressive-oklch'
+import { ensureSemanticTokens } from './semantic-tokens'
 import type { ThemePreset } from './types'
 
 function createDerivedPreset(
@@ -3794,10 +3796,7 @@ const zenPreset: ThemePreset = {
   },
 }
 
-/**
- * All available presets
- */
-export const presets: Record<string, ThemePreset> = {
+const rawPresets: Record<string, ThemePreset> = {
   default: defaultPreset,
   vercel: vercelPreset,
   supabase: supabasePreset,
@@ -3832,6 +3831,16 @@ export const presets: Record<string, ThemePreset> = {
   forest: forestPreset,
   plain: plainThemePreset,
 }
+
+/**
+ * All available presets (with semantic status tokens guaranteed)
+ */
+export const presets: Record<string, ThemePreset> = Object.fromEntries(
+  Object.entries(rawPresets).map(([name, preset]) => [
+    name,
+    ensureSemanticTokens(applyOklchColorTokens(name, preset), name),
+  ]),
+)
 
 /**
  * Default preset name

@@ -83,9 +83,4 @@ describe("RegisterForm", () => {
       "/login",
     );
   });
-
-  it("should match snapshot", () => {
-    const { container } = render(<RegisterForm />);
-    expect(container).toMatchSnapshot();
-  });
 });

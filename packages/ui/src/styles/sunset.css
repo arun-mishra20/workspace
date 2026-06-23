@@ -58,8 +58,7 @@
     }
   }
 
-  :root[data-theme-preset='sunset'].dark,
-  :root[data-theme-preset='sunset'] .dark {
+  :root.dark[data-theme-preset='sunset'] {
     [data-slot='card'] {
       border-color: oklch(0.24 0.03 47);
       box-shadow: 0 2px 8px -1px oklch(0.1 0.04 47 / 0.3);
@@ -95,5 +94,28 @@
     [data-slot='table-cell'] {
       border-color: oklch(0.22 0.02 47 / 0.6);
     }
+  }
+
+  /* ── Buttons: snappy press ─────────────────────────────────── */
+  :root[data-theme-preset='sunset'] button[data-slot='button'] {
+    transition:
+      background-color 0.15s ease,
+      box-shadow 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  :root[data-theme-preset='sunset'] button[data-slot='button']:active {
+    transform: scale(0.98);
+  }
+
+  /* ── Dialogs: warm amber elevation ─────────────────────────── */
+  :root[data-theme-preset='sunset'] [data-slot='dialog-content'] {
+    border: 1px solid oklch(0.9 0.02 47);
+    box-shadow: 0 8px 24px -4px oklch(0.6 0.1 47 / 0.14);
+  }
+
+  :root.dark[data-theme-preset='sunset'] [data-slot='dialog-content'] {
+    border-color: oklch(0.24 0.03 47);
+    box-shadow: 0 8px 28px -4px oklch(0.1 0.04 47 / 0.45);
   }
 }

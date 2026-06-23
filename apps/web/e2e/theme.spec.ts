@@ -43,4 +43,23 @@ test.describe('Theme Toggle', () => {
     // Should remain in dark mode
     await expect(page.locator('html')).toHaveClass(/dark/, { timeout: 3000 })
   })
+
+  test('should apply preset from stored configuration', async ({ page }) => {
+    await page.goto('/')
+    await page.evaluate(() => {
+      localStorage.setItem(
+        'workspace-theme',
+        JSON.stringify({
+          preset: 'ocean',
+          overrides: { light: {}, dark: {} },
+          navigationLayout: 'sidebar',
+        }),
+      )
+    })
+    await page.reload()
+
+    await expect(page.locator('html')).toHaveAttribute('data-theme-preset', 'ocean', {
+      timeout: 3000,
+    })
+  })
 })
