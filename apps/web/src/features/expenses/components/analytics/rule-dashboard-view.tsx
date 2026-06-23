@@ -31,6 +31,7 @@ import {
 import { PeriodComparisonSection } from '@/features/expenses/components/analytics/period-comparison-section'
 import { SpendHeatmapCalendar } from '@/features/expenses/components/analytics/spend-heatmap-calendar'
 import { TransactionMetadataBadges } from '@/features/expenses/components/analytics/transaction-metadata-badges'
+import { CategoryIcon } from '@/features/expenses/components/category-icon'
 import { TransactionCategoryTile } from '@/features/expenses/components/transaction-category-tile'
 import {
   fmtCompact,
@@ -40,6 +41,7 @@ import {
 import { useAnalyticsDrillDown } from '@/features/expenses/hooks/use-analytics-drill-down'
 import type {
   AnalyticsPeriod,
+  CategorizationRule,
   PeriodComparison,
   RuleDashboardAnalytics,
 } from '@workspace/domain'
@@ -79,6 +81,7 @@ const dailyChartConfig: ChartConfig = {
 interface RuleDashboardViewProps {
   title: string
   analytics?: RuleDashboardAnalytics
+  globalRules: CategorizationRule[]
   loading: boolean
   error?: boolean
   page: number
@@ -99,6 +102,7 @@ interface RuleDashboardViewProps {
 export function RuleDashboardView({
   title,
   analytics,
+  globalRules,
   loading,
   error,
   page,
@@ -119,6 +123,9 @@ export function RuleDashboardView({
   const [byRuleView, setByRuleView] = useState<ChartCardView>('chart')
   const drillDown = useAnalyticsDrillDown()
   const navigate = useNavigate()
+  const categoryByRuleId = new Map(
+    globalRules.map((rule) => [rule.id, rule.action.category]),
+  )
 
   const transactionTotal = analytics?.transactions.total ?? 0
   const hasMultipleRules = analytics ? analytics.rules.length > 1 : null
@@ -218,11 +225,21 @@ export function RuleDashboardView({
           </Button>
           <h2 className="text-lg font-semibold">{title}</h2>
           <div className="flex flex-wrap gap-1.5">
-            {analytics?.rules.map((rule) => (
-              <Badge key={rule.id} variant="secondary">
-                {rule.name}
-              </Badge>
-            ))}
+            {analytics?.rules.map((rule) => {
+              const category =
+                rule.source === 'global'
+                  ? categoryByRuleId.get(rule.id)
+                  : undefined
+
+              return (
+                <Badge key={rule.id} variant="secondary" className="gap-1.5">
+                  {category ? (
+                    <CategoryIcon category={category} size={12} />
+                  ) : null}
+                  {rule.name}
+                </Badge>
+              )
+            })}
           </div>
         </div>
 

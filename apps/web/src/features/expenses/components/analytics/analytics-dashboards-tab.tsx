@@ -230,6 +230,7 @@ export function AnalyticsDashboardsTab({
       <RuleDashboardView
         title={viewTitle}
         analytics={analyticsQ.data}
+        globalRules={rulesQ.data ?? []}
         loading={analyticsQ.isLoading || savedDashboardQ.isLoading}
         error={analyticsQ.isError}
         page={page}
@@ -277,6 +278,7 @@ export function AnalyticsDashboardsTab({
       <SavedDashboardsList
         dashboards={dashboardsQ.data ?? []}
         loading={dashboardsQ.isLoading}
+        globalRules={rulesQ.data ?? []}
         onOpen={openSavedDashboard}
         onEdit={editSavedDashboard}
         editingDashboardId={editingDashboard?.id}
