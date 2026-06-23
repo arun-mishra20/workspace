@@ -131,6 +131,15 @@ export const THEME_VARIABLES = {
     '--spacing',
     '--tracking-normal',
   ],
+  motion: [
+    '--motion-fast',
+    '--motion-normal',
+    '--motion-slow',
+    '--motion-ease-out',
+    '--motion-ease-spring',
+    '--motion-distance-sm',
+    '--motion-distance-md',
+  ],
   baseColors: [
     '--background',
     '--foreground',
@@ -208,6 +217,7 @@ export const CATEGORY_LABELS: Record<keyof typeof THEME_VARIABLES, string> = {
   sidebar: 'Sidebar',
   typography: 'Typography',
   layout: 'Layout',
+  motion: 'Motion',
   shadows: 'Shadows',
   semantic: 'Semantic Status',
 }

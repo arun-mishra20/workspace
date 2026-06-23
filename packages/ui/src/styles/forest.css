@@ -96,18 +96,6 @@
     }
   }
 
-  /* ── Buttons: organic press ────────────────────────────────── */
-  :root[data-theme-preset='forest'] button[data-slot='button'] {
-    transition:
-      background-color 0.2s ease,
-      box-shadow 0.2s ease,
-      transform 0.15s ease;
-  }
-
-  :root[data-theme-preset='forest'] button[data-slot='button']:active {
-    transform: scale(0.98);
-  }
-
   /* ── Dialogs: earthy elevation ───────────────────────────── */
   :root[data-theme-preset='forest'] [data-slot='dialog-content'] {
     border: 1px solid oklch(0.9 0.01 142);
@@ -117,5 +105,12 @@
   :root.dark[data-theme-preset='forest'] [data-slot='dialog-content'] {
     border-color: oklch(0.22 0.02 142);
     box-shadow: 0 8px 28px -4px oklch(0.08 0.03 142 / 0.45);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root[data-theme-preset='forest'] [data-slot='card']:hover,
+    :root.dark[data-theme-preset='forest'] [data-slot='card']:hover {
+      transform: none;
+    }
   }
 }

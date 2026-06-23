@@ -99,18 +99,6 @@
     }
   }
 
-  /* ── Buttons: dreamy press ─────────────────────────────────── */
-  :root[data-theme-preset='lavender'] button[data-slot='button'] {
-    transition:
-      background-color 0.25s ease,
-      box-shadow 0.25s ease,
-      transform 0.2s ease;
-  }
-
-  :root[data-theme-preset='lavender'] button[data-slot='button']:active {
-    transform: scale(0.98);
-  }
-
   /* ── Dialogs: purple glow elevation ────────────────────────── */
   :root[data-theme-preset='lavender'] [data-slot='dialog-content'] {
     border: 1px solid oklch(0.92 0.012 320);
@@ -120,5 +108,12 @@
   :root.dark[data-theme-preset='lavender'] [data-slot='dialog-content'] {
     border-color: oklch(0.24 0.02 320);
     box-shadow: 0 8px 32px -4px oklch(0.1 0.04 320 / 0.45);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root[data-theme-preset='lavender'] [data-slot='card']:hover,
+    :root.dark[data-theme-preset='lavender'] [data-slot='card']:hover {
+      transform: none;
+    }
   }
 }

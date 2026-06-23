@@ -2,6 +2,8 @@
 
 @import 'tw-animate-css';
 
+@import './motion.css';
+
 @import url('https://fonts.googleapis.com/css2?family=Anta&family=Italiana&family=MedievalSharp&family=Playwrite+AT:ital,wght@0,100..400;1,100..400&family=Quattrocento:wght@400;700&family=Rubik+Pixels&family=Syne:wght@400..800&display=swap');
 
 @source "../../../apps/**/*.{ts,tsx}";
@@ -61,6 +63,13 @@
   --info: oklch(0.588 0.215 277);
   --warning: oklch(0.78 0.14 75);
   --success: oklch(0.68 0.12 165);
+  --motion-fast: 120ms;
+  --motion-normal: 200ms;
+  --motion-slow: 320ms;
+  --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-ease-spring: cubic-bezier(0.34, 1.2, 0.64, 1);
+  --motion-distance-sm: 1px;
+  --motion-distance-md: 2px;
 }
 
 .dark {

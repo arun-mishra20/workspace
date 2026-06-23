@@ -31,6 +31,28 @@ export const DEFAULT_LAYOUT_TOKENS = {
   },
 } as const satisfies ThemePreset
 
+/** Global motion tokens — mirrored from packages/ui/src/styles/index.css */
+export const DEFAULT_MOTION_TOKENS = {
+  light: {
+    '--motion-fast': '120ms',
+    '--motion-normal': '200ms',
+    '--motion-slow': '320ms',
+    '--motion-ease-out': 'cubic-bezier(0.22, 1, 0.36, 1)',
+    '--motion-ease-spring': 'cubic-bezier(0.34, 1.2, 0.64, 1)',
+    '--motion-distance-sm': '1px',
+    '--motion-distance-md': '2px',
+  },
+  dark: {
+    '--motion-fast': '120ms',
+    '--motion-normal': '200ms',
+    '--motion-slow': '320ms',
+    '--motion-ease-out': 'cubic-bezier(0.22, 1, 0.36, 1)',
+    '--motion-ease-spring': 'cubic-bezier(0.34, 1.2, 0.64, 1)',
+    '--motion-distance-sm': '1px',
+    '--motion-distance-md': '2px',
+  },
+} as const satisfies ThemePreset
+
 /**
  * Ensures every preset includes semantic status tokens and layout defaults.
  * Preset values take precedence over defaults.
@@ -41,12 +63,14 @@ export function ensureSemanticTokens(preset: ThemePreset, presetName?: string): 
   return {
     light: {
       ...DEFAULT_LAYOUT_TOKENS.light,
+      ...DEFAULT_MOTION_TOKENS.light,
       ...DEFAULT_SEMANTIC_TOKENS.light,
       ...preset.light,
       ...overrides?.light,
     },
     dark: {
       ...DEFAULT_LAYOUT_TOKENS.dark,
+      ...DEFAULT_MOTION_TOKENS.dark,
       ...DEFAULT_SEMANTIC_TOKENS.dark,
       ...preset.dark,
       ...overrides?.dark,
