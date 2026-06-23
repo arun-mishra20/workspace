@@ -70,6 +70,12 @@ import {
   periodLabel,
   periodToDateRange,
 } from '@/features/expenses/lib/period-to-date-range'
+import {
+  resolveSpendExclusionPreferences,
+  writeSpendExclusionPreferences,
+  buildSpendExclusionSearchParams,
+  type SpendExclusionPreferences,
+} from '@/features/expenses/lib/analytics-spend-view'
 import { takeLastMetricTrendPoints } from '@/lib/metric-trends'
 
 import type { AnalyticsPeriod } from '@workspace/domain'
@@ -93,9 +99,12 @@ const AnalyticsPage = () => {
   const activeTab: AnalyticsTab = isAnalyticsTab(tabParam)
     ? tabParam
     : 'overview'
-  const cardOptions: AnalyticsQueryOptions | undefined = selectedCard
-    ? { cardLast4: selectedCard }
-    : undefined
+  const spendExclusions = resolveSpendExclusionPreferences(searchParams)
+
+  const analyticsOptions = useMemo<AnalyticsQueryOptions>(() => ({
+    ...(selectedCard ? { cardLast4: selectedCard } : {}),
+    spendExclusions,
+  }), [selectedCard, spendExclusions])
 
   const dashboardPeriodParam = searchParams.get('dashboardPeriod')
   const dashboardPeriod: AnalyticsPeriod = isAnalyticsPeriod(
@@ -197,6 +206,21 @@ const AnalyticsPage = () => {
     handleTabChange('rules')
   }
 
+  const handleSpendExclusionsChange = (nextSpendExclusions: SpendExclusionPreferences) => {
+    writeSpendExclusionPreferences(nextSpendExclusions)
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('spendExclusions')
+        for (const [key, value] of Object.entries(buildSpendExclusionSearchParams(nextSpendExclusions))) {
+          next.set(key, value)
+        }
+        return next
+      },
+      { replace: true },
+    )
+  }
+
   const handleCardSelect = (last4: string | undefined) => {
     setSearchParams(
       (prev) => {
@@ -271,62 +295,62 @@ const AnalyticsPage = () => {
   })
 
   const summaryQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'summary', period, selectedCard],
-    queryFn: () => fetchSpendingSummary(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'summary', period, selectedCard, spendExclusions],
+    queryFn: () => fetchSpendingSummary(period, analyticsOptions),
     enabled: isOverview,
   })
 
   const categoryQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'by-category', period, selectedCard],
-    queryFn: () => fetchSpendingByCategory(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'by-category', period, selectedCard, spendExclusions],
+    queryFn: () => fetchSpendingByCategory(period, analyticsOptions),
     enabled: isCategories,
   })
 
   const subcategoryQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'by-subcategory', period, selectedCard],
-    queryFn: () => fetchSpendingBySubcategory(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'by-subcategory', period, selectedCard, spendExclusions],
+    queryFn: () => fetchSpendingBySubcategory(period, analyticsOptions),
     enabled: isCategories,
   })
 
   const modeQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'by-mode', period, selectedCard],
-    queryFn: () => fetchSpendingByMode(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'by-mode', period, selectedCard, spendExclusions],
+    queryFn: () => fetchSpendingByMode(period, analyticsOptions),
     enabled: isOverview,
   })
 
   const merchantQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'top-merchants', period, selectedCard],
-    queryFn: () => fetchTopMerchants(period, 10, cardOptions),
+    queryKey: ['expenses', 'analytics', 'top-merchants', period, selectedCard, spendExclusions],
+    queryFn: () => fetchTopMerchants(period, 10, analyticsOptions),
     enabled: isOverview,
   })
 
   const dailyQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'daily', period, selectedCard],
-    queryFn: () => fetchDailySpending(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'daily', period, selectedCard, spendExclusions],
+    queryFn: () => fetchDailySpending(period, analyticsOptions),
     enabled: isOverview,
   })
 
   const trendQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'monthly-trend'],
-    queryFn: () => fetchMonthlyTrend(12),
+    queryKey: ['expenses', 'analytics', 'monthly-trend', spendExclusions],
+    queryFn: () => fetchMonthlyTrend(12, analyticsOptions),
     enabled: isOverview || isTrends,
   })
 
   const cardQ = useQuery({
     queryKey: ['expenses', 'analytics', 'by-card', period, selectedCard],
-    queryFn: () => fetchSpendingByCard(period, cardOptions),
+    queryFn: () => fetchSpendingByCard(period, analyticsOptions),
     enabled: isCards,
   })
 
   const dayOfWeekQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'day-of-week', period, selectedCard],
-    queryFn: () => fetchDayOfWeekSpending(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'day-of-week', period, selectedCard, spendExclusions],
+    queryFn: () => fetchDayOfWeekSpending(period, analyticsOptions),
     enabled: isTrends,
   })
 
   const categoryTrendQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'category-trend'],
-    queryFn: () => fetchCategoryTrend(6),
+    queryKey: ['expenses', 'analytics', 'category-trend', spendExclusions],
+    queryFn: () => fetchCategoryTrend(6, analyticsOptions),
     enabled: isTrends,
   })
 
@@ -337,8 +361,9 @@ const AnalyticsPage = () => {
       'period-comparison',
       comparisonPeriod,
       selectedCard,
+      spendExclusions,
     ],
-    queryFn: () => fetchPeriodComparison(comparisonPeriod, cardOptions),
+    queryFn: () => fetchPeriodComparison(comparisonPeriod, analyticsOptions),
     enabled:
       isOverview ||
       isTrends ||
@@ -347,14 +372,14 @@ const AnalyticsPage = () => {
   })
 
   const cumulativeQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'cumulative', period, selectedCard],
-    queryFn: () => fetchCumulativeSpend(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'cumulative', period, selectedCard, spendExclusions],
+    queryFn: () => fetchCumulativeSpend(period, analyticsOptions),
     enabled: isTrends,
   })
 
   const savingsRateQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'savings-rate'],
-    queryFn: () => fetchSavingsRate(6),
+    queryKey: ['expenses', 'analytics', 'savings-rate', spendExclusions],
+    queryFn: () => fetchSavingsRate(6, analyticsOptions),
     enabled: isTrends,
   })
 
@@ -366,19 +391,19 @@ const AnalyticsPage = () => {
       period,
       selectedCard,
     ],
-    queryFn: () => fetchCardCategories(period, cardOptions),
+    queryFn: () => fetchCardCategories(period, analyticsOptions),
     enabled: isCards,
   })
 
   const topVpasQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'top-vpas', period, selectedCard],
-    queryFn: () => fetchTopVpas(period, 10, cardOptions),
+    queryKey: ['expenses', 'analytics', 'top-vpas', period, selectedCard, spendExclusions],
+    queryFn: () => fetchTopVpas(period, 10, analyticsOptions),
     enabled: isTrends,
   })
 
   const velocityQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'velocity', period, selectedCard],
-    queryFn: () => fetchSpendingVelocity(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'velocity', period, selectedCard, spendExclusions],
+    queryFn: () => fetchSpendingVelocity(period, analyticsOptions),
     enabled: isTrends,
   })
 
@@ -389,8 +414,8 @@ const AnalyticsPage = () => {
   })
 
   const largestQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'largest', period, selectedCard],
-    queryFn: () => fetchLargestTransactions(period, 10, cardOptions),
+    queryKey: ['expenses', 'analytics', 'largest', period, selectedCard, spendExclusions],
+    queryFn: () => fetchLargestTransactions(period, 10, analyticsOptions),
     enabled: isTrends,
   })
 
@@ -402,7 +427,7 @@ const AnalyticsPage = () => {
       period,
       selectedCard,
     ],
-    queryFn: () => fetchClassificationHealth(period, cardOptions),
+    queryFn: () => fetchClassificationHealth(period, analyticsOptions),
     enabled: isDataQuality,
   })
 
@@ -413,8 +438,9 @@ const AnalyticsPage = () => {
       'spend-anomalies',
       period,
       selectedCard,
+      spendExclusions,
     ],
-    queryFn: () => fetchSpendAnomalies(period, cardOptions),
+    queryFn: () => fetchSpendAnomalies(period, analyticsOptions),
     enabled: isDataQuality,
   })
 
@@ -425,8 +451,9 @@ const AnalyticsPage = () => {
       'day-summary',
       selectedDate,
       selectedCard,
+      spendExclusions,
     ],
-    queryFn: () => fetchSpendingSummaryForDate(selectedDate, cardOptions),
+    queryFn: () => fetchSpendingSummaryForDate(selectedDate, analyticsOptions),
     enabled: isOverview && Boolean(selectedDate),
   })
 
@@ -641,6 +668,8 @@ const AnalyticsPage = () => {
                 cards={creditCardsQ.data ?? []}
                 selectedCardLast4={selectedCard || undefined}
                 onCardSelect={handleCardSelect}
+                spendExclusions={spendExclusions}
+                onSpendExclusionsChange={handleSpendExclusionsChange}
                 dashboardPeriod={dashboardPeriod}
                 onDashboardPeriodChange={handleDashboardPeriodChange}
                 dashboardRangeCustom={dashboardRangeCustom}
@@ -656,6 +685,7 @@ const AnalyticsPage = () => {
               <AnalyticsOverviewTab
                 period={period}
                 selectedCardLast4={selectedCard || undefined}
+                spendExclusions={spendExclusions}
                 summary={summaryQ.data}
                 summaryLoading={summaryQ.isLoading}
                 recentSpentTrend={recentSpentTrend}

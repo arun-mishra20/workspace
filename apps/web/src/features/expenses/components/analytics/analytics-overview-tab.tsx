@@ -12,6 +12,8 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   XAxis,
@@ -44,6 +46,10 @@ import {
 } from '@/features/expenses/components/analytics/analytics-filter-actions'
 import { useAnalyticsDrillDown } from '@/features/expenses/hooks/use-analytics-drill-down'
 import { periodLabel } from '@/features/expenses/lib/period-to-date-range'
+import {
+  formatSpendExclusionSummary,
+  type SpendExclusionPreferences,
+} from '@/features/expenses/lib/analytics-spend-view'
 import { getPaymentModeMeta } from '@/features/expenses/lib/payment-mode-meta'
 import type { MetricTrendPoint } from '@/lib/metric-trends'
 import type {
@@ -74,6 +80,7 @@ import { Skeleton } from '@workspace/ui/components/ui/skeleton'
 interface AnalyticsOverviewTabProps {
   period: AnalyticsPeriod
   selectedCardLast4?: string
+  spendExclusions?: SpendExclusionPreferences
   summary?: SpendingSummary
   summaryLoading: boolean
   recentSpentTrend: MetricTrendPoint[]
@@ -113,6 +120,10 @@ interface AnalyticsOverviewTabProps {
 export function AnalyticsOverviewTab({
   period,
   selectedCardLast4,
+  spendExclusions = {
+    excludeCreditCardBills: true,
+    excludeSelfTransfers: true,
+  },
   summary,
   summaryLoading,
   recentSpentTrend,
@@ -139,7 +150,7 @@ export function AnalyticsOverviewTab({
 }: AnalyticsOverviewTabProps) {
   const drillDown = useAnalyticsDrillDown()
   const navigate = useNavigate()
-  const [dailyView, setDailyView] = useState<ChartCardView>('chart')
+  const [dailyView, setDailyView] = useState<ChartCardView>('line')
   const [showDebited, setShowDebited] = useState(true)
   const [showCredited, setShowCredited] = useState(true)
   const [modeView, setModeView] = useState<ChartCardView>('chart')
@@ -222,47 +233,105 @@ export function AnalyticsOverviewTab({
       )
     }
 
+    const dailyTooltip = (
+      <ChartTooltip
+        wrapperStyle={{ zIndex: 100 }}
+        content={
+          <ChartTooltipContent
+            formatter={(value, name) => (
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-muted-foreground">
+                  {name === 'debited' ? 'Spent' : 'Received'}
+                </span>
+                <span className="font-mono font-medium tabular-nums">
+                  {fmtCurrency(Number(value))}
+                </span>
+              </div>
+            )}
+          />
+        }
+      />
+    )
+
+    const dailyXAxis = (
+      <XAxis
+        dataKey="date"
+        tickFormatter={(v: string) => {
+          try {
+            return format(parseISO(v), 'dd MMM')
+          } catch {
+            return v
+          }
+        }}
+        tickLine={false}
+        axisLine={false}
+        fontSize={12}
+      />
+    )
+
+    const dailyYAxis = (
+      <YAxis
+        tickFormatter={fmtCompact}
+        tickLine={false}
+        axisLine={false}
+        width={50}
+        fontSize={12}
+      />
+    )
+
+    const handleDailyChartClick = (state: unknown) => {
+      const activePayload = (
+        state as {
+          activePayload?: Array<{ payload?: { date?: string } }>
+        }
+      ).activePayload
+      const date = activePayload?.[0]?.payload?.date
+      if (date) {
+        onSelectedDateChange(date)
+      }
+    }
+
+    if (dailyView === 'line') {
+      return (
+        <ChartContainer config={dailyChartConfig} className="h-75 w-full">
+          <LineChart data={dailyData} onClick={handleDailyChartClick}>
+            <CartesianGrid vertical={false} />
+            {dailyXAxis}
+            {dailyYAxis}
+            {dailyTooltip}
+            <ChartLegend content={<ChartLegendContent />} />
+            {showDebited ? (
+              <Line
+                type="monotone"
+                dataKey="debited"
+                stroke="var(--color-debited)"
+                strokeWidth={2}
+                dot={{ r: 3, cursor: 'pointer' }}
+                activeDot={{ r: 5, cursor: 'pointer' }}
+              />
+            ) : null}
+            {showCredited ? (
+              <Line
+                type="monotone"
+                dataKey="credited"
+                stroke="var(--color-credited)"
+                strokeWidth={2}
+                dot={{ r: 3, cursor: 'pointer' }}
+                activeDot={{ r: 5, cursor: 'pointer' }}
+              />
+            ) : null}
+          </LineChart>
+        </ChartContainer>
+      )
+    }
+
     return (
       <ChartContainer config={dailyChartConfig} className="h-75 w-full">
         <BarChart data={dailyData}>
           <CartesianGrid vertical={false} />
-          <XAxis
-            dataKey="date"
-            tickFormatter={(v: string) => {
-              try {
-                return format(parseISO(v), 'dd MMM')
-              } catch {
-                return v
-              }
-            }}
-            tickLine={false}
-            axisLine={false}
-            fontSize={12}
-          />
-          <YAxis
-            tickFormatter={fmtCompact}
-            tickLine={false}
-            axisLine={false}
-            width={50}
-            fontSize={12}
-          />
-          <ChartTooltip
-            wrapperStyle={{ zIndex: 100 }}
-            content={
-              <ChartTooltipContent
-                formatter={(value, name) => (
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-muted-foreground">
-                      {name === 'debited' ? 'Spent' : 'Received'}
-                    </span>
-                    <span className="font-mono font-medium tabular-nums">
-                      {fmtCurrency(Number(value))}
-                    </span>
-                  </div>
-                )}
-              />
-            }
-          />
+          {dailyXAxis}
+          {dailyYAxis}
+          {dailyTooltip}
           <ChartLegend content={<ChartLegendContent />} />
           {showDebited ? (
             <Bar
@@ -458,7 +527,9 @@ export function AnalyticsOverviewTab({
           value={summary ? fmtCurrency(summary.totalSpent) : undefined}
           icon={<ArrowDownRight className="size-4 text-destructive" />}
           subtitle={
-            summary ? `${summary.transactionCount} transactions` : undefined
+            summary
+              ? `${summary.transactionCount} transactions · ${formatSpendExclusionSummary(spendExclusions)}`
+              : undefined
           }
           loading={summaryLoading}
           trendData={recentSpentTrend}
@@ -512,13 +583,13 @@ export function AnalyticsOverviewTab({
               <div>
                 <CardTitle className="text-base">Daily Spending</CardTitle>
                 <CardDescription>
-                  Debits &amp; credits per day — click a bar to explore that day
+                  Debits &amp; credits per day — click a point to explore that day
                 </CardDescription>
               </div>
               <ChartCardToolbar
                 view={dailyView}
                 onViewChange={setDailyView}
-                views={['chart', 'table', 'heatmap']}
+                views={['line', 'chart', 'table', 'heatmap']}
                 seriesOptions={[
                   { id: 'debited', label: 'Spent', checked: showDebited },
                   { id: 'credited', label: 'Received', checked: showCredited },

@@ -90,6 +90,10 @@ export class TransactionEnricher {
       }
     }
 
+    if (input.category === 'credit_card_bills' && input.transactionType === 'debited') {
+      attributes = mergeTransactionAttributes(attributes, { isCreditCardBillPayment: true })
+    }
+
     const resolvedSubcategory = this.resolveSubcategory(
       input.category,
       subcategory,

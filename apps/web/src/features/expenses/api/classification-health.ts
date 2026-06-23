@@ -6,10 +6,18 @@ import {
 } from '@workspace/domain'
 
 import type { AnalyticsQueryOptions } from '@/features/expenses/api/analytics'
+import { buildExcludeCategoriesParam } from '@/features/expenses/lib/analytics-spend-view'
 
-function appendCardLast4(params: URLSearchParams, options?: AnalyticsQueryOptions) {
+function appendAnalyticsQueryParams(params: URLSearchParams, options?: AnalyticsQueryOptions) {
   if (options?.cardLast4) {
     params.set('card_last4', options.cardLast4)
+  }
+
+  if (options?.spendExclusions) {
+    const excludeCategories = buildExcludeCategoriesParam(options.spendExclusions)
+    if (excludeCategories !== undefined) {
+      params.set('excludeCategories', excludeCategories)
+    }
   }
 }
 
@@ -18,7 +26,7 @@ export async function fetchClassificationHealth(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/classification-health?${params.toString()}`,
@@ -31,7 +39,7 @@ export async function fetchSpendAnomalies(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/spend-anomalies?${params.toString()}`,
@@ -44,6 +52,6 @@ export function getTransactionsExportUrl(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   return `/api/expenses/analytics/export?${params.toString()}`
 }

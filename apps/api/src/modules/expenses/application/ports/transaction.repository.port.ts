@@ -23,9 +23,18 @@ import type {
   InvestmentAnalytics,
 } from '@workspace/domain'
 
+import type { SpendExclusionRule } from '@/modules/expenses/application/utils/analytics-exclusions'
+
 export interface DateRange {
   start: Date
   end: Date
+}
+
+export interface AnalyticsQueryParams {
+  userId: string
+  range: DateRange
+  cardLast4?: string
+  excludeSpendRules?: SpendExclusionRule[]
 }
 
 export interface TransactionFilters {
@@ -89,38 +98,17 @@ export interface TransactionRepository {
   }): Promise<Transaction[]>
 
   // ── Analytics ──
-  getSpendingSummary(params: {
+  getSpendingSummary(params: AnalyticsQueryParams): Promise<SpendingSummary>
+  getSpendingByCategory(params: AnalyticsQueryParams): Promise<SpendingByCategoryItem[]>
+  getSpendingBySubcategory(params: AnalyticsQueryParams): Promise<SpendingBySubcategoryItem[]>
+  getSpendingByMode(params: AnalyticsQueryParams): Promise<SpendingByModeItem[]>
+  getTopMerchants(params: AnalyticsQueryParams & { limit: number }): Promise<SpendingByMerchantItem[]>
+  getDailySpending(params: AnalyticsQueryParams): Promise<DailySpendingItem[]>
+  getMonthlyTrend(params: {
     userId: string
-    range: DateRange
-    cardLast4?: string
-  }): Promise<SpendingSummary>
-  getSpendingByCategory(params: {
-    userId: string
-    range: DateRange
-    cardLast4?: string
-  }): Promise<SpendingByCategoryItem[]>
-  getSpendingBySubcategory(params: {
-    userId: string
-    range: DateRange
-    cardLast4?: string
-  }): Promise<SpendingBySubcategoryItem[]>
-  getSpendingByMode(params: {
-    userId: string
-    range: DateRange
-    cardLast4?: string
-  }): Promise<SpendingByModeItem[]>
-  getTopMerchants(params: {
-    userId: string
-    range: DateRange
-    limit: number
-    cardLast4?: string
-  }): Promise<SpendingByMerchantItem[]>
-  getDailySpending(params: {
-    userId: string
-    range: DateRange
-    cardLast4?: string
-  }): Promise<DailySpendingItem[]>
-  getMonthlyTrend(params: { userId: string, months: number }): Promise<MonthlyTrendItem[]>
+    months: number
+    excludeSpendRules?: SpendExclusionRule[]
+  }): Promise<MonthlyTrendItem[]>
   getSpendingByCard(params: {
     userId: string
     range: DateRange
@@ -138,55 +126,37 @@ export interface TransactionRepository {
   }): Promise<{ cardLast4: string, transactionDate: Date, amount: number }[]>
 
   // ── Extended Analytics ──
-  getDayOfWeekSpending(params: {
+  getDayOfWeekSpending(params: AnalyticsQueryParams): Promise<DayOfWeekSpendingItem[]>
+  getCategoryTrend(params: {
     userId: string
-    range: DateRange
-    cardLast4?: string
-  }): Promise<DayOfWeekSpendingItem[]>
-  getCategoryTrend(params: { userId: string, months: number }): Promise<CategoryTrendItem[]>
-  getPeriodTotals(params: {
+    months: number
+    excludeSpendRules?: SpendExclusionRule[]
+  }): Promise<CategoryTrendItem[]>
+  getPeriodTotals(params: AnalyticsQueryParams): Promise<{
+    totalSpent: number
+    totalReceived: number
+    transactionCount: number
+  }>
+  getCumulativeSpend(params: AnalyticsQueryParams): Promise<CumulativeSpendItem[]>
+  getSavingsRate(params: {
     userId: string
-    range: DateRange
-    cardLast4?: string
-  }): Promise<{ totalSpent: number, totalReceived: number, transactionCount: number }>
-  getCumulativeSpend(params: {
-    userId: string
-    range: DateRange
-    cardLast4?: string
-  }): Promise<CumulativeSpendItem[]>
-  getSavingsRate(params: { userId: string, months: number }): Promise<SavingsRateItem[]>
+    months: number
+    excludeSpendRules?: SpendExclusionRule[]
+  }): Promise<SavingsRateItem[]>
   getCardCategoryBreakdown(params: {
     userId: string
     range: DateRange
     cardLast4?: string
   }): Promise<CardCategoryItem[]>
-  getTopVpas(params: {
-    userId: string
-    range: DateRange
-    limit: number
-    cardLast4?: string
-  }): Promise<TopVpaItem[]>
-  getSpendingVelocity(params: {
-    userId: string
-    range: DateRange
-    cardLast4?: string
-  }): Promise<SpendingVelocityItem[]>
-  getLargestTransactions(params: {
-    userId: string
-    range: DateRange
-    limit: number
-    cardLast4?: string
-  }): Promise<LargestTransactionItem[]>
+  getTopVpas(params: AnalyticsQueryParams & { limit: number }): Promise<TopVpaItem[]>
+  getSpendingVelocity(params: AnalyticsQueryParams): Promise<SpendingVelocityItem[]>
+  getLargestTransactions(params: AnalyticsQueryParams & { limit: number }): Promise<LargestTransactionItem[]>
   getClassificationHealth(params: {
     userId: string
     range: DateRange
     cardLast4?: string
   }): Promise<ClassificationHealth>
-  getSpendAnomalies(params: {
-    userId: string
-    range: DateRange
-    cardLast4?: string
-  }): Promise<SpendAnomalies>
+  getSpendAnomalies(params: AnalyticsQueryParams): Promise<SpendAnomalies>
 
   // ── Pattern Analytics ──
   getBusAnalytics(params: { userId: string, range: DateRange }): Promise<BusAnalytics>

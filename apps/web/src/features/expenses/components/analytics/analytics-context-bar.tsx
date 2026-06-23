@@ -1,6 +1,6 @@
 import type { AnalyticsPeriod, CreditCardProfile } from '@workspace/domain'
 import { format, parseISO } from 'date-fns'
-import { X } from 'lucide-react'
+import { MoreHorizontal, X } from 'lucide-react'
 
 import { CreditCardFilter } from '@/features/expenses/components/credit-card-filter'
 import { DashboardDateRangeFilter } from '@/features/expenses/components/analytics/dashboard-date-range-filter'
@@ -8,9 +8,21 @@ import {
   PERIODS,
   type AnalyticsTab,
 } from '@/features/expenses/components/analytics/analytics-utils'
+import {
+  formatSpendExclusionSummary,
+  type SpendExclusionPreferences,
+} from '@/features/expenses/lib/analytics-spend-view'
 import { periodLabel } from '@/features/expenses/lib/period-to-date-range'
 import { Badge } from '@workspace/ui/components/ui/badge'
 import { Button } from '@workspace/ui/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@workspace/ui/components/ui/dropdown-menu'
+import { Label } from '@workspace/ui/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -18,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/ui/select'
+import { Switch } from '@workspace/ui/components/ui/switch'
 
 const ANALYTICS_TABS_WITH_PERIOD: AnalyticsTab[] = [
   'overview',
@@ -35,6 +48,8 @@ interface AnalyticsContextBarProps {
   cards: CreditCardProfile[]
   selectedCardLast4?: string
   onCardSelect: (last4: string | undefined) => void
+  spendExclusions: SpendExclusionPreferences
+  onSpendExclusionsChange: (preferences: SpendExclusionPreferences) => void
   dashboardPeriod: AnalyticsPeriod
   onDashboardPeriodChange: (period: AnalyticsPeriod) => void
   dashboardRangeCustom: boolean
@@ -50,6 +65,8 @@ export function AnalyticsContextBar({
   cards,
   selectedCardLast4,
   onCardSelect,
+  spendExclusions,
+  onSpendExclusionsChange,
   dashboardPeriod,
   onDashboardPeriodChange,
   dashboardRangeCustom,
@@ -63,6 +80,68 @@ export function AnalyticsContextBar({
 
   const selectedCard = cards.find((card) => card.cardLast4 === selectedCardLast4)
   const periodSummary = PERIODS.find((p) => p.value === period)?.label ?? period
+
+  const spendExclusionControls = (
+    <div className="flex items-center gap-1 rounded-md border bg-background px-2 py-1.5">
+      <span className="hidden text-xs text-muted-foreground sm:inline">
+        {formatSpendExclusionSummary(spendExclusions)}
+      </span>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label="Adjust spend exclusions"
+          >
+            <MoreHorizontal className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-72">
+          <DropdownMenuLabel>Exclude from spend totals</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <div className="flex items-center justify-between gap-3 px-2 py-2">
+            <div className="space-y-0.5">
+              <Label htmlFor="exclude-cc-bills" className="text-sm font-normal">
+                Credit card bill payments
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Bank debits that pay your card bill
+              </p>
+            </div>
+            <Switch
+              id="exclude-cc-bills"
+              checked={spendExclusions.excludeCreditCardBills}
+              onCheckedChange={(checked) =>
+                onSpendExclusionsChange({
+                  ...spendExclusions,
+                  excludeCreditCardBills: checked,
+                })}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-3 px-2 py-2">
+            <div className="space-y-0.5">
+              <Label htmlFor="exclude-self-transfers" className="text-sm font-normal">
+                Personal transfer (self_transfer)
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Transfers between your own accounts
+              </p>
+            </div>
+            <Switch
+              id="exclude-self-transfers"
+              checked={spendExclusions.excludeSelfTransfers}
+              onCheckedChange={(checked) =>
+                onSpendExclusionsChange({
+                  ...spendExclusions,
+                  excludeSelfTransfers: checked,
+                })}
+            />
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
 
   if (activeTab === 'dashboards') {
     const rangeSummary = dashboardRangeCustom
@@ -153,6 +232,8 @@ export function AnalyticsContextBar({
         onSelect={onCardSelect}
       />
 
+      {spendExclusionControls}
+
       {selectedCard ? (
         <Badge variant="secondary" className="h-8 gap-1.5 pl-2.5 pr-1.5 text-xs">
           {selectedCard.cardName} ••{selectedCard.cardLast4}
@@ -171,6 +252,8 @@ export function AnalyticsContextBar({
         Showing: <span className="font-medium text-foreground">{periodSummary}</span>
         {' · '}
         {selectedCard ? `${selectedCard.cardName} ••${selectedCard.cardLast4}` : 'All cards'}
+        {' · '}
+        {formatSpendExclusionSummary(spendExclusions)}
       </p>
     </div>
   )

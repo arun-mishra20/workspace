@@ -21,6 +21,7 @@ export const TransactionAttributesSchema = z
     serviceName: z.string().optional(),
     counterpartyType: z.enum(['person', 'business', 'government']).optional(),
     incomeType: z.enum(['salary', 'bonus', 'freelance', 'refund', 'dividend', 'reimbursement']).optional(),
+    isCreditCardBillPayment: z.boolean().optional(),
     llmReasoning: z.string().optional(),
   })
   .partial()

@@ -3,6 +3,7 @@ import { Checkbox } from '@workspace/ui/components/ui/checkbox'
 import { Label } from '@workspace/ui/components/ui/label'
 
 export type ChartCardView =
+  | 'line'
   | 'chart'
   | 'table'
   | 'heatmap'
@@ -22,7 +23,8 @@ interface ChartCardToolbarProps {
 }
 
 const VIEW_LABELS: Record<ChartCardView, string> = {
-  chart: 'Chart',
+  line: 'Line',
+  chart: 'Bar',
   table: 'Table',
   heatmap: 'Heatmap',
   treemap: 'Treemap',

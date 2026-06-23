@@ -27,6 +27,10 @@ import { RuleDashboardAnalyticsService } from '@/modules/expenses/application/se
 import { RuleDashboardsService } from '@/modules/expenses/application/services/rule-dashboards.service'
 import { ExpensesService } from '@/modules/expenses/application/services/expenses.service'
 import { GmailOAuthService } from '@/modules/expenses/application/services/gmail-oauth.service'
+import {
+  AnalyticsExcludeCategoriesQuery,
+  parseAnalyticsExcludeCategories,
+} from '@/modules/expenses/presentation/utils/analytics-query.utils'
 import { BulkCategorizeDto } from '@/modules/expenses/presentation/dtos/bulk-categorize.dto'
 import {
   CreateCategorizationRuleInputSchema,
@@ -407,76 +411,110 @@ export class ExpensesController {
   @ApiQuery({ name: 'startDate', required: false, type: String, description: 'Explicit start date (YYYY-MM-DD)' })
   @ApiQuery({ name: 'endDate', required: false, type: String, description: 'Explicit end date (YYYY-MM-DD)' })
   @ApiQuery({ name: 'card_last4', required: false })
+  @AnalyticsExcludeCategoriesQuery()
   async getAnalyticsSummary(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('period') period: AnalyticsPeriod = 'month',
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('card_last4') cardLast4?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
+    const resolvedExcludeCategories = parseAnalyticsExcludeCategories(excludeCategories)
+
     if (startDate && endDate) {
       return this.expensesService.getSpendingSummaryForDateRange(
         req.user.id,
         startDate,
         endDate,
         cardLast4,
+        resolvedExcludeCategories,
       )
     }
 
-    return this.expensesService.getSpendingSummary(req.user.id, period, cardLast4)
+    return this.expensesService.getSpendingSummary(
+      req.user.id,
+      period,
+      cardLast4,
+      resolvedExcludeCategories,
+    )
   }
 
   @Get('analytics/by-category')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Spending grouped by category' })
   @ApiQuery({ name: 'card_last4', required: false })
+  @AnalyticsExcludeCategoriesQuery()
   async getByCategory(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('period') period: AnalyticsPeriod = 'month',
     @Query('card_last4') cardLast4?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
-    return this.expensesService.getSpendingByCategory(req.user.id, period, cardLast4)
+    return this.expensesService.getSpendingByCategory(
+      req.user.id,
+      period,
+      cardLast4,
+      parseAnalyticsExcludeCategories(excludeCategories),
+    )
   }
 
   @Get('analytics/by-subcategory')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Spending grouped by subcategory' })
   @ApiQuery({ name: 'card_last4', required: false })
+  @AnalyticsExcludeCategoriesQuery()
   async getBySubcategory(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('period') period: AnalyticsPeriod = 'month',
     @Query('card_last4') cardLast4?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
-    return this.expensesService.getSpendingBySubcategory(req.user.id, period, cardLast4)
+    return this.expensesService.getSpendingBySubcategory(
+      req.user.id,
+      period,
+      cardLast4,
+      parseAnalyticsExcludeCategories(excludeCategories),
+    )
   }
 
   @Get('analytics/by-mode')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Spending grouped by payment mode' })
   @ApiQuery({ name: 'card_last4', required: false })
+  @AnalyticsExcludeCategoriesQuery()
   async getByMode(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('period') period: AnalyticsPeriod = 'month',
     @Query('card_last4') cardLast4?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
-    return this.expensesService.getSpendingByMode(req.user.id, period, cardLast4)
+    return this.expensesService.getSpendingByMode(
+      req.user.id,
+      period,
+      cardLast4,
+      parseAnalyticsExcludeCategories(excludeCategories),
+    )
   }
 
   @Get('analytics/top-merchants')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Top merchants by spend' })
   @ApiQuery({ name: 'card_last4', required: false })
+  @AnalyticsExcludeCategoriesQuery()
   async getTopMerchants(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('period') period: AnalyticsPeriod = 'month',
     @Query('limit') limit?: string,
     @Query('card_last4') cardLast4?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
     return this.expensesService.getTopMerchants(
       req.user.id,
       period,
       limit ? Number.parseInt(limit, 10) : 10,
       cardLast4,
+      parseAnalyticsExcludeCategories(excludeCategories),
     )
   }
 
@@ -484,24 +522,34 @@ export class ExpensesController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Daily spending breakdown' })
   @ApiQuery({ name: 'card_last4', required: false })
+  @AnalyticsExcludeCategoriesQuery()
   async getDailySpending(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('period') period: AnalyticsPeriod = 'month',
     @Query('card_last4') cardLast4?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
-    return this.expensesService.getDailySpending(req.user.id, period, cardLast4)
+    return this.expensesService.getDailySpending(
+      req.user.id,
+      period,
+      cardLast4,
+      parseAnalyticsExcludeCategories(excludeCategories),
+    )
   }
 
   @Get('analytics/monthly-trend')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Monthly trend (last N months)' })
+  @AnalyticsExcludeCategoriesQuery()
   async getMonthlyTrend(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('months') months?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
     return this.expensesService.getMonthlyTrend(
       req.user.id,
       months ? Number.parseInt(months, 10) : 12,
+      parseAnalyticsExcludeCategories(excludeCategories),
     )
   }
 
@@ -534,24 +582,34 @@ export class ExpensesController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Spending by day of week' })
   @ApiQuery({ name: 'card_last4', required: false })
+  @AnalyticsExcludeCategoriesQuery()
   async getDayOfWeekSpending(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('period') period: AnalyticsPeriod = 'month',
     @Query('card_last4') cardLast4?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
-    return this.expensesService.getDayOfWeekSpending(req.user.id, period, cardLast4)
+    return this.expensesService.getDayOfWeekSpending(
+      req.user.id,
+      period,
+      cardLast4,
+      parseAnalyticsExcludeCategories(excludeCategories),
+    )
   }
 
   @Get('analytics/category-trend')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Category spending trend over months' })
+  @AnalyticsExcludeCategoriesQuery()
   async getCategoryTrend(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('months') months?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
     return this.expensesService.getCategoryTrend(
       req.user.id,
       months ? Number.parseInt(months, 10) : 6,
+      parseAnalyticsExcludeCategories(excludeCategories),
     )
   }
 
@@ -559,34 +617,54 @@ export class ExpensesController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Compare current vs previous period' })
   @ApiQuery({ name: 'card_last4', required: false })
+  @AnalyticsExcludeCategoriesQuery()
   async getPeriodComparison(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('period') period: AnalyticsPeriod = 'month',
     @Query('card_last4') cardLast4?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
-    return this.expensesService.getPeriodComparison(req.user.id, period, cardLast4)
+    return this.expensesService.getPeriodComparison(
+      req.user.id,
+      period,
+      cardLast4,
+      parseAnalyticsExcludeCategories(excludeCategories),
+    )
   }
 
   @Get('analytics/cumulative')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Cumulative spending over time' })
   @ApiQuery({ name: 'card_last4', required: false })
+  @AnalyticsExcludeCategoriesQuery()
   async getCumulativeSpend(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('period') period: AnalyticsPeriod = 'month',
     @Query('card_last4') cardLast4?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
-    return this.expensesService.getCumulativeSpend(req.user.id, period, cardLast4)
+    return this.expensesService.getCumulativeSpend(
+      req.user.id,
+      period,
+      cardLast4,
+      parseAnalyticsExcludeCategories(excludeCategories),
+    )
   }
 
   @Get('analytics/savings-rate')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Monthly savings rate (income vs expenses)' })
+  @AnalyticsExcludeCategoriesQuery()
   async getSavingsRate(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('months') months?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
-    return this.expensesService.getSavingsRate(req.user.id, months ? Number.parseInt(months, 10) : 12)
+    return this.expensesService.getSavingsRate(
+      req.user.id,
+      months ? Number.parseInt(months, 10) : 12,
+      parseAnalyticsExcludeCategories(excludeCategories),
+    )
   }
 
   @Get('analytics/card-categories')
@@ -605,17 +683,20 @@ export class ExpensesController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Top UPI VPA payees' })
   @ApiQuery({ name: 'card_last4', required: false })
+  @AnalyticsExcludeCategoriesQuery()
   async getTopVpas(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('period') period: AnalyticsPeriod = 'month',
     @Query('limit') limit?: string,
     @Query('card_last4') cardLast4?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
     return this.expensesService.getTopVpas(
       req.user.id,
       period,
       limit ? Number.parseInt(limit, 10) : 10,
       cardLast4,
+      parseAnalyticsExcludeCategories(excludeCategories),
     )
   }
 
@@ -623,12 +704,19 @@ export class ExpensesController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Spending velocity (rolling average ₹/day)' })
   @ApiQuery({ name: 'card_last4', required: false })
+  @AnalyticsExcludeCategoriesQuery()
   async getSpendingVelocity(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('period') period: AnalyticsPeriod = 'month',
     @Query('card_last4') cardLast4?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
-    return this.expensesService.getSpendingVelocity(req.user.id, period, cardLast4)
+    return this.expensesService.getSpendingVelocity(
+      req.user.id,
+      period,
+      cardLast4,
+      parseAnalyticsExcludeCategories(excludeCategories),
+    )
   }
 
   @Get('analytics/milestone-etas')
@@ -642,17 +730,20 @@ export class ExpensesController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Largest transactions in period' })
   @ApiQuery({ name: 'card_last4', required: false })
+  @AnalyticsExcludeCategoriesQuery()
   async getLargestTransactions(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('period') period: AnalyticsPeriod = 'month',
     @Query('limit') limit?: string,
     @Query('card_last4') cardLast4?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
     return this.expensesService.getLargestTransactions(
       req.user.id,
       period,
       limit ? Number.parseInt(limit, 10) : 10,
       cardLast4,
+      parseAnalyticsExcludeCategories(excludeCategories),
     )
   }
 
@@ -742,28 +833,38 @@ export class ExpensesController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Spending anomalies for a period' })
   @ApiQuery({ name: 'card_last4', required: false })
+  @AnalyticsExcludeCategoriesQuery()
   async getSpendAnomalies(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('period') period: AnalyticsPeriod = 'month',
     @Query('card_last4') cardLast4?: string,
+    @Query('excludeCategories') excludeCategories?: string,
   ) {
-    return this.expensesService.getSpendAnomalies(req.user.id, period, cardLast4)
+    return this.expensesService.getSpendAnomalies(
+      req.user.id,
+      period,
+      cardLast4,
+      parseAnalyticsExcludeCategories(excludeCategories),
+    )
   }
 
   @Get('analytics/export')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Export transactions as CSV with full metadata' })
   @ApiQuery({ name: 'card_last4', required: false })
+  @AnalyticsExcludeCategoriesQuery()
   async exportTransactions(
     @Request() req: FastifyRequest & { user: { id: string } },
     @Query('period') period: AnalyticsPeriod = 'month',
     @Query('card_last4') cardLast4?: string,
+    @Query('excludeCategories') excludeCategories?: string,
     @Res() res?: FastifyReply,
   ) {
     const csv = await this.expensesService.exportTransactionsCsv(
       req.user.id,
       period,
       cardLast4,
+      parseAnalyticsExcludeCategories(excludeCategories),
     )
     res?.header('Content-Type', 'text/csv')
     res?.header('Content-Disposition', 'attachment; filename="transactions-export.csv"')

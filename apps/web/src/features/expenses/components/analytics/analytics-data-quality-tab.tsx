@@ -331,6 +331,72 @@ export function AnalyticsDataQualityTab({
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Possible credit card bill payments</CardTitle>
+          <CardDescription>
+            Uncategorized bank debits that look like card bill payments — categorizing these
+            improves spend totals when bill payments are excluded
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {healthLoading ? (
+            <Skeleton className="h-40 w-full" />
+          ) : (health?.potentialCreditCardBillPayments.length ?? 0) > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Merchant</TableHead>
+                  <TableHead className="text-right">Count</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {health!.potentialCreditCardBillPayments.map((row) => (
+                  <TableRow key={row.merchant}>
+                    <TableCell className="font-medium">{row.merchant}</TableCell>
+                    <TableCell className="text-right">{row.count}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {fmtCurrency(row.amount)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link
+                            to={drillDown({
+                              period,
+                              cardLast4: selectedCardLast4,
+                              merchant: row.merchant,
+                              category: 'uncategorized',
+                            })}
+                          >
+                            View
+                          </Link>
+                        </Button>
+                        {onCreateRuleForMerchant ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onCreateRuleForMerchant(row.merchant)}
+                          >
+                            Create rule
+                          </Button>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              No likely missed bill payments detected this period.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <div className="flex items-center gap-2">
             <AlertTriangle className="size-4 text-muted-foreground" />
             <div>

@@ -41,6 +41,11 @@ import type { CategorizationRuleRepository } from '@/modules/expenses/applicatio
 import type { MerchantCategoryRuleRepository } from '@/modules/expenses/application/ports/merchant-rule.repository.port'
 import type { StatementRepository } from '@/modules/expenses/application/ports/statement.repository.port'
 import type { TransactionRepository, TransactionFilters, DateRange } from '@/modules/expenses/application/ports/transaction.repository.port'
+import {
+  resolveExcludeSpendRules,
+  type SpendExclusionRule,
+} from '@/modules/expenses/application/utils/analytics-exclusions'
+import { transactionMatchesSpendExclusion } from '@/modules/expenses/infrastructure/repositories/analytics-range-query'
 import type { UserCategorizationRules } from '@/modules/expenses/infrastructure/categorization/transaction-categorizer'
 import type {RawEmailRepository, EmailSortField} from '@/shared/application/ports/raw-email.repository.port';
 import type {SyncJobRepository} from '@/shared/application/ports/sync-job.repository.port';
@@ -690,11 +695,16 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     period: AnalyticsPeriod,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<SpendingSummary> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingSummary', { period, ...(cardLast4 && { cardLast4 }) }),
-      () => this.transactionRepository.getSpendingSummary({ userId, range, cardLast4 }),
+      this.cacheKey(userId, 'getSpendingSummary', {
+        period,
+        ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
+      }),
+      () => this.transactionRepository.getSpendingSummary({ userId, range, cardLast4, excludeSpendRules }),
     )
   }
 
@@ -702,11 +712,16 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     period: AnalyticsPeriod,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<SpendingByCategoryItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingByCategory', { period, ...(cardLast4 && { cardLast4 }) }),
-      () => this.transactionRepository.getSpendingByCategory({ userId, range, cardLast4 }),
+      this.cacheKey(userId, 'getSpendingByCategory', {
+        period,
+        ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
+      }),
+      () => this.transactionRepository.getSpendingByCategory({ userId, range, cardLast4, excludeSpendRules }),
     )
   }
 
@@ -714,11 +729,16 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     period: AnalyticsPeriod,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<SpendingBySubcategoryItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingBySubcategory', { period, ...(cardLast4 && { cardLast4 }) }),
-      () => this.transactionRepository.getSpendingBySubcategory({ userId, range, cardLast4 }),
+      this.cacheKey(userId, 'getSpendingBySubcategory', {
+        period,
+        ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
+      }),
+      () => this.transactionRepository.getSpendingBySubcategory({ userId, range, cardLast4, excludeSpendRules }),
     )
   }
 
@@ -727,6 +747,7 @@ export class ExpensesService implements OnModuleDestroy {
     startDate: string,
     endDate: string,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<SpendingByCategoryItem[]> {
     const range = this.computeExplicitDateRange(startDate, endDate)
     return this.getCachedOrCompute(
@@ -734,8 +755,9 @@ export class ExpensesService implements OnModuleDestroy {
         startDate,
         endDate,
         ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
       }),
-      () => this.transactionRepository.getSpendingByCategory({ userId, range, cardLast4 }),
+      () => this.transactionRepository.getSpendingByCategory({ userId, range, cardLast4, excludeSpendRules }),
     )
   }
 
@@ -743,11 +765,16 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     period: AnalyticsPeriod,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<SpendingByModeItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingByMode', { period, ...(cardLast4 && { cardLast4 }) }),
-      () => this.transactionRepository.getSpendingByMode({ userId, range, cardLast4 }),
+      this.cacheKey(userId, 'getSpendingByMode', {
+        period,
+        ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
+      }),
+      () => this.transactionRepository.getSpendingByMode({ userId, range, cardLast4, excludeSpendRules }),
     )
   }
 
@@ -756,11 +783,17 @@ export class ExpensesService implements OnModuleDestroy {
     period: AnalyticsPeriod,
     limit = 10,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<SpendingByMerchantItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getTopMerchants', { period, limit, ...(cardLast4 && { cardLast4 }) }),
-      () => this.transactionRepository.getTopMerchants({ userId, range, limit, cardLast4 }),
+      this.cacheKey(userId, 'getTopMerchants', {
+        period,
+        limit,
+        ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
+      }),
+      () => this.transactionRepository.getTopMerchants({ userId, range, limit, cardLast4, excludeSpendRules }),
     )
   }
 
@@ -770,6 +803,7 @@ export class ExpensesService implements OnModuleDestroy {
     endDate: string,
     limit = 10,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<SpendingByMerchantItem[]> {
     const range = this.computeExplicitDateRange(startDate, endDate)
     return this.getCachedOrCompute(
@@ -778,8 +812,9 @@ export class ExpensesService implements OnModuleDestroy {
         endDate,
         limit,
         ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
       }),
-      () => this.transactionRepository.getTopMerchants({ userId, range, limit, cardLast4 }),
+      () => this.transactionRepository.getTopMerchants({ userId, range, limit, cardLast4, excludeSpendRules }),
     )
   }
 
@@ -787,11 +822,16 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     period: AnalyticsPeriod,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<DailySpendingItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getDailySpending', { period, ...(cardLast4 && { cardLast4 }) }),
-      () => this.transactionRepository.getDailySpending({ userId, range, cardLast4 }),
+      this.cacheKey(userId, 'getDailySpending', {
+        period,
+        ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
+      }),
+      () => this.transactionRepository.getDailySpending({ userId, range, cardLast4, excludeSpendRules }),
     )
   }
 
@@ -800,6 +840,7 @@ export class ExpensesService implements OnModuleDestroy {
     startDate: string,
     endDate: string,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<DailySpendingItem[]> {
     const range = this.computeExplicitDateRange(startDate, endDate)
     return this.getCachedOrCompute(
@@ -807,15 +848,20 @@ export class ExpensesService implements OnModuleDestroy {
         startDate,
         endDate,
         ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
       }),
-      () => this.transactionRepository.getDailySpending({ userId, range, cardLast4 }),
+      () => this.transactionRepository.getDailySpending({ userId, range, cardLast4, excludeSpendRules }),
     )
   }
 
-  async getMonthlyTrend(userId: string, months = 12): Promise<MonthlyTrendItem[]> {
+  async getMonthlyTrend(
+    userId: string,
+    months = 12,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
+  ): Promise<MonthlyTrendItem[]> {
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getMonthlyTrend', { months }),
-      () => this.transactionRepository.getMonthlyTrend({ userId, months }),
+      this.cacheKey(userId, 'getMonthlyTrend', { months, excludeSpendRules }),
+      () => this.transactionRepository.getMonthlyTrend({ userId, months, excludeSpendRules }),
     )
   }
 
@@ -886,18 +932,27 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     period: AnalyticsPeriod,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<DayOfWeekSpendingItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getDayOfWeekSpending', { period, ...(cardLast4 && { cardLast4 }) }),
-      () => this.transactionRepository.getDayOfWeekSpending({ userId, range, cardLast4 }),
+      this.cacheKey(userId, 'getDayOfWeekSpending', {
+        period,
+        ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
+      }),
+      () => this.transactionRepository.getDayOfWeekSpending({ userId, range, cardLast4, excludeSpendRules }),
     )
   }
 
-  async getCategoryTrend(userId: string, months = 6): Promise<CategoryTrendItem[]> {
+  async getCategoryTrend(
+    userId: string,
+    months = 6,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
+  ): Promise<CategoryTrendItem[]> {
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getCategoryTrend', { months }),
-      () => this.transactionRepository.getCategoryTrend({ userId, months }),
+      this.cacheKey(userId, 'getCategoryTrend', { months, excludeSpendRules }),
+      () => this.transactionRepository.getCategoryTrend({ userId, months, excludeSpendRules }),
     )
   }
 
@@ -905,9 +960,14 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     period: AnalyticsPeriod,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<PeriodComparison> {
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getPeriodComparison', { period, ...(cardLast4 && { cardLast4 }) }),
+      this.cacheKey(userId, 'getPeriodComparison', {
+        period,
+        ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
+      }),
       async () => {
         const currentRange = this.computeDateRange(period)
 
@@ -918,8 +978,18 @@ export class ExpensesService implements OnModuleDestroy {
         }
 
         const [current, previous] = await Promise.all([
-          this.transactionRepository.getPeriodTotals({ userId, range: currentRange, cardLast4 }),
-          this.transactionRepository.getPeriodTotals({ userId, range: previousRange, cardLast4 }),
+          this.transactionRepository.getPeriodTotals({
+            userId,
+            range: currentRange,
+            cardLast4,
+            excludeSpendRules,
+          }),
+          this.transactionRepository.getPeriodTotals({
+            userId,
+            range: previousRange,
+            cardLast4,
+            excludeSpendRules,
+          }),
         ])
 
         const currentAvg
@@ -955,18 +1025,27 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     period: AnalyticsPeriod,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<CumulativeSpendItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getCumulativeSpend', { period, ...(cardLast4 && { cardLast4 }) }),
-      () => this.transactionRepository.getCumulativeSpend({ userId, range, cardLast4 }),
+      this.cacheKey(userId, 'getCumulativeSpend', {
+        period,
+        ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
+      }),
+      () => this.transactionRepository.getCumulativeSpend({ userId, range, cardLast4, excludeSpendRules }),
     )
   }
 
-  async getSavingsRate(userId: string, months = 12): Promise<SavingsRateItem[]> {
+  async getSavingsRate(
+    userId: string,
+    months = 12,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
+  ): Promise<SavingsRateItem[]> {
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSavingsRate', { months }),
-      () => this.transactionRepository.getSavingsRate({ userId, months }),
+      this.cacheKey(userId, 'getSavingsRate', { months, excludeSpendRules }),
+      () => this.transactionRepository.getSavingsRate({ userId, months, excludeSpendRules }),
     )
   }
 
@@ -987,11 +1066,17 @@ export class ExpensesService implements OnModuleDestroy {
     period: AnalyticsPeriod,
     limit = 10,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<TopVpaItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getTopVpas', { period, limit, ...(cardLast4 && { cardLast4 }) }),
-      () => this.transactionRepository.getTopVpas({ userId, range, limit, cardLast4 }),
+      this.cacheKey(userId, 'getTopVpas', {
+        period,
+        limit,
+        ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
+      }),
+      () => this.transactionRepository.getTopVpas({ userId, range, limit, cardLast4, excludeSpendRules }),
     )
   }
 
@@ -999,11 +1084,16 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     period: AnalyticsPeriod,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<SpendingVelocityItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendingVelocity', { period, ...(cardLast4 && { cardLast4 }) }),
-      () => this.transactionRepository.getSpendingVelocity({ userId, range, cardLast4 }),
+      this.cacheKey(userId, 'getSpendingVelocity', {
+        period,
+        ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
+      }),
+      () => this.transactionRepository.getSpendingVelocity({ userId, range, cardLast4, excludeSpendRules }),
     )
   }
 
@@ -1085,11 +1175,23 @@ export class ExpensesService implements OnModuleDestroy {
     period: AnalyticsPeriod,
     limit = 10,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<LargestTransactionItem[]> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getLargestTransactions', { period, limit, ...(cardLast4 && { cardLast4 }) }),
-      () => this.transactionRepository.getLargestTransactions({ userId, range, limit, cardLast4 }),
+      this.cacheKey(userId, 'getLargestTransactions', {
+        period,
+        limit,
+        ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
+      }),
+      () => this.transactionRepository.getLargestTransactions({
+        userId,
+        range,
+        limit,
+        cardLast4,
+        excludeSpendRules,
+      }),
     )
   }
 
@@ -1109,18 +1211,31 @@ export class ExpensesService implements OnModuleDestroy {
     userId: string,
     period: AnalyticsPeriod,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<SpendAnomalies> {
     const range = this.computeDateRange(period)
     return this.getCachedOrCompute(
-      this.cacheKey(userId, 'getSpendAnomalies', { period, ...(cardLast4 && { cardLast4 }) }),
-      () => this.transactionRepository.getSpendAnomalies({ userId, range, cardLast4 }),
+      this.cacheKey(userId, 'getSpendAnomalies', {
+        period,
+        ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
+      }),
+      () => this.transactionRepository.getSpendAnomalies({ userId, range, cardLast4, excludeSpendRules }),
     )
+  }
+
+  private shouldIncludeTransactionInSpendExport(
+    txn: Transaction,
+    excludeSpendRules: SpendExclusionRule[],
+  ): boolean {
+    return !transactionMatchesSpendExclusion(txn, excludeSpendRules)
   }
 
   async exportTransactionsCsv(
     userId: string,
     period: AnalyticsPeriod,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<string> {
     const range = this.computeDateRange(period)
     const all = await this.transactionRepository.listAllForUser(userId)
@@ -1128,6 +1243,7 @@ export class ExpensesService implements OnModuleDestroy {
       const date = new Date(txn.transactionDate)
       if (date < range.start || date >= range.end) return false
       if (cardLast4 && txn.cardLast4 !== cardLast4) return false
+      if (!this.shouldIncludeTransactionInSpendExport(txn, excludeSpendRules)) return false
       return true
     })
 
@@ -1184,6 +1300,7 @@ export class ExpensesService implements OnModuleDestroy {
     endDate: string,
     limit = 10,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<LargestTransactionItem[]> {
     const range = this.computeExplicitDateRange(startDate, endDate)
     return this.getCachedOrCompute(
@@ -1192,8 +1309,15 @@ export class ExpensesService implements OnModuleDestroy {
         endDate,
         limit,
         ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
       }),
-      () => this.transactionRepository.getLargestTransactions({ userId, range, limit, cardLast4 }),
+      () => this.transactionRepository.getLargestTransactions({
+        userId,
+        range,
+        limit,
+        cardLast4,
+        excludeSpendRules,
+      }),
     )
   }
 
@@ -1202,6 +1326,7 @@ export class ExpensesService implements OnModuleDestroy {
     startDate: string,
     endDate: string,
     cardLast4?: string,
+    excludeSpendRules = resolveExcludeSpendRules(undefined),
   ): Promise<SpendingSummary> {
     const range = this.computeExplicitDateRange(startDate, endDate)
     return this.getCachedOrCompute(
@@ -1209,8 +1334,9 @@ export class ExpensesService implements OnModuleDestroy {
         startDate,
         endDate,
         ...(cardLast4 && { cardLast4 }),
+        excludeSpendRules,
       }),
-      () => this.transactionRepository.getSpendingSummary({ userId, range, cardLast4 }),
+      () => this.transactionRepository.getSpendingSummary({ userId, range, cardLast4, excludeSpendRules }),
     )
   }
 

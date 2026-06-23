@@ -30,6 +30,7 @@ export const TransactionAttributesSchema = z
     serviceName: z.string().optional(),
     counterpartyType: z.enum(['person', 'business', 'government']).optional(),
     incomeType: z.enum(['salary', 'bonus', 'freelance', 'refund', 'dividend', 'reimbursement']).optional(),
+    isCreditCardBillPayment: z.boolean().optional(),
     llmReasoning: z.string().optional(),
   })
   .partial();
@@ -474,6 +475,15 @@ export type UncategorizedMerchantItem = z.infer<
   typeof UncategorizedMerchantItemSchema
 >;
 
+export const PotentialCreditCardBillPaymentItemSchema = z.object({
+  merchant: z.string(),
+  amount: z.number(),
+  count: z.number(),
+});
+export type PotentialCreditCardBillPaymentItem = z.infer<
+  typeof PotentialCreditCardBillPaymentItemSchema
+>;
+
 export const ClassificationHealthSchema = z.object({
   reviewPending: z.number(),
   totalTransactions: z.number(),
@@ -481,6 +491,7 @@ export const ClassificationHealthSchema = z.object({
   byMethod: z.array(ClassificationMethodBreakdownItemSchema),
   confidenceBuckets: z.array(ConfidenceBucketItemSchema),
   topUncategorizedMerchants: z.array(UncategorizedMerchantItemSchema),
+  potentialCreditCardBillPayments: z.array(PotentialCreditCardBillPaymentItemSchema),
 });
 export type ClassificationHealth = z.infer<typeof ClassificationHealthSchema>;
 
