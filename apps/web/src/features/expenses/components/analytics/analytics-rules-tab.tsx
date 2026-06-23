@@ -230,6 +230,10 @@ export function AnalyticsRulesTab({
                 <div className="min-w-0 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <GripVertical className="size-4 text-muted-foreground" />
+                    <TransactionCategoryTile
+                      category={rule.action.category}
+                      size="sm"
+                    />
                     <p className="font-medium">{rule.name}</p>
                     <Badge variant="outline">P{rule.priority}</Badge>
                     {!rule.enabled ? (
@@ -378,15 +382,21 @@ function SuggestedRuleRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
-      <div>
-        <p className="text-sm font-medium">{suggestion.name}</p>
-        <p className="text-xs text-muted-foreground">
-          {suggestion.matchCount} matches ·{' '}
-          {fmtCurrency(suggestion.totalAmount)}
-          {suggestion.sampleMerchant
-            ? ` · e.g. ${suggestion.sampleMerchant}`
-            : ''}
-        </p>
+      <div className="flex min-w-0 items-start gap-3">
+        <TransactionCategoryTile
+          category={suggestion.action.category}
+          size="sm"
+        />
+        <div className="min-w-0">
+          <p className="text-sm font-medium">{suggestion.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {suggestion.matchCount} matches ·{' '}
+            {fmtCurrency(suggestion.totalAmount)}
+            {suggestion.sampleMerchant
+              ? ` · e.g. ${suggestion.sampleMerchant}`
+              : ''}
+          </p>
+        </div>
       </div>
       <Button variant="outline" size="sm" onClick={onUse}>
         Use suggestion

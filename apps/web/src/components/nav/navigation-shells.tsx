@@ -326,6 +326,8 @@ function SidebarShell({
     <ShellFrame>
       <div className={cn('min-h-dvh', !isFloating && 'flex')}>
         <aside
+          data-slot="sidebar"
+          data-variant={isFloating ? 'floating' : 'docked'}
           className={cn(
             'hidden md:flex md:flex-col md:transition-[width] md:duration-200',
             isFloating
@@ -334,7 +336,10 @@ function SidebarShell({
             collapsed ? 'md:w-16' : 'md:w-64',
           )}
         >
-          <div className="flex items-center border-b border-border/60 px-3 py-3">
+          <div
+            data-slot="sidebar-header"
+            className="flex items-center border-b border-border/60 px-3 py-3"
+          >
             {collapsed ? (
               <Button
                 variant="ghost"
@@ -385,6 +390,8 @@ function SidebarShell({
                           const linkEl = (
                             <Link
                               to={item.href}
+                              data-slot="sidebar-nav-link"
+                              data-active={active ? 'true' : 'false'}
                               aria-current={active ? 'page' : undefined}
                               className={cn(
                                 'group flex items-center gap-3 rounded-2xl border px-2 py-2 transition-colors',
@@ -426,7 +433,10 @@ function SidebarShell({
             </div>
           </div>
 
-          <div className="border-t border-border/60 px-3 py-3">
+          <div
+            data-slot="sidebar-footer"
+            className="border-t border-border/60 px-3 py-3"
+          >
             {collapsed ? (
               <div className="flex justify-center">
                 <NavUser username={user?.email} />
