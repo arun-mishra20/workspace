@@ -31,6 +31,7 @@ import {
 import { PeriodComparisonSection } from '@/features/expenses/components/analytics/period-comparison-section'
 import { SpendHeatmapCalendar } from '@/features/expenses/components/analytics/spend-heatmap-calendar'
 import { TransactionMetadataBadges } from '@/features/expenses/components/analytics/transaction-metadata-badges'
+import { TransactionCategoryTile } from '@/features/expenses/components/transaction-category-tile'
 import {
   fmtCompact,
   fmtCurrency,
@@ -446,8 +447,14 @@ export function RuleDashboardView({
                         <TableCell className="whitespace-nowrap text-sm">
                           {format(parseISO(txn.transactionDate), 'dd MMM yyyy')}
                         </TableCell>
-                        <TableCell className="max-w-48 truncate text-sm">
-                          {txn.merchant}
+                        <TableCell className="max-w-48 text-sm">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <TransactionCategoryTile
+                              category={txn.category}
+                              size="sm"
+                            />
+                            <span className="truncate">{txn.merchant}</span>
+                          </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-sm tabular-nums">
                           {fmtCurrency(txn.amount)}

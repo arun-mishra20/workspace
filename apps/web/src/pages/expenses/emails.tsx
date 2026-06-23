@@ -115,11 +115,14 @@ const TRANSACTION_MODES = [
   'rtgs',
 ] as const
 import { getCategoryMeta } from '@/features/expenses/lib/category-meta'
+import { CategoryIcon } from '@/features/expenses/components/category-icon'
+import { CategorySelectOption } from '@/features/expenses/components/category-select-option'
+import { TransactionCategoryTile } from '@/features/expenses/components/transaction-category-tile'
 
 const CATEGORY_FILTER_OPTIONS: FilterOption[] = CATEGORY_OPTIONS.map((c) => ({
   value: c.value,
   label: c.label,
-  color: c.color,
+  categoryIcon: true,
 }))
 
 const MODE_FILTER_OPTIONS: FilterOption[] = TRANSACTION_MODES.map((m) => ({
@@ -274,20 +277,26 @@ const buildExpenseColumns = (
     ),
     cell: ({ row }) => (
       <div className="flex gap-2 items-center max-w-72">
-        <div className="font-medium text-foreground">
-          {row.original.merchant}
-        </div>
-        <Badge className="ml-2 text-[10px] p-0.5 px-2" variant={'outline'}>
-          <div className="h-fit max-w-30 flex gap-1 items-center">
-            <p className="truncate">
-              {row.original.cardName ??
-                row.original.vpa ??
-                row.original.merchantRaw ??
-                'Unknown source'}
-            </p>
-            {row.original.cardName && <CreditCard className={cn('size-3')} />}
+        <TransactionCategoryTile
+          category={row.original.category}
+          size="sm"
+        />
+        <div className="min-w-0 flex flex-col gap-1">
+          <div className="font-medium text-foreground truncate">
+            {row.original.merchant}
           </div>
-        </Badge>
+          <Badge className="w-fit text-[10px] p-0.5 px-2" variant="outline">
+            <div className="h-fit max-w-30 flex gap-1 items-center">
+              <p className="truncate">
+                {row.original.cardName ??
+                  row.original.vpa ??
+                  row.original.merchantRaw ??
+                  'Unknown source'}
+              </p>
+              {row.original.cardName && <CreditCard className={cn('size-3')} />}
+            </div>
+          </Badge>
+        </div>
       </div>
     ),
   },
@@ -322,15 +331,16 @@ const buildExpenseColumns = (
       return (
         <Badge
           variant="secondary"
-          className="capitalize"
+          className="inline-flex items-center capitalize gap-1.5"
           style={{
             borderColor: meta?.color,
             color: meta?.color,
           }}
         >
-          <span
-            className="inline-block size-2 rounded-full mr-1.5"
-            style={{ backgroundColor: meta?.color ?? '#95A5A6' }}
+          <CategoryIcon
+            category={row.original.category}
+            size={12}
+            className="mr-1.5"
           />
           {meta?.label ?? row.original.category.replace(/_/g, ' ')}
         </Badge>
@@ -1513,13 +1523,7 @@ const ExpenseEmailsPage = () => {
                 <SelectContent>
                   {CATEGORY_OPTIONS.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="inline-block size-2 rounded-full"
-                          style={{ backgroundColor: cat.color }}
-                        />
-                        {cat.label}
-                      </span>
+                      <CategorySelectOption category={cat.value} />
                     </SelectItem>
                   ))}
                 </SelectContent>

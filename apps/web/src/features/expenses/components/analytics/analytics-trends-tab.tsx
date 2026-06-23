@@ -36,6 +36,8 @@ import {
   getChartTokenColor,
 } from '@/features/expenses/components/analytics/analytics-utils'
 import { RankedSpendListCard } from '@/features/expenses/components/analytics/ranked-spend-list-card'
+import { TransactionCategoryTile } from '@/features/expenses/components/transaction-category-tile'
+import { getPaymentModeMeta } from '@/features/expenses/lib/payment-mode-meta'
 import { TransactionMetadataBadges } from '@/features/expenses/components/analytics/transaction-metadata-badges'
 import { useAnalyticsDrillDown } from '@/features/expenses/hooks/use-analytics-drill-down'
 import type {
@@ -784,18 +786,30 @@ export function AnalyticsTrendsTab({
       <RankedSpendListCard
         title="Top UPI Payees"
         description="Most-paid VPA addresses"
-        items={(topVpas ?? []).map((v) => ({
-          key: v.vpa,
-          label: v.merchant,
-          sublabel: v.vpa,
-          amount: v.amount,
-          count: v.count,
-          href: drillDown({
-            period,
-            cardLast4: selectedCardLast4,
-            merchant: v.merchant,
-          }),
-        }))}
+        items={(topVpas ?? []).map((v) => {
+          const upiMeta = getPaymentModeMeta('upi')
+          const UpiIcon = upiMeta.icon
+          return {
+            key: v.vpa,
+            label: v.merchant,
+            sublabel: v.vpa,
+            amount: v.amount,
+            count: v.count,
+            href: drillDown({
+              period,
+              cardLast4: selectedCardLast4,
+              merchant: v.merchant,
+            }),
+            leading: (
+              <span
+                className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+                aria-hidden
+              >
+                <UpiIcon className="size-3.5" style={{ color: upiMeta.color }} />
+              </span>
+            ),
+          }
+        })}
         loading={topVpasLoading}
         emptyMessage="No UPI data for this period."
         emptyActions={sparseActions}
@@ -833,12 +847,14 @@ export function AnalyticsTrendsTab({
                   className="flex items-center justify-between py-3 transition-colors hover:bg-muted/50 rounded-sm px-1 -mx-1"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="flex size-6 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                      {i + 1}
-                    </span>
+                    <TransactionCategoryTile
+                      category={txn.category}
+                      size="sm"
+                    />
                     <div>
                       <p className="text-sm font-medium">{txn.merchant}</p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="text-muted-foreground/70">#{i + 1}</span>
                         <span>
                           {(() => {
                             try {

@@ -3,7 +3,9 @@ import { ArrowDownRight, ArrowUpRight, Calendar, ExternalLink } from 'lucide-rea
 import { Link } from 'react-router-dom'
 
 import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
+import { TransactionCategoryTile } from '@/features/expenses/components/transaction-category-tile'
 import { TransactionMetadataBadges } from '@/features/expenses/components/analytics/transaction-metadata-badges'
+import { getCategoryLabel } from '@/features/expenses/lib/category-meta'
 import { SummaryCard } from '@/features/expenses/components/analytics/summary-card'
 import type { Transaction } from '@workspace/domain'
 import { Badge } from '@workspace/ui/components/ui/badge'
@@ -235,12 +237,18 @@ function DayTransactionsList({
 
   return (
     <div className="divide-y rounded-lg border">
-      {transactions.map((transaction) => (
+      {transactions.map((transaction) => {
+        const categoryLabel = getCategoryLabel(transaction.category)
+
+        return (
         <div
           key={transaction.id}
           className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
         >
-          <div className="min-w-0 space-y-1">
+          <div className="flex min-w-0 items-start gap-3 sm:items-center">
+            <TransactionCategoryTile category={transaction.category} />
+
+            <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-sm font-medium">{transaction.merchant}</p>
               <Badge variant="outline" className="text-xs capitalize">
@@ -253,6 +261,7 @@ function DayTransactionsList({
             </div>
             <TransactionMetadataBadges transaction={transaction} compact />
             <p className="text-xs text-muted-foreground">
+              <span className="sr-only">Category: {categoryLabel}. </span>
               {(() => {
                 try {
                   return format(
@@ -264,6 +273,7 @@ function DayTransactionsList({
                 }
               })()}
             </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 sm:flex-col sm:items-end sm:gap-1">
@@ -282,7 +292,8 @@ function DayTransactionsList({
             ) : null}
           </div>
         </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

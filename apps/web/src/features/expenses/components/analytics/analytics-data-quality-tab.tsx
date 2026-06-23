@@ -16,6 +16,7 @@ import {
   type ChartLegendItem,
 } from '@/features/expenses/components/analytics/chart-with-side-legend'
 import { AnalyticsEmptyHint } from '@/features/expenses/components/analytics/analytics-empty-hint'
+import { TransactionCategoryTile } from '@/features/expenses/components/transaction-category-tile'
 import {
   buildSparsePeriodActions,
   type AnalyticsFilterActions,
@@ -292,7 +293,15 @@ export function AnalyticsDataQualityTab({
               <TableBody>
                 {health!.topUncategorizedMerchants.map((row) => (
                   <TableRow key={row.merchant}>
-                    <TableCell className="font-medium">{row.merchant}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <TransactionCategoryTile
+                          category="uncategorized"
+                          size="sm"
+                        />
+                        <span>{row.merchant}</span>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">{row.count}</TableCell>
                     <TableCell className="text-right tabular-nums">
                       {fmtCurrency(row.amount)}
@@ -359,7 +368,15 @@ export function AnalyticsDataQualityTab({
               <TableBody>
                 {health!.potentialCreditCardBillPayments.map((row) => (
                   <TableRow key={row.merchant}>
-                    <TableCell className="font-medium">{row.merchant}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <TransactionCategoryTile
+                          category="uncategorized"
+                          size="sm"
+                        />
+                        <span>{row.merchant}</span>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">{row.count}</TableCell>
                     <TableCell className="text-right tabular-nums">
                       {fmtCurrency(row.amount)}

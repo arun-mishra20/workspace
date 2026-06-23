@@ -8,6 +8,7 @@ import {
   RuleBuilderForm,
 } from '@/features/expenses/components/rules/rule-builder-form'
 import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
+import { TransactionCategoryTile } from '@/features/expenses/components/transaction-category-tile'
 import type { DashboardInlineRule, RulePreviewResponse } from '@workspace/domain'
 import { Badge } from '@workspace/ui/components/ui/badge'
 import { Button } from '@workspace/ui/components/ui/button'
@@ -222,9 +223,15 @@ export function DashboardInlineRulesEditor({
                       preview.transactions.map((txn) => (
                         <div
                           key={txn.id}
-                          className="flex justify-between text-xs text-muted-foreground"
+                          className="flex items-center justify-between gap-2 text-xs text-muted-foreground"
                         >
-                          <span className="truncate pr-3">{txn.merchant}</span>
+                          <span className="flex min-w-0 items-center gap-2">
+                            <TransactionCategoryTile
+                              category={txn.category}
+                              size="sm"
+                            />
+                            <span className="truncate">{txn.merchant}</span>
+                          </span>
                           <span className="shrink-0 tabular-nums">
                             {fmtCurrency(txn.amount)}
                           </span>

@@ -26,6 +26,7 @@ import {
   RuleBuilderForm,
 } from '@/features/expenses/components/rules/rule-builder-form'
 import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
+import { TransactionCategoryTile } from '@/features/expenses/components/transaction-category-tile'
 import {
   buildDashboardDeepLink,
 } from '@/features/expenses/components/analytics/analytics-dashboards-tab'
@@ -35,6 +36,7 @@ import type {
   CreateCategorizationRuleInput,
   RuleAction,
   RuleConditionGroup,
+  RulePreviewResponse,
   SuggestedRule,
   Transaction,
 } from '@workspace/domain'
@@ -417,15 +419,7 @@ function RuleEditorDialog({
   const [subcategory, setSubcategory] = useState('')
   const [requiresReview, setRequiresReview] = useState(false)
   const [applyOnSave, setApplyOnSave] = useState(true)
-  const [preview, setPreview] = useState<{
-    matchedCount: number
-    totalAmount: number
-    transactions: Array<{
-      id: string
-      merchant: string
-      amount: number
-    }>
-  } | null>(null)
+  const [preview, setPreview] = useState<RulePreviewResponse | null>(null)
 
   const [templateMerchant, setTemplateMerchant] = useState('')
   const [templateKeyword, setTemplateKeyword] = useState('')
@@ -810,10 +804,18 @@ function RuleEditorDialog({
                 {preview.transactions.map((txn) => (
                   <div
                     key={txn.id}
-                    className="flex justify-between text-xs text-muted-foreground"
+                    className="flex items-center justify-between gap-2 text-xs text-muted-foreground"
                   >
-                    <span>{txn.merchant}</span>
-                    <span>{fmtCurrency(txn.amount)}</span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <TransactionCategoryTile
+                        category={txn.category}
+                        size="sm"
+                      />
+                      <span className="truncate">{txn.merchant}</span>
+                    </span>
+                    <span className="shrink-0 tabular-nums">
+                      {fmtCurrency(txn.amount)}
+                    </span>
                   </div>
                 ))}
               </div>

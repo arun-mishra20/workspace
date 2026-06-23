@@ -324,7 +324,7 @@ function SidebarShell({ children }: NavigationShellProps) {
         <aside
           className={cn(
             'hidden border-r border-border/60 bg-card/70 backdrop-blur-xl md:flex md:sticky md:top-0 md:h-dvh md:flex-col md:transition-[width] md:duration-200',
-            collapsed ? 'md:w-20' : 'md:w-72',
+            collapsed ? 'md:w-16' : 'md:w-64',
           )}
         >
           <div className="flex items-center border-b border-border/60 px-3 py-3">
@@ -380,7 +380,7 @@ function SidebarShell({ children }: NavigationShellProps) {
                               to={item.href}
                               aria-current={active ? 'page' : undefined}
                               className={cn(
-                                'group flex items-center gap-3 rounded-2xl border px-3 py-2.5 transition-colors',
+                                'group flex items-center gap-3 rounded-2xl border px-2 py-2 transition-colors',
                                 active
                                   ? 'border-primary/40 bg-primary/10 text-foreground'
                                   : 'border-transparent text-muted-foreground hover:border-border/60 hover:bg-secondary/60 hover:text-foreground',
@@ -389,7 +389,7 @@ function SidebarShell({ children }: NavigationShellProps) {
                             >
                               <Icon className="size-4 shrink-0" />
                               {!collapsed && (
-                                <span className="font-medium">
+                                <span className="font-medium text-xs text-foreground">
                                   {item.label}
                                 </span>
                               )}

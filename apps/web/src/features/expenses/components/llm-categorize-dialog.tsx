@@ -55,6 +55,9 @@ import {
   createCategorizationRule,
 } from '@/features/expenses/api/categorization-rules'
 import { buildRuleSeedFromTransaction } from '@/features/expenses/components/analytics/analytics-rules-tab'
+import { CategoryIcon } from '@/features/expenses/components/category-icon'
+import { CategorySelectOption } from '@/features/expenses/components/category-select-option'
+import { TransactionCategoryTile } from '@/features/expenses/components/transaction-category-tile'
 import { getCategoryMeta } from '@/features/expenses/lib/category-meta'
 import { CATEGORY_OPTIONS } from '@/features/expenses/constants/category-options'
 
@@ -464,9 +467,15 @@ export function LlmCategorizeDialog({
                           />
                         </td>
                         <td className="py-2.5 pr-3">
-                          <span className="line-clamp-1 max-w-[140px] text-xs font-medium">
-                            {s.merchantName}
-                          </span>
+                          <div className="flex max-w-[140px] items-center gap-2">
+                            <TransactionCategoryTile
+                              category={s.originalCategory}
+                              size="sm"
+                            />
+                            <span className="line-clamp-1 text-xs font-medium">
+                              {s.merchantName}
+                            </span>
+                          </div>
                         </td>
                         <td className="py-2.5 pr-3 text-right tabular-nums text-xs">
                           {s.amount.toLocaleString('en-IN', {
@@ -478,12 +487,16 @@ export function LlmCategorizeDialog({
                         <td className="py-2.5 pr-2">
                           <Badge
                             variant="outline"
-                            className="text-[10px] capitalize"
+                            className="gap-1 text-[10px] capitalize"
                             style={{
                               borderColor: currentMeta?.color,
                               color: currentMeta?.color,
                             }}
                           >
+                            <CategoryIcon
+                              category={s.originalCategory}
+                              size={10}
+                            />
                             {currentMeta?.label ??
                               s.originalCategory.replace(/_/g, ' ')}
                           </Badge>
@@ -510,13 +523,7 @@ export function LlmCategorizeDialog({
                                   value={cat.value}
                                   className="text-xs"
                                 >
-                                  <span className="flex items-center gap-1.5">
-                                    <span
-                                      className="inline-block size-2 rounded-full"
-                                      style={{ backgroundColor: cat.color }}
-                                    />
-                                    {cat.label}
-                                  </span>
+                                  <CategorySelectOption category={cat.value} />
                                 </SelectItem>
                               ))}
                             </SelectContent>
