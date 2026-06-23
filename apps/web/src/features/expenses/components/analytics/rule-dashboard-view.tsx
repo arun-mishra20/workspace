@@ -121,6 +121,7 @@ export function RuleDashboardView({
   const navigate = useNavigate()
 
   const transactionTotal = analytics?.transactions.total ?? 0
+  const hasMultipleRules = analytics ? analytics.rules.length > 1 : null
 
   const byRuleChartConfig: ChartConfig = Object.fromEntries(
     (analytics?.byRule ?? []).map((item, index) => [
@@ -136,6 +137,76 @@ export function RuleDashboardView({
       amount: item.amount,
       color: getChartTokenColor(index),
     }),
+  )
+
+  const transactionsTable = (
+    <>
+      {loading ? (
+        <Skeleton className="h-48 w-full" />
+      ) : (analytics?.transactions.data.length ?? 0) > 0 ? (
+        <>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Merchant</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Rules</TableHead>
+                  <TableHead>Metadata</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {analytics!.transactions.data.map((txn) => (
+                  <TableRow key={txn.id}>
+                    <TableCell className="whitespace-nowrap text-sm">
+                      {format(parseISO(txn.transactionDate), 'dd MMM yyyy')}
+                    </TableCell>
+                    <TableCell className="max-w-48 text-sm">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <TransactionCategoryTile
+                          category={txn.category}
+                          size="sm"
+                        />
+                        <span className="truncate">{txn.merchant}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-sm tabular-nums">
+                      {fmtCurrency(txn.amount)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {txn.matchedRuleNames.map((name) => (
+                          <Badge key={name} variant="outline" className="text-[10px]">
+                            {name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <TransactionMetadataBadges transaction={txn} compact />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <DataTablePagination
+            page={page}
+            pageSize={pageSize}
+            totalItems={transactionTotal}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+            itemLabel="transactions"
+          />
+        </>
+      ) : (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          No transactions matched the selected rules in this date range.
+        </p>
+      )}
+    </>
   )
 
   return (
@@ -315,184 +386,146 @@ export function RuleDashboardView({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <CardTitle className="text-base">Contribution by rule</CardTitle>
-                <CardDescription>Overlap allowed — totals are deduped above</CardDescription>
-              </div>
-              <ChartCardToolbar
-                view={byRuleView}
-                onViewChange={setByRuleView}
-                views={['chart', 'radial']}
-              />
-            </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
+        {hasMultipleRules === null ? (
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-56" />
+            </CardHeader>
+            <CardContent>
               <Skeleton className="h-56 w-full" />
-            ) : (analytics?.byRule.length ?? 0) > 0 ? (
-              byRuleView === 'radial' ? (
-                <ChartWithSideLegend items={byRuleLegendItems}>
-                  <ChartContainer
-                    config={byRuleChartConfig}
-                    className="mx-auto aspect-square h-56 w-full"
-                  >
-                    <RadialBarChart
-                      cx="50%"
-                      cy="50%"
-                      innerRadius="15%"
-                      outerRadius="90%"
-                      data={analytics!.byRule.map((item, index) => ({
+            </CardContent>
+          </Card>
+        ) : hasMultipleRules ? (
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <CardTitle className="text-base">Contribution by rule</CardTitle>
+                  <CardDescription>
+                    Overlap allowed — totals are deduped above
+                  </CardDescription>
+                </div>
+                <ChartCardToolbar
+                  view={byRuleView}
+                  onViewChange={setByRuleView}
+                  views={['chart', 'radial']}
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-56 w-full" />
+              ) : (analytics?.byRule.length ?? 0) > 0 ? (
+                byRuleView === 'radial' ? (
+                  <ChartWithSideLegend items={byRuleLegendItems}>
+                    <ChartContainer
+                      config={byRuleChartConfig}
+                      className="mx-auto aspect-square h-56 w-full"
+                    >
+                      <RadialBarChart
+                        cx="50%"
+                        cy="50%"
+                        innerRadius="15%"
+                        outerRadius="90%"
+                        data={analytics!.byRule.map((item, index) => ({
+                          ...item,
+                          label: item.name,
+                          fill: getChartTokenColor(index),
+                        }))}
+                        startAngle={90}
+                        endAngle={-270}
+                      >
+                        <ChartTooltip
+                          content={
+                            <ChartTooltipContent
+                              formatter={(value, _name, item) => (
+                                <div className="flex items-center justify-between gap-4">
+                                  <span className="text-muted-foreground">
+                                    {item.payload?.name ?? item.name}
+                                  </span>
+                                  <span className="font-mono font-medium tabular-nums">
+                                    {fmtCurrency(Number(value))}
+                                  </span>
+                                </div>
+                              )}
+                            />
+                          }
+                        />
+                        <RadialBar dataKey="amount" background cornerRadius={4} />
+                      </RadialBarChart>
+                    </ChartContainer>
+                  </ChartWithSideLegend>
+                ) : (
+                  <ChartContainer config={byRuleChartConfig} className="h-56 w-full">
+                    <BarChart
+                      data={analytics!.byRule.map((item) => ({
                         ...item,
                         label: item.name,
-                        fill: getChartTokenColor(index),
                       }))}
-                      startAngle={90}
-                      endAngle={-270}
+                      layout="vertical"
+                      margin={{ left: 8 }}
                     >
+                      <CartesianGrid horizontal={false} />
+                      <XAxis type="number" tickFormatter={fmtCompact} fontSize={12} />
+                      <YAxis
+                        type="category"
+                        dataKey="label"
+                        width={100}
+                        tickLine={false}
+                        axisLine={false}
+                        fontSize={12}
+                      />
                       <ChartTooltip
                         content={
                           <ChartTooltipContent
-                            formatter={(value, _name, item) => (
-                              <div className="flex items-center justify-between gap-4">
-                                <span className="text-muted-foreground">
-                                  {item.payload?.name ?? item.name}
-                                </span>
-                                <span className="font-mono font-medium tabular-nums">
-                                  {fmtCurrency(Number(value))}
-                                </span>
-                              </div>
-                            )}
+                            formatter={(value) => fmtCurrency(Number(value))}
                           />
                         }
                       />
-                      <RadialBar dataKey="amount" background cornerRadius={4} />
-                    </RadialBarChart>
+                      <Bar dataKey="amount" radius={[0, 4, 4, 0]}>
+                        {analytics!.byRule.map((item, index) => (
+                          <Cell key={item.ruleId} fill={getChartTokenColor(index)} />
+                        ))}
+                      </Bar>
+                    </BarChart>
                   </ChartContainer>
-                </ChartWithSideLegend>
+                )
               ) : (
-                <ChartContainer config={byRuleChartConfig} className="h-56 w-full">
-                  <BarChart
-                    data={analytics!.byRule.map((item) => ({
-                      ...item,
-                      label: item.name,
-                    }))}
-                    layout="vertical"
-                    margin={{ left: 8 }}
-                  >
-                    <CartesianGrid horizontal={false} />
-                    <XAxis type="number" tickFormatter={fmtCompact} fontSize={12} />
-                    <YAxis
-                      type="category"
-                      dataKey="label"
-                      width={100}
-                      tickLine={false}
-                      axisLine={false}
-                      fontSize={12}
-                    />
-                    <ChartTooltip
-                      content={
-                        <ChartTooltipContent
-                          formatter={(value) => fmtCurrency(Number(value))}
-                        />
-                      }
-                    />
-                    <Bar dataKey="amount" radius={[0, 4, 4, 0]}>
-                      {analytics!.byRule.map((item, index) => (
-                        <Cell key={item.ruleId} fill={getChartTokenColor(index)} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
-              )
-            ) : (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                No rule matches yet.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+                <p className="py-12 text-center text-sm text-muted-foreground">
+                  No rule matches yet.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Transactions</CardTitle>
+              <CardDescription>
+                {analytics
+                  ? `${analytics.transactions.total} matching transactions`
+                  : 'Matched transactions'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">{transactionsTable}</CardContent>
+          </Card>
+        )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Transactions</CardTitle>
-          <CardDescription>
-            {analytics
-              ? `${analytics.transactions.total} matching transactions`
-              : 'Matched transactions'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {loading ? (
-            <Skeleton className="h-48 w-full" />
-          ) : (analytics?.transactions.data.length ?? 0) > 0 ? (
-            <>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Merchant</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Rules</TableHead>
-                      <TableHead>Metadata</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {analytics!.transactions.data.map((txn) => (
-                      <TableRow key={txn.id}>
-                        <TableCell className="whitespace-nowrap text-sm">
-                          {format(parseISO(txn.transactionDate), 'dd MMM yyyy')}
-                        </TableCell>
-                        <TableCell className="max-w-48 text-sm">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <TransactionCategoryTile
-                              category={txn.category}
-                              size="sm"
-                            />
-                            <span className="truncate">{txn.merchant}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap text-sm tabular-nums">
-                          {fmtCurrency(txn.amount)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {txn.matchedRuleNames.map((name) => (
-                              <Badge key={name} variant="outline" className="text-[10px]">
-                                {name}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <TransactionMetadataBadges transaction={txn} compact />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              <DataTablePagination
-                page={page}
-                pageSize={pageSize}
-                totalItems={transactionTotal}
-                onPageChange={onPageChange}
-                onPageSizeChange={onPageSizeChange}
-                itemLabel="transactions"
-              />
-            </>
-          ) : (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              No transactions matched the selected rules in this date range.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      {hasMultipleRules === true ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Transactions</CardTitle>
+            <CardDescription>
+              {analytics
+                ? `${analytics.transactions.total} matching transactions`
+                : 'Matched transactions'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">{transactionsTable}</CardContent>
+        </Card>
+      ) : null}
     </div>
   )
 }
