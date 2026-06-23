@@ -12,17 +12,24 @@ export type SyncExpensesInput = z.infer<typeof SyncExpensesSchema>
 
 export const ListExpensesSchema = OffsetPaginationSchema.extend({
   category: z.string().optional(),
+  subcategory: z.string().optional(),
   mode: z.string().optional(),
+  categorization_method: z.string().optional(),
   review: z.string().optional(),
   card: z.string().optional(),
   from: z.string().optional(),
   to: z.string().optional(),
   search: z.string().optional(),
+  sort_by: z.string().optional(),
+  sort_order: z.enum(['asc', 'desc']).optional(),
 })
 
 export type ListExpensesInput = z.infer<typeof ListExpensesSchema>
 
-export const ListExpenseEmailsSchema = OffsetPaginationSchema
+export const ListExpenseEmailsSchema = OffsetPaginationSchema.extend({
+  sort_by: z.string().optional(),
+  sort_order: z.enum(['asc', 'desc']).optional(),
+})
 
 export type ListExpenseEmailsInput = z.infer<typeof ListExpenseEmailsSchema>
 
@@ -73,12 +80,16 @@ export type BulkCategorizeInput = z.infer<typeof BulkCategorizeSchema>
 
 const expenseFilterFields = {
   category: z.string().optional(),
+  subcategory: z.string().optional(),
   mode: z.string().optional(),
+  categorization_method: z.string().optional(),
   review: z.string().optional(),
   card_last4: z.string().regex(/^\d{4}$/).optional(),
   from: z.string().optional(),
   to: z.string().optional(),
   search: z.string().optional(),
+  sort_by: z.string().optional(),
+  sort_order: z.enum(['asc', 'desc']).optional(),
 }
 
 export const ListExpensesCursorSchema = CursorPaginationSchema.extend(expenseFilterFields)

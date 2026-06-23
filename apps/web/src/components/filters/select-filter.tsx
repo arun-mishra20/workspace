@@ -6,10 +6,14 @@ import {
   SelectValue,
 } from "@workspace/ui/components/ui/select";
 
+import { CategoryIcon } from "@/features/expenses/components/category-icon";
+
 export interface FilterOption {
   value: string;
   label: string;
   color?: string;
+  /** When true, render a category icon instead of a color swatch */
+  categoryIcon?: boolean;
 }
 
 interface SelectFilterProps {
@@ -51,12 +55,14 @@ export function SelectFilter({
         {options.map((opt) => (
           <SelectItem key={opt.value} value={opt.value}>
             <span className="flex items-center gap-2">
-              {opt.color && (
+              {opt.categoryIcon ? (
+                <CategoryIcon category={opt.value} size={12} />
+              ) : opt.color ? (
                 <span
                   className="inline-block size-2 rounded-full"
                   style={{ backgroundColor: opt.color }}
                 />
-              )}
+              ) : null}
               {opt.label}
             </span>
           </SelectItem>

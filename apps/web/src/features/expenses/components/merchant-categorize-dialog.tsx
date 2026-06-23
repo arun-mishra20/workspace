@@ -28,11 +28,10 @@ import {
   type MerchantCategoryInfo,
   type BulkCategorizeRequest,
 } from "@/features/expenses/api/bulk-categorize";
+import { getCategoryMeta } from '@/features/expenses/lib/category-meta'
+import { CategorySelectOption } from '@/features/expenses/components/category-select-option'
+import { TransactionCategoryTile } from '@/features/expenses/components/transaction-category-tile'
 import { CATEGORY_OPTIONS } from "../constants/category-options";
-
-function getCategoryMeta(value: string) {
-  return CATEGORY_OPTIONS.find((c) => c.value === value);
-}
 
 export function MerchantCategorizeDialog() {
   const queryClient = useQueryClient();
@@ -169,6 +168,10 @@ export function MerchantCategorizeDialog() {
                           {isSelected && (
                             <Check className="size-4 text-primary" />
                           )}
+                          <TransactionCategoryTile
+                            category={merchant.category}
+                            size="sm"
+                          />
                           <div>
                             <p className="text-sm font-medium">
                               {merchant.merchant}
@@ -224,13 +227,7 @@ export function MerchantCategorizeDialog() {
                     <SelectContent>
                       {CATEGORY_OPTIONS.map((cat) => (
                         <SelectItem key={cat.value} value={cat.value}>
-                          <span className="flex items-center gap-2">
-                            <span
-                              className="inline-block size-2 rounded-full"
-                              style={{ backgroundColor: cat.color }}
-                            />
-                            {cat.label}
-                          </span>
+                          <CategorySelectOption category={cat.value} />
                         </SelectItem>
                       ))}
                     </SelectContent>

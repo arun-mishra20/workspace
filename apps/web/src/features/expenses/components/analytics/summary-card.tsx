@@ -6,6 +6,7 @@ export function SummaryCard({
   value,
   icon,
   subtitle,
+  footer,
   loading,
   trendData,
   formatTrendValue,
@@ -14,6 +15,7 @@ export function SummaryCard({
   value?: string
   icon: React.ReactNode
   subtitle?: string
+  footer?: React.ReactNode
   loading: boolean
   trendData?: MetricTrendPoint[]
   formatTrendValue?: (value: number) => string
@@ -25,6 +27,7 @@ export function SummaryCard({
       icon={icon}
       description={subtitle}
       descriptionClassName="mt-1 truncate text-xs text-muted-foreground"
+      footer={footer}
       loading={loading}
       trendData={trendData}
       formatTrendValue={formatTrendValue}

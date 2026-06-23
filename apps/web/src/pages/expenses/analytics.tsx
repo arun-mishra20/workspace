@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { useSearchParams } from 'react-router-dom'
 
 import { MainLayout } from '@/components/layouts'
@@ -30,11 +30,26 @@ import {
 } from '@/features/expenses/api/analytics'
 import { listExpenses } from '@/features/expenses/api/list-expenses'
 import { fetchCreditCards } from '@/features/expenses/api/credit-cards'
+import { fetchBusAnalytics } from '@/features/expenses/api/bus-analytics'
+import { fetchInvestmentAnalytics } from '@/features/expenses/api/investment-analytics'
+import {
+  fetchClassificationHealth,
+  fetchSpendAnomalies,
+} from '@/features/expenses/api/classification-health'
+import type { AnalyticsFilterActions } from '@/features/expenses/components/analytics/analytics-filter-actions'
 import { AnalyticsCardsTab } from '@/features/expenses/components/analytics/analytics-cards-tab'
 import { AnalyticsCategoriesTab } from '@/features/expenses/components/analytics/analytics-categories-tab'
-import { AnalyticsFilterBar } from '@/features/expenses/components/analytics/analytics-filter-bar'
+import { AnalyticsDataQualityTab } from '@/features/expenses/components/analytics/analytics-data-quality-tab'
 import { AnalyticsOverviewTab } from '@/features/expenses/components/analytics/analytics-overview-tab'
+import { AnalyticsContextBar } from '@/features/expenses/components/analytics/analytics-context-bar'
 import { AnalyticsPageHeader } from '@/features/expenses/components/analytics/analytics-page-header'
+import { AnalyticsPatternsTab } from '@/features/expenses/components/analytics/analytics-patterns-tab'
+import {
+  AnalyticsRulesTab,
+  buildRuleSeedFromMerchant,
+  type RuleEditorSeed,
+} from '@/features/expenses/components/analytics/analytics-rules-tab'
+import { AnalyticsDashboardsTab } from '@/features/expenses/components/analytics/analytics-dashboards-tab'
 import { AnalyticsQueryBoundary } from '@/features/expenses/components/analytics/analytics-query-boundary'
 import { AnalyticsTrendsTab } from '@/features/expenses/components/analytics/analytics-trends-tab'
 import {
@@ -43,7 +58,26 @@ import {
   isAnalyticsTab,
   type AnalyticsTab,
 } from '@/features/expenses/components/analytics/analytics-utils'
+import { createCategoryChartIcon } from '@/features/expenses/components/category-icon'
+import {
+  getCategoryColor,
+  getSubcategoryParentCategory,
+} from '@/features/expenses/lib/category-meta'
+import {
+  getPaymentModeLabel,
+  getPaymentModeMeta,
+} from '@/features/expenses/lib/payment-mode-meta'
 import { useSyncJob } from '@/features/expenses/hooks/use-sync-job'
+import {
+  periodLabel,
+  periodToDateRange,
+} from '@/features/expenses/lib/period-to-date-range'
+import {
+  resolveSpendExclusionPreferences,
+  writeSpendExclusionPreferences,
+  buildSpendExclusionSearchParams,
+  type SpendExclusionPreferences,
+} from '@/features/expenses/lib/analytics-spend-view'
 import { takeLastMetricTrendPoints } from '@/lib/metric-trends'
 
 import type { AnalyticsPeriod } from '@workspace/domain'
@@ -67,13 +101,76 @@ const AnalyticsPage = () => {
   const activeTab: AnalyticsTab = isAnalyticsTab(tabParam)
     ? tabParam
     : 'overview'
-  const cardOptions: AnalyticsQueryOptions | undefined = selectedCard
-    ? { cardLast4: selectedCard }
-    : undefined
+  const spendExclusions = resolveSpendExclusionPreferences(searchParams)
 
-  const [selectedDate, setSelectedDate] = useState(() =>
-    format(new Date(), 'yyyy-MM-dd'),
+  const analyticsOptions = useMemo<AnalyticsQueryOptions>(() => ({
+    ...(selectedCard ? { cardLast4: selectedCard } : {}),
+    spendExclusions,
+  }), [selectedCard, spendExclusions])
+
+  const dashboardPeriodParam = searchParams.get('dashboardPeriod')
+  const dashboardPeriod: AnalyticsPeriod = isAnalyticsPeriod(
+    dashboardPeriodParam,
   )
+    ? dashboardPeriodParam
+    : 'month'
+
+  const dashboardRangeCustom =
+    searchParams.get('dashboardRange') === 'custom' ||
+    (searchParams.has('from') && searchParams.has('to'))
+
+  const dashboardDateRange = useMemo(
+    () => periodToDateRange(dashboardPeriod),
+    [dashboardPeriod],
+  )
+
+  const dashboardStartDate =
+    searchParams.get('from') ?? dashboardDateRange.startDate
+  const dashboardEndDate = searchParams.get('to') ?? dashboardDateRange.endDate
+
+  const effectiveDashboardRange = useMemo(() => {
+    if (dashboardRangeCustom) {
+      return { startDate: dashboardStartDate, endDate: dashboardEndDate }
+    }
+    return dashboardDateRange
+  }, [
+    dashboardRangeCustom,
+    dashboardStartDate,
+    dashboardEndDate,
+    dashboardDateRange,
+  ])
+
+  const dashboardRangeSummary = useMemo(() => {
+    if (dashboardRangeCustom) {
+      return `${format(parseISO(dashboardStartDate), 'dd MMM yyyy')} – ${format(parseISO(dashboardEndDate), 'dd MMM yyyy')}`
+    }
+    return periodLabel(dashboardPeriod)
+  }, [
+    dashboardEndDate,
+    dashboardPeriod,
+    dashboardRangeCustom,
+    dashboardStartDate,
+  ])
+
+  const today = format(new Date(), 'yyyy-MM-dd')
+  const selectedDate = searchParams.get('date') ?? today
+
+  const handleSelectedDateChange = (date: string) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (date === today) {
+          next.delete('date')
+        } else {
+          next.set('date', date)
+        }
+        return next
+      },
+      { replace: true },
+    )
+  }
+
+  const [ruleSeed, setRuleSeed] = useState<RuleEditorSeed | null>(null)
   const queryClient = useQueryClient()
 
   const handlePeriodChange = (nextPeriod: AnalyticsPeriod) => {
@@ -106,6 +203,26 @@ const AnalyticsPage = () => {
     )
   }
 
+  const openRulesTabWithSeed = (seed: RuleEditorSeed) => {
+    setRuleSeed(seed)
+    handleTabChange('rules')
+  }
+
+  const handleSpendExclusionsChange = (nextSpendExclusions: SpendExclusionPreferences) => {
+    writeSpendExclusionPreferences(nextSpendExclusions)
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('spendExclusions')
+        for (const [key, value] of Object.entries(buildSpendExclusionSearchParams(nextSpendExclusions))) {
+          next.set(key, value)
+        }
+        return next
+      },
+      { replace: true },
+    )
+  }
+
   const handleCardSelect = (last4: string | undefined) => {
     setSearchParams(
       (prev) => {
@@ -115,6 +232,37 @@ const AnalyticsPage = () => {
         } else {
           next.delete('card')
         }
+        return next
+      },
+      { replace: true },
+    )
+  }
+
+  const handleDashboardPeriodChange = (nextPeriod: AnalyticsPeriod) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (nextPeriod === 'month') {
+          next.delete('dashboardPeriod')
+        } else {
+          next.set('dashboardPeriod', nextPeriod)
+        }
+        next.delete('dashboardRange')
+        next.delete('from')
+        next.delete('to')
+        return next
+      },
+      { replace: true },
+    )
+  }
+
+  const handleDashboardCustomRangeApply = (from: string, to: string) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('dashboardRange', 'custom')
+        next.set('from', from)
+        next.set('to', to)
         return next
       },
       { replace: true },
@@ -131,6 +279,18 @@ const AnalyticsPage = () => {
   const isCards = activeTab === 'cards'
   const isCategories = activeTab === 'categories'
   const isTrends = activeTab === 'trends'
+  const isDataQuality = activeTab === 'data-quality'
+  const isDashboards = activeTab === 'dashboards'
+  const isPatterns = activeTab === 'patterns'
+
+  const comparisonPeriod =
+    isDashboards && !dashboardRangeCustom ? dashboardPeriod : period
+
+  const filterActions: AnalyticsFilterActions = {
+    onWidenPeriod: handlePeriodChange,
+    onClearCard: () => handleCardSelect(undefined),
+    onOpenTab: handleTabChange,
+  }
 
   const creditCardsQ = useQuery({
     queryKey: ['expenses', 'credit-cards'],
@@ -138,62 +298,62 @@ const AnalyticsPage = () => {
   })
 
   const summaryQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'summary', period, selectedCard],
-    queryFn: () => fetchSpendingSummary(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'summary', period, selectedCard, spendExclusions],
+    queryFn: () => fetchSpendingSummary(period, analyticsOptions),
     enabled: isOverview,
   })
 
   const categoryQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'by-category', period, selectedCard],
-    queryFn: () => fetchSpendingByCategory(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'by-category', period, selectedCard, spendExclusions],
+    queryFn: () => fetchSpendingByCategory(period, analyticsOptions),
     enabled: isCategories,
   })
 
   const subcategoryQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'by-subcategory', period, selectedCard],
-    queryFn: () => fetchSpendingBySubcategory(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'by-subcategory', period, selectedCard, spendExclusions],
+    queryFn: () => fetchSpendingBySubcategory(period, analyticsOptions),
     enabled: isCategories,
   })
 
   const modeQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'by-mode', period, selectedCard],
-    queryFn: () => fetchSpendingByMode(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'by-mode', period, selectedCard, spendExclusions],
+    queryFn: () => fetchSpendingByMode(period, analyticsOptions),
     enabled: isOverview,
   })
 
   const merchantQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'top-merchants', period, selectedCard],
-    queryFn: () => fetchTopMerchants(period, 10, cardOptions),
+    queryKey: ['expenses', 'analytics', 'top-merchants', period, selectedCard, spendExclusions],
+    queryFn: () => fetchTopMerchants(period, 10, analyticsOptions),
     enabled: isOverview,
   })
 
   const dailyQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'daily', period, selectedCard],
-    queryFn: () => fetchDailySpending(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'daily', period, selectedCard, spendExclusions],
+    queryFn: () => fetchDailySpending(period, analyticsOptions),
     enabled: isOverview,
   })
 
   const trendQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'monthly-trend'],
-    queryFn: () => fetchMonthlyTrend(12),
+    queryKey: ['expenses', 'analytics', 'monthly-trend', spendExclusions],
+    queryFn: () => fetchMonthlyTrend(12, analyticsOptions),
     enabled: isOverview || isTrends,
   })
 
   const cardQ = useQuery({
     queryKey: ['expenses', 'analytics', 'by-card', period, selectedCard],
-    queryFn: () => fetchSpendingByCard(period, cardOptions),
+    queryFn: () => fetchSpendingByCard(period, analyticsOptions),
     enabled: isCards,
   })
 
   const dayOfWeekQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'day-of-week', period, selectedCard],
-    queryFn: () => fetchDayOfWeekSpending(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'day-of-week', period, selectedCard, spendExclusions],
+    queryFn: () => fetchDayOfWeekSpending(period, analyticsOptions),
     enabled: isTrends,
   })
 
   const categoryTrendQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'category-trend'],
-    queryFn: () => fetchCategoryTrend(6),
+    queryKey: ['expenses', 'analytics', 'category-trend', spendExclusions],
+    queryFn: () => fetchCategoryTrend(6, analyticsOptions),
     enabled: isTrends,
   })
 
@@ -202,22 +362,27 @@ const AnalyticsPage = () => {
       'expenses',
       'analytics',
       'period-comparison',
-      period,
+      comparisonPeriod,
       selectedCard,
+      spendExclusions,
     ],
-    queryFn: () => fetchPeriodComparison(period, cardOptions),
-    enabled: isOverview,
+    queryFn: () => fetchPeriodComparison(comparisonPeriod, analyticsOptions),
+    enabled:
+      isOverview ||
+      isTrends ||
+      isCategories ||
+      (isDashboards && !dashboardRangeCustom),
   })
 
   const cumulativeQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'cumulative', period, selectedCard],
-    queryFn: () => fetchCumulativeSpend(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'cumulative', period, selectedCard, spendExclusions],
+    queryFn: () => fetchCumulativeSpend(period, analyticsOptions),
     enabled: isTrends,
   })
 
   const savingsRateQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'savings-rate'],
-    queryFn: () => fetchSavingsRate(6),
+    queryKey: ['expenses', 'analytics', 'savings-rate', spendExclusions],
+    queryFn: () => fetchSavingsRate(6, analyticsOptions),
     enabled: isTrends,
   })
 
@@ -229,19 +394,19 @@ const AnalyticsPage = () => {
       period,
       selectedCard,
     ],
-    queryFn: () => fetchCardCategories(period, cardOptions),
+    queryFn: () => fetchCardCategories(period, analyticsOptions),
     enabled: isCards,
   })
 
   const topVpasQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'top-vpas', period, selectedCard],
-    queryFn: () => fetchTopVpas(period, 10, cardOptions),
+    queryKey: ['expenses', 'analytics', 'top-vpas', period, selectedCard, spendExclusions],
+    queryFn: () => fetchTopVpas(period, 10, analyticsOptions),
     enabled: isTrends,
   })
 
   const velocityQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'velocity', period, selectedCard],
-    queryFn: () => fetchSpendingVelocity(period, cardOptions),
+    queryKey: ['expenses', 'analytics', 'velocity', period, selectedCard, spendExclusions],
+    queryFn: () => fetchSpendingVelocity(period, analyticsOptions),
     enabled: isTrends,
   })
 
@@ -252,9 +417,46 @@ const AnalyticsPage = () => {
   })
 
   const largestQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'largest', period, selectedCard],
-    queryFn: () => fetchLargestTransactions(period, 10, cardOptions),
+    queryKey: ['expenses', 'analytics', 'largest', period, selectedCard, spendExclusions],
+    queryFn: () => fetchLargestTransactions(period, 10, analyticsOptions),
     enabled: isTrends,
+  })
+
+  const classificationHealthQ = useQuery({
+    queryKey: [
+      'expenses',
+      'analytics',
+      'classification-health',
+      period,
+      selectedCard,
+    ],
+    queryFn: () => fetchClassificationHealth(period, analyticsOptions),
+    enabled: isDataQuality,
+  })
+
+  const spendAnomaliesQ = useQuery({
+    queryKey: [
+      'expenses',
+      'analytics',
+      'spend-anomalies',
+      period,
+      selectedCard,
+      spendExclusions,
+    ],
+    queryFn: () => fetchSpendAnomalies(period, analyticsOptions),
+    enabled: isDataQuality,
+  })
+
+  const busAnalyticsQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'bus', period],
+    queryFn: () => fetchBusAnalytics(period),
+    enabled: isPatterns,
+  })
+
+  const investmentAnalyticsQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'investment', period],
+    queryFn: () => fetchInvestmentAnalytics(period),
+    enabled: isPatterns,
   })
 
   const daySummaryQ = useQuery({
@@ -264,8 +466,9 @@ const AnalyticsPage = () => {
       'day-summary',
       selectedDate,
       selectedCard,
+      spendExclusions,
     ],
-    queryFn: () => fetchSpendingSummaryForDate(selectedDate, cardOptions),
+    queryFn: () => fetchSpendingSummaryForDate(selectedDate, analyticsOptions),
     enabled: isOverview && Boolean(selectedDate),
   })
 
@@ -287,13 +490,6 @@ const AnalyticsPage = () => {
       }),
     enabled: isOverview && Boolean(selectedDate),
   })
-
-  const selectedCardProfile = (creditCardsQ.data ?? []).find(
-    (card) => card.cardLast4 === selectedCard,
-  )
-  const cardFilterLabel = selectedCardProfile
-    ? `${selectedCardProfile.cardName} ••${selectedCardProfile.cardLast4}`
-    : undefined
 
   const aiPageContext = useMemo(
     () =>
@@ -321,20 +517,29 @@ const AnalyticsPage = () => {
 
   const categoryChartData = (categoryQ.data ?? []).map((category, index) => ({
     ...category,
-    chartColor: getChartTokenColor(index),
+    chartColor: category.color ?? getCategoryColor(category.category, index),
   }))
 
   const subcategoryChartData = (subcategoryQ.data ?? [])
     .slice(0, 12)
-    .map((item, index) => ({
-      ...item,
-      chartColor: getChartTokenColor(index),
-    }))
+    .map((item, index) => {
+      const parentCategory = getSubcategoryParentCategory(item.subcategory)
+      return {
+        ...item,
+        chartColor: parentCategory
+          ? getCategoryColor(parentCategory, index)
+          : getChartTokenColor(index),
+      }
+    })
 
-  const modeChartData = (modeQ.data ?? []).map((mode, index) => ({
-    ...mode,
-    chartColor: getChartTokenColor(index),
-  }))
+  const modeChartData = (modeQ.data ?? []).map((mode, index) => {
+    const meta = getPaymentModeMeta(mode.mode, index)
+    return {
+      ...mode,
+      chartColor: meta.color,
+      displayLabel: meta.label,
+    }
+  })
 
   const dailyChartConfig: ChartConfig = {
     debited: { label: 'Spent', color: 'var(--color-chart-1)' },
@@ -350,25 +555,33 @@ const AnalyticsPage = () => {
   const categoryChartConfig: ChartConfig = Object.fromEntries(
     categoryChartData.map((c) => [
       c.category,
-      { label: c.displayName, color: c.chartColor },
+      {
+        label: c.displayName,
+        color: c.chartColor,
+        icon: createCategoryChartIcon(c.category),
+      },
     ]),
   )
 
   const subcategoryChartConfig: ChartConfig = Object.fromEntries(
     subcategoryChartData.map((item) => [
-      item.subcategory,
+      `${item.category}:${item.subcategory}`,
       { label: item.displayName, color: item.chartColor },
     ]),
   )
 
   const modeChartConfig: ChartConfig = Object.fromEntries(
-    modeChartData.map((m) => [
-      m.mode,
-      {
-        label: m.mode.replace(/_/g, ' '),
-        color: m.chartColor,
-      },
-    ]),
+    modeChartData.map((m, index) => {
+      const meta = getPaymentModeMeta(m.mode, index)
+      return [
+        m.mode,
+        {
+          label: m.displayLabel ?? getPaymentModeLabel(m.mode),
+          color: m.chartColor,
+          icon: meta.icon,
+        },
+      ]
+    }),
   )
 
   const dayOfWeekConfig: ChartConfig = {
@@ -422,57 +635,129 @@ const AnalyticsPage = () => {
   )
 
   const tabError =
-    (isOverview && summaryQ.isError) ||
-    (isCards && cardQ.isError) ||
-    (isCategories && categoryQ.isError) ||
-    (isTrends && trendQ.isError)
+    (isOverview
+      && (summaryQ.isError
+        || dailyQ.isError
+        || modeQ.isError
+        || merchantQ.isError
+        || periodComparisonQ.isError
+        || daySummaryQ.isError
+        || dayTransactionsQ.isError))
+    || (isCards
+      && (cardQ.isError || milestoneEtaQ.isError || cardCategoriesQ.isError))
+    || (isCategories
+      && (categoryQ.isError || subcategoryQ.isError || periodComparisonQ.isError))
+    || (isTrends
+      && (trendQ.isError
+        || dayOfWeekQ.isError
+        || cumulativeQ.isError
+        || categoryTrendQ.isError
+        || savingsRateQ.isError
+        || velocityQ.isError
+        || topVpasQ.isError
+        || largestQ.isError
+        || periodComparisonQ.isError))
+    || (isDataQuality
+      && (classificationHealthQ.isError || spendAnomaliesQ.isError))
+    || (isPatterns && (busAnalyticsQ.isError || investmentAnalyticsQ.isError))
+    || (isDashboards && !dashboardRangeCustom && periodComparisonQ.isError)
 
   const retryTabQueries = () => {
-    if (isOverview) void summaryQ.refetch()
-    if (isCards) void cardQ.refetch()
-    if (isCategories) void categoryQ.refetch()
-    if (isTrends) void trendQ.refetch()
+    if (isOverview) {
+      void summaryQ.refetch()
+      void dailyQ.refetch()
+      void modeQ.refetch()
+      void merchantQ.refetch()
+      void periodComparisonQ.refetch()
+      void daySummaryQ.refetch()
+      void dayTransactionsQ.refetch()
+    }
+    if (isCards) {
+      void cardQ.refetch()
+      void milestoneEtaQ.refetch()
+      void cardCategoriesQ.refetch()
+    }
+    if (isCategories) {
+      void categoryQ.refetch()
+      void subcategoryQ.refetch()
+      void periodComparisonQ.refetch()
+    }
+    if (isTrends) {
+      void trendQ.refetch()
+      void dayOfWeekQ.refetch()
+      void cumulativeQ.refetch()
+      void categoryTrendQ.refetch()
+      void savingsRateQ.refetch()
+      void velocityQ.refetch()
+      void topVpasQ.refetch()
+      void largestQ.refetch()
+      void periodComparisonQ.refetch()
+    }
+    if (isDataQuality) {
+      void classificationHealthQ.refetch()
+      void spendAnomaliesQ.refetch()
+    }
+    if (isPatterns) {
+      void busAnalyticsQ.refetch()
+      void investmentAnalyticsQ.refetch()
+    }
+    if (isDashboards && !dashboardRangeCustom) {
+      void periodComparisonQ.refetch()
+    }
   }
 
   return (
     <MainLayout>
-      <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
-        <AnalyticsPageHeader
-          period={period}
-          onPeriodChange={handlePeriodChange}
-          cards={creditCardsQ.data ?? []}
-          selectedCardLast4={selectedCard || undefined}
-          onCardSelect={handleCardSelect}
-          isSyncing={isSyncing}
-          job={job}
-          onReprocess={startReprocess}
-        />
-
+      <div className="flex flex-1 flex-col p-4 sm:p-6">
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
           className="gap-4"
         >
-          <div className="sticky top-[var(--analytics-header-offset,9.5rem)] z-10 -mx-4 sm:-mx-6 bg-background/95 px-4 sm:px-6 pb-0 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 border-b bg-background/95 px-4 sm:px-6 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <AnalyticsPageHeader
+              isSyncing={isSyncing}
+              job={job}
+              onReprocess={startReprocess}
+            />
+
             <TabsList className="h-auto w-full justify-start overflow-x-auto">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="cards">Cards</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
+              <TabsTrigger value="rules">Rules</TabsTrigger>
+              <TabsTrigger value="dashboards">Dashboards</TabsTrigger>
               <TabsTrigger value="trends">Trends</TabsTrigger>
+              <TabsTrigger value="data-quality">Data Quality</TabsTrigger>
+              <TabsTrigger value="patterns">Patterns</TabsTrigger>
             </TabsList>
-          </div>
 
-          {/* <AnalyticsFilterBar
-            period={period}
-            activeTab={activeTab}
-            cardLabel={cardFilterLabel}
-          /> */}
+            <div className="py-3">
+              <AnalyticsContextBar
+                activeTab={activeTab}
+                period={period}
+                onPeriodChange={handlePeriodChange}
+                cards={creditCardsQ.data ?? []}
+                selectedCardLast4={selectedCard || undefined}
+                onCardSelect={handleCardSelect}
+                spendExclusions={spendExclusions}
+                onSpendExclusionsChange={handleSpendExclusionsChange}
+                dashboardPeriod={dashboardPeriod}
+                onDashboardPeriodChange={handleDashboardPeriodChange}
+                dashboardRangeCustom={dashboardRangeCustom}
+                dashboardStartDate={dashboardStartDate}
+                dashboardEndDate={dashboardEndDate}
+                onDashboardCustomRangeApply={handleDashboardCustomRangeApply}
+              />
+            </div>
+          </div>
 
           <AnalyticsQueryBoundary isError={tabError} onRetry={retryTabQueries}>
             <TabsContent value="overview" className="mt-2">
               <AnalyticsOverviewTab
                 period={period}
                 selectedCardLast4={selectedCard || undefined}
+                spendExclusions={spendExclusions}
                 summary={summaryQ.data}
                 summaryLoading={summaryQ.isLoading}
                 recentSpentTrend={recentSpentTrend}
@@ -484,7 +769,8 @@ const AnalyticsPage = () => {
                 modeChartConfig={modeChartConfig}
                 modeLoading={modeQ.isLoading}
                 selectedDate={selectedDate}
-                onSelectedDateChange={setSelectedDate}
+                onSelectedDateChange={handleSelectedDateChange}
+                filterActions={filterActions}
                 daySummary={daySummaryQ.data}
                 daySummaryLoading={daySummaryQ.isLoading}
                 transactionsTotal={dayTransactionsQ.data?.total ?? 0}
@@ -520,6 +806,9 @@ const AnalyticsPage = () => {
                 subcategoryChartData={subcategoryChartData}
                 subcategoryChartConfig={subcategoryChartConfig}
                 subcategoryLoading={subcategoryQ.isLoading}
+                periodComparison={periodComparisonQ.data}
+                periodComparisonLoading={periodComparisonQ.isLoading}
+                filterActions={filterActions}
               />
             </TabsContent>
 
@@ -550,6 +839,55 @@ const AnalyticsPage = () => {
                 topVpasLoading={topVpasQ.isLoading}
                 largestTransactions={largestQ.data}
                 largestLoading={largestQ.isLoading}
+                periodComparison={periodComparisonQ.data}
+                periodComparisonLoading={periodComparisonQ.isLoading}
+                filterActions={filterActions}
+              />
+            </TabsContent>
+
+            <TabsContent value="data-quality" className="mt-2">
+              <AnalyticsDataQualityTab
+                period={period}
+                selectedCardLast4={selectedCard || undefined}
+                health={classificationHealthQ.data}
+                healthLoading={classificationHealthQ.isLoading}
+                anomalies={spendAnomaliesQ.data}
+                anomaliesLoading={spendAnomaliesQ.isLoading}
+                filterActions={filterActions}
+                onCreateRuleForMerchant={(merchant) =>
+                  openRulesTabWithSeed(buildRuleSeedFromMerchant(merchant))
+                }
+              />
+            </TabsContent>
+
+            <TabsContent value="rules" className="mt-2">
+              <AnalyticsRulesTab
+                seed={ruleSeed}
+                onSeedConsumed={() => setRuleSeed(null)}
+              />
+            </TabsContent>
+
+            <TabsContent value="patterns" className="mt-2">
+              <AnalyticsPatternsTab
+                period={period}
+                busData={busAnalyticsQ.data}
+                busLoading={busAnalyticsQ.isLoading}
+                investmentData={investmentAnalyticsQ.data}
+                investmentLoading={investmentAnalyticsQ.isLoading}
+                filterActions={filterActions}
+              />
+            </TabsContent>
+
+            <TabsContent value="dashboards" className="mt-2">
+              <AnalyticsDashboardsTab
+                selectedCardLast4={selectedCard || undefined}
+                startDate={effectiveDashboardRange.startDate}
+                endDate={effectiveDashboardRange.endDate}
+                rangeSummary={dashboardRangeSummary}
+                dashboardPeriod={dashboardPeriod}
+                dashboardRangeCustom={dashboardRangeCustom}
+                periodComparison={periodComparisonQ.data}
+                periodComparisonLoading={periodComparisonQ.isLoading}
               />
             </TabsContent>
           </AnalyticsQueryBoundary>

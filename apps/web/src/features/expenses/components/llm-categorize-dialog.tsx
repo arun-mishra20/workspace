@@ -50,6 +50,15 @@ import {
   bulkUpdateTransactions,
   type BulkUpdateRequest,
 } from '@/features/expenses/api/bulk-update-transactions'
+import {
+  applyCategorizationRule,
+  createCategorizationRule,
+} from '@/features/expenses/api/categorization-rules'
+import { buildRuleSeedFromTransaction } from '@/features/expenses/components/analytics/analytics-rules-tab'
+import { CategoryIcon } from '@/features/expenses/components/category-icon'
+import { CategorySelectOption } from '@/features/expenses/components/category-select-option'
+import { TransactionCategoryTile } from '@/features/expenses/components/transaction-category-tile'
+import { getCategoryMeta } from '@/features/expenses/lib/category-meta'
 import { CATEGORY_OPTIONS } from '@/features/expenses/constants/category-options'
 
 import type { Transaction } from '@workspace/domain'
@@ -68,10 +77,6 @@ interface EditableSuggestion extends LlmCategorizationSuggestion {
   originalCategory: string
   merchantName: string
   amount: number
-}
-
-function getCategoryMeta(value: string) {
-  return CATEGORY_OPTIONS.find((c) => c.value === value)
 }
 
 function getConfidenceLabel(confidence: number) {
@@ -171,6 +176,42 @@ export function LlmCategorizeDialog({
     },
   })
 
+  const saveAsRulesMutation = useMutation({
+    mutationFn: async () => {
+      const included = suggestions.filter((s) => s.included)
+      const txnMap = new Map(transactions.map((t) => [t.id, t]))
+
+      for (const suggestion of included) {
+        const txn = txnMap.get(suggestion.id)
+        if (!txn) continue
+
+        const seed = buildRuleSeedFromTransaction(txn, {
+          category: suggestion.category,
+          subcategory: suggestion.subcategory,
+        })
+
+        const rule = await createCategorizationRule({
+          name: seed.name ?? `Rule for ${txn.merchant}`,
+          enabled: true,
+          conditions: seed.conditions!,
+          action: {
+            category: suggestion.category,
+            subcategory: suggestion.subcategory,
+          },
+        })
+
+        await applyCategorizationRule(rule.id, { force: false })
+      }
+
+      return included.length
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      onComplete()
+      handleClose()
+    },
+  })
+
   const handleClose = useCallback(() => {
     onOpenChange(false)
     setTimeout(() => {
@@ -178,8 +219,9 @@ export function LlmCategorizeDialog({
       setSuggestions([])
       categorizeMutation.reset()
       saveMutation.reset()
+      saveAsRulesMutation.reset()
     }, 200)
-  }, [onOpenChange, categorizeMutation, saveMutation])
+  }, [onOpenChange, categorizeMutation, saveMutation, saveAsRulesMutation])
 
   const handleCategorize = () => {
     setStep('processing')
@@ -425,9 +467,15 @@ export function LlmCategorizeDialog({
                           />
                         </td>
                         <td className="py-2.5 pr-3">
-                          <span className="line-clamp-1 max-w-[140px] text-xs font-medium">
-                            {s.merchantName}
-                          </span>
+                          <div className="flex max-w-[140px] items-center gap-2">
+                            <TransactionCategoryTile
+                              category={s.originalCategory}
+                              size="sm"
+                            />
+                            <span className="line-clamp-1 text-xs font-medium">
+                              {s.merchantName}
+                            </span>
+                          </div>
                         </td>
                         <td className="py-2.5 pr-3 text-right tabular-nums text-xs">
                           {s.amount.toLocaleString('en-IN', {
@@ -439,12 +487,16 @@ export function LlmCategorizeDialog({
                         <td className="py-2.5 pr-2">
                           <Badge
                             variant="outline"
-                            className="text-[10px] capitalize"
+                            className="gap-1 text-[10px] capitalize"
                             style={{
                               borderColor: currentMeta?.color,
                               color: currentMeta?.color,
                             }}
                           >
+                            <CategoryIcon
+                              category={s.originalCategory}
+                              size={10}
+                            />
                             {currentMeta?.label ??
                               s.originalCategory.replace(/_/g, ' ')}
                           </Badge>
@@ -471,13 +523,7 @@ export function LlmCategorizeDialog({
                                   value={cat.value}
                                   className="text-xs"
                                 >
-                                  <span className="flex items-center gap-1.5">
-                                    <span
-                                      className="inline-block size-2 rounded-full"
-                                      style={{ backgroundColor: cat.color }}
-                                    />
-                                    {cat.label}
-                                  </span>
+                                  <CategorySelectOption category={cat.value} />
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -525,6 +571,13 @@ export function LlmCategorizeDialog({
             <DialogFooter className="gap-2 border-t pt-4">
               <Button variant="outline" onClick={handleClose}>
                 Discard
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => saveAsRulesMutation.mutate()}
+                disabled={includedCount === 0 || saveAsRulesMutation.isPending}
+              >
+                Save as {includedCount} rule{includedCount !== 1 ? 's' : ''}
               </Button>
               <Button
                 onClick={() => saveMutation.mutate()}

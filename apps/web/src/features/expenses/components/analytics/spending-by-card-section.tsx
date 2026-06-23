@@ -1,7 +1,8 @@
+
 import type { CreditCardProfile, SpendingByCardItem } from '@workspace/domain'
-import { CreditCard } from 'lucide-react'
 
 import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
+import { CreditCardTile } from '@/features/expenses/components/credit-card-tile'
 import { cn } from '@/lib/utils'
 import { Badge } from '@workspace/ui/components/ui/badge'
 import {
@@ -21,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@workspace/ui/components/ui/table'
+import { CreditCard } from 'lucide-react'
 
 interface SpendingByCardSectionProps {
   cards: CreditCardProfile[]
@@ -88,9 +90,14 @@ export function SpendingByCardSection({
                     className={cn(isArchived && 'opacity-75')}
                   >
                     <TableCell>
-                      <div className="font-medium">{card.cardName}</div>
-                      <div className="text-xs text-muted-foreground">
-                        ••{card.cardLast4}
+                      <div className="flex items-center gap-3">
+                        <CreditCardTile card={card} compact />
+                        <div>
+                          <div className="font-medium">{card.cardName}</div>
+                          <div className="text-xs text-muted-foreground">
+                            ••{card.cardLast4}
+                          </div>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">

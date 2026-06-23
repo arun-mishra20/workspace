@@ -6,6 +6,7 @@ import {
   type BulkUpdateRequest,
 } from "@/features/expenses/api/bulk-update-transactions";
 import { CATEGORY_OPTIONS } from "@/features/expenses/constants/category-options";
+import { CategorySelectOption } from "@/features/expenses/components/category-select-option";
 import { LlmCategorizeDialog } from "@/features/expenses/components/llm-categorize-dialog";
 
 import { Badge } from "@workspace/ui/components/ui/badge";
@@ -199,13 +200,7 @@ export function BulkActionsToolbar({
                 <SelectContent>
                   {CATEGORY_OPTIONS.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="inline-block size-2 rounded-full"
-                          style={{ backgroundColor: cat.color }}
-                        />
-                        {cat.label}
-                      </span>
+                      <CategorySelectOption category={cat.value} />
                     </SelectItem>
                   ))}
                 </SelectContent>

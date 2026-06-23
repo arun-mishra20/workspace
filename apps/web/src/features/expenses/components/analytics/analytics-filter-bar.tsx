@@ -14,8 +14,12 @@ interface AnalyticsFilterBarProps {
 const TAB_LABELS: Record<AnalyticsTab, string> = {
   overview: 'Overview',
   cards: 'Cards',
+  rules: 'Rules',
+  dashboards: 'Dashboards',
   categories: 'Categories',
   trends: 'Trends',
+  'data-quality': 'Data Quality',
+  patterns: 'Patterns',
 }
 
 export function AnalyticsFilterBar({

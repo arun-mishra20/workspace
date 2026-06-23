@@ -4,6 +4,7 @@ import {
   Command,
   LayoutPanelTop,
   PanelLeft,
+  PanelTop,
   Rows3,
   Waypoints,
 } from 'lucide-react'
@@ -33,6 +34,11 @@ const layoutOptionData: Record<NavigationLayoutId, LayoutOptionData> = {
     description: 'Persistent grouped navigation with room to grow.',
     Icon: PanelLeft,
   },
+  'floating-sidebar': {
+    label: 'Floating Sidebar',
+    description: 'Detached panel with rounded edges and soft shadow.',
+    Icon: PanelTop,
+  },
   'categorized-topnav': {
     label: 'Categorized Top Nav',
     description: 'Vercel-like categories with a focused second row.',
@@ -61,6 +67,21 @@ function MiniPreview({ id }: { id: NavigationLayoutId }) {
       <div className="grid h-20 grid-cols-[18px_minmax(0,1fr)] gap-2 rounded-2xl border border-border/60 bg-background/70 p-2">
         <div className="rounded-xl bg-muted" />
         <div className="space-y-2">
+          <div className="h-4 rounded-full bg-muted" />
+          <div className="grid grid-cols-2 gap-2">
+            <div className="h-10 rounded-xl bg-muted/80" />
+            <div className="h-10 rounded-xl bg-muted/50" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (id === 'floating-sidebar') {
+    return (
+      <div className="relative h-20 rounded-2xl border border-border/60 bg-background/70 p-2">
+        <div className="absolute bottom-2 left-2 top-2 w-5 rounded-xl border border-border/60 bg-muted shadow-sm" />
+        <div className="ml-8 space-y-2">
           <div className="h-4 rounded-full bg-muted" />
           <div className="grid grid-cols-2 gap-2">
             <div className="h-10 rounded-xl bg-muted/80" />

@@ -23,13 +23,24 @@ import {
   type AnalyticsPeriod,
 } from '@workspace/domain'
 
+import type { SpendExclusionPreferences } from '@/features/expenses/lib/analytics-spend-view'
+import { buildExcludeCategoriesParam } from '@/features/expenses/lib/analytics-spend-view'
+
 export type AnalyticsQueryOptions = {
   cardLast4?: string
+  spendExclusions?: SpendExclusionPreferences
 }
 
-function appendCardLast4(params: URLSearchParams, options?: AnalyticsQueryOptions) {
+function appendAnalyticsQueryParams(params: URLSearchParams, options?: AnalyticsQueryOptions) {
   if (options?.cardLast4) {
     params.set('card_last4', options.cardLast4)
+  }
+
+  if (options?.spendExclusions) {
+    const excludeCategories = buildExcludeCategoriesParam(options.spendExclusions)
+    if (excludeCategories !== undefined) {
+      params.set('excludeCategories', excludeCategories)
+    }
   }
 }
 
@@ -40,7 +51,7 @@ export async function fetchSpendingSummary(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/summary?${params.toString()}`,
@@ -56,7 +67,7 @@ export async function fetchSpendingSummaryForDate(
     startDate: date,
     endDate: date,
   })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
 
   const json = await apiRequest({
     method: 'GET',
@@ -71,7 +82,7 @@ export async function fetchSpendingByCategory(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/by-category?${params.toString()}`,
@@ -84,7 +95,7 @@ export async function fetchSpendingBySubcategory(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/by-subcategory?${params.toString()}`,
@@ -97,7 +108,7 @@ export async function fetchSpendingByMode(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/by-mode?${params.toString()}`,
@@ -111,7 +122,7 @@ export async function fetchTopMerchants(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period, limit: String(limit) })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/top-merchants?${params.toString()}`,
@@ -124,7 +135,7 @@ export async function fetchDailySpending(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/daily?${params.toString()}`,
@@ -132,10 +143,12 @@ export async function fetchDailySpending(
   return z.array(DailySpendingItemSchema).parse(json)
 }
 
-export async function fetchMonthlyTrend(months = 12) {
+export async function fetchMonthlyTrend(months = 12, options?: AnalyticsQueryOptions) {
+  const params = new URLSearchParams({ months: String(months) })
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
-    url: `/api/expenses/analytics/monthly-trend?months=${months}`,
+    url: `/api/expenses/analytics/monthly-trend?${params.toString()}`,
   })
   return z.array(MonthlyTrendItemSchema).parse(json)
 }
@@ -145,7 +158,7 @@ export async function fetchSpendingByCard(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/by-card?${params.toString()}`,
@@ -160,7 +173,7 @@ export async function fetchDayOfWeekSpending(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/day-of-week?${params.toString()}`,
@@ -168,10 +181,12 @@ export async function fetchDayOfWeekSpending(
   return z.array(DayOfWeekSpendingItemSchema).parse(json)
 }
 
-export async function fetchCategoryTrend(months = 6) {
+export async function fetchCategoryTrend(months = 6, options?: AnalyticsQueryOptions) {
+  const params = new URLSearchParams({ months: String(months) })
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
-    url: `/api/expenses/analytics/category-trend?months=${months}`,
+    url: `/api/expenses/analytics/category-trend?${params.toString()}`,
   })
   return z.array(CategoryTrendItemSchema).parse(json)
 }
@@ -181,7 +196,7 @@ export async function fetchPeriodComparison(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/period-comparison?${params.toString()}`,
@@ -194,7 +209,7 @@ export async function fetchCumulativeSpend(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/cumulative?${params.toString()}`,
@@ -202,10 +217,12 @@ export async function fetchCumulativeSpend(
   return z.array(CumulativeSpendItemSchema).parse(json)
 }
 
-export async function fetchSavingsRate(months = 6) {
+export async function fetchSavingsRate(months = 6, options?: AnalyticsQueryOptions) {
+  const params = new URLSearchParams({ months: String(months) })
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
-    url: `/api/expenses/analytics/savings-rate?months=${months}`,
+    url: `/api/expenses/analytics/savings-rate?${params.toString()}`,
   })
   return z.array(SavingsRateItemSchema).parse(json)
 }
@@ -215,7 +232,7 @@ export async function fetchCardCategories(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/card-categories?${params.toString()}`,
@@ -229,7 +246,7 @@ export async function fetchTopVpas(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period, limit: String(limit) })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/top-vpas?${params.toString()}`,
@@ -242,7 +259,7 @@ export async function fetchSpendingVelocity(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/velocity?${params.toString()}`,
@@ -264,7 +281,7 @@ export async function fetchLargestTransactions(
   options?: AnalyticsQueryOptions,
 ) {
   const params = new URLSearchParams({ period, limit: String(limit) })
-  appendCardLast4(params, options)
+  appendAnalyticsQueryParams(params, options)
   const json = await apiRequest({
     method: 'GET',
     url: `/api/expenses/analytics/largest-transactions?${params.toString()}`,

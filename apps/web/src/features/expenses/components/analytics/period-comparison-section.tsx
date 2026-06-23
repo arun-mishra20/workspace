@@ -1,6 +1,7 @@
 import type { AnalyticsPeriod, PeriodComparison } from '@workspace/domain'
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 
+import { AnalyticsEmptyHint } from '@/features/expenses/components/analytics/analytics-empty-hint'
 import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
 import {
   Card,
@@ -11,6 +12,7 @@ import {
 } from '@workspace/ui/components/ui/card'
 import { Separator } from '@workspace/ui/components/ui/separator'
 import { Skeleton } from '@workspace/ui/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 export function PeriodComparisonSection({
   data,
@@ -68,15 +70,22 @@ export function PeriodComparisonSection({
             ))}
           </div>
         ) : data ? (
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            {metrics.map((m) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-x sm:divide-y-0 divide-border">
+            {metrics.map((m, index) => {
               const isPositive = m.change > 0
               const isGood = m.invert ? !isPositive : isPositive
               const isCurrency = m.isCurrency !== false
+              const trendClassName = isGood ? 'text-positive' : 'text-negative'
+
               return (
                 <div
                   key={m.label}
-                  className="rounded-lg border p-4 space-y-1"
+                  className={cn(
+                    'space-y-1 py-4',
+                    index === 0 && 'pt-0 sm:pt-4 sm:pl-0',
+                    index === metrics.length - 1 && 'pb-0 sm:pb-4',
+                    index > 0 && 'sm:pl-4',
+                  )}
                 >
                   <p className="text-xs font-medium text-muted-foreground">
                     {m.label}
@@ -88,16 +97,15 @@ export function PeriodComparisonSection({
                   </p>
                   <div className="flex items-center gap-1">
                     {isPositive ? (
-                      <ArrowUpRight
-                        className={`size-3 ${isGood ? 'text-emerald-500' : 'text-red-500'}`}
-                      />
+                      <ArrowUpRight className={cn('size-3', trendClassName)} />
                     ) : (
-                      <ArrowDownRight
-                        className={`size-3 ${isGood ? 'text-emerald-500' : 'text-red-500'}`}
-                      />
+                      <ArrowDownRight className={cn('size-3', trendClassName)} />
                     )}
                     <span
-                      className={`text-xs font-medium tabular-nums ${isGood ? 'text-emerald-500' : 'text-red-500'}`}
+                      className={cn(
+                        'text-xs font-medium tabular-nums',
+                        trendClassName,
+                      )}
                     >
                       {Math.abs(m.change).toFixed(1)}%
                     </span>
@@ -108,9 +116,7 @@ export function PeriodComparisonSection({
             })}
           </div>
         ) : (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            No comparison data.
-          </p>
+          <AnalyticsEmptyHint title="No comparison data for this period." />
         )}
       </CardContent>
     </Card>

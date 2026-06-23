@@ -31,6 +31,7 @@ export interface ThemeConfig {
 
 export const NAVIGATION_LAYOUT_IDS = [
   'sidebar',
+  'floating-sidebar',
   'categorized-topnav',
   'mega-menu',
   'command-bar',

@@ -1,10 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { rawEmailsTable, transactionsTable } from '@workspace/database'
-import { and, desc, eq, isNull, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm'
 
 import { DB_TOKEN } from '@/shared/infrastructure/db/db.port'
 
-import type { RawEmailRepository } from '@/shared/application/ports/raw-email.repository.port'
+import type { RawEmailRepository, EmailSortField } from '@/shared/application/ports/raw-email.repository.port'
 import type { DrizzleDb } from '@/shared/infrastructure/db/db.port'
 import type { InsertRawEmail } from '@workspace/database'
 import type { RawEmail } from '@workspace/domain'
@@ -128,6 +128,8 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
     limit: number
     offset: number
     category?: string
+    sortBy?: EmailSortField
+    sortOrder?: 'asc' | 'desc'
   }): Promise<RawEmail[]> {
     this.logger.debug(
       `Listing emails for user ${params.userId}, limit: ${params.limit}, offset: ${params.offset}, category: ${params.category}`,
@@ -137,11 +139,22 @@ export class RawEmailRepositoryImpl implements RawEmailRepository {
       conditions.push(eq(rawEmailsTable.category, params.category))
     }
 
+    const sortBy = params.sortBy ?? 'receivedAt'
+    const sortOrder = params.sortOrder ?? 'desc'
+    const columns = {
+      from: rawEmailsTable.from,
+      subject: rawEmailsTable.subject,
+      receivedAt: rawEmailsTable.receivedAt,
+      provider: rawEmailsTable.provider,
+    } as const
+    const column = columns[sortBy] ?? rawEmailsTable.receivedAt
+    const direction = sortOrder === 'asc' ? asc : desc
+
     const records = await this.db
       .select(this.selectFields())
       .from(rawEmailsTable)
       .where(and(...conditions))
-      .orderBy(desc(rawEmailsTable.receivedAt))
+      .orderBy(direction(column), desc(rawEmailsTable.id))
       .limit(params.limit)
       .offset(params.offset)
 

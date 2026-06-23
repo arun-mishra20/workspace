@@ -1,6 +1,15 @@
 import type { AnalyticsPeriod } from '@workspace/domain'
 
-export const ANALYTICS_TABS = ['overview', 'cards', 'categories', 'trends'] as const
+export const ANALYTICS_TABS = [
+  'overview',
+  'cards',
+  'categories',
+  'trends',
+  'data-quality',
+  'rules',
+  'patterns',
+  'dashboards',
+] as const
 export type AnalyticsTab = (typeof ANALYTICS_TABS)[number]
 
 export const PERIODS: { label: string; value: AnalyticsPeriod }[] = [
@@ -19,7 +28,7 @@ const CHART_TOKEN_COLORS = [
 ]
 
 export const getChartTokenColor = (index: number) =>
-  CHART_TOKEN_COLORS[index % CHART_TOKEN_COLORS.length]!
+  CHART_TOKEN_COLORS[index % CHART_TOKEN_COLORS.length]
 
 export const fmtCurrency = (n: number) =>
   new Intl.NumberFormat('en-IN', {

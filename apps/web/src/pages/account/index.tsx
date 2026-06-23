@@ -3,6 +3,8 @@ import { Fingerprint, KeyRound, ShieldCheck } from 'lucide-react'
 
 import { useAuthSession } from '@/app/auth-session-context'
 import { MainLayout } from '@/components/layouts'
+import { DataTablePagination } from '@/components/data-table'
+import { useClientPagination } from '@/hooks/use-client-pagination'
 import {
   listAccountPasskeys,
   registerAccountPasskey,
@@ -57,6 +59,16 @@ const AccountPage = () => {
       await queryClient.invalidateQueries({ queryKey: ['account', 'passkeys'] })
     },
   })
+
+  const passkeys = passkeysQuery.data ?? []
+  const {
+    paginatedItems,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useClientPagination(passkeys)
 
   return (
     <MainLayout>
@@ -148,7 +160,8 @@ const AccountPage = () => {
               <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-8 text-sm text-muted-foreground">
                 Loading passkeys...
               </div>
-            ) : passkeysQuery.data && passkeysQuery.data.length > 0 ? (
+            ) : passkeys.length > 0 ? (
+              <div className="space-y-3">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -160,7 +173,7 @@ const AccountPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {passkeysQuery.data.map((credential) => (
+                  {paginatedItems.map((credential) => (
                     <TableRow key={credential.id}>
                       <TableCell className="font-mono text-xs text-foreground">
                         {maskCredentialId(credential.credentialId)}
@@ -179,6 +192,17 @@ const AccountPage = () => {
                   ))}
                 </TableBody>
               </Table>
+
+              <DataTablePagination
+                page={page}
+                pageSize={pageSize}
+                totalItems={totalItems}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                itemLabel="passkeys"
+                className="border-none pt-0"
+              />
+              </div>
             ) : (
               <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 px-4 py-8 text-sm text-muted-foreground">
                 No passkeys registered yet. Add one to enable passkey sign-in

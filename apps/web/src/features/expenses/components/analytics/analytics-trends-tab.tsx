@@ -1,12 +1,7 @@
-import { format, parseISO } from 'date-fns'
-import {
-  Gauge,
-  Layers,
-  PiggyBank,
-  Receipt,
-  TrendingUp,
-} from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { endOfMonth, format, parseISO, startOfMonth } from 'date-fns'
+import { Gauge, Layers, PiggyBank, Receipt, TrendingUp } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Area,
   AreaChart,
@@ -17,20 +12,38 @@ import {
   ComposedChart,
   Line,
   LineChart,
+  PolarAngleAxis,
+  PolarGrid,
+  Radar,
+  RadarChart,
   XAxis,
   YAxis,
 } from 'recharts'
 
-import { RankedSpendListCard } from '@/features/expenses/components/analytics/ranked-spend-list-card'
+import { AnalyticsEmptyHint } from '@/features/expenses/components/analytics/analytics-empty-hint'
+import {
+  buildSparsePeriodActions,
+  type AnalyticsFilterActions,
+} from '@/features/expenses/components/analytics/analytics-filter-actions'
+import { PeriodComparisonSection } from '@/features/expenses/components/analytics/period-comparison-section'
+import {
+  ChartCardToolbar,
+  type ChartCardView,
+} from '@/features/expenses/components/analytics/chart-card-toolbar'
 import {
   fmtCompact,
   fmtCurrency,
   getChartTokenColor,
 } from '@/features/expenses/components/analytics/analytics-utils'
-import { buildExpensesDrillDownUrl } from '@/features/expenses/lib/build-expenses-drill-down-url'
+import { RankedSpendListCard } from '@/features/expenses/components/analytics/ranked-spend-list-card'
+import { TransactionCategoryTile } from '@/features/expenses/components/transaction-category-tile'
+import { getPaymentModeMeta } from '@/features/expenses/lib/payment-mode-meta'
+import { TransactionMetadataBadges } from '@/features/expenses/components/analytics/transaction-metadata-badges'
+import { useAnalyticsDrillDown } from '@/features/expenses/hooks/use-analytics-drill-down'
 import type {
   AnalyticsPeriod,
   LargestTransactionItem,
+  PeriodComparison,
   TopVpaItem,
 } from '@workspace/domain'
 import { Badge } from '@workspace/ui/components/ui/badge'
@@ -88,6 +101,9 @@ interface AnalyticsTrendsTabProps {
   topVpasLoading: boolean
   largestTransactions?: LargestTransactionItem[]
   largestLoading: boolean
+  periodComparison?: PeriodComparison
+  periodComparisonLoading: boolean
+  filterActions?: AnalyticsFilterActions
 }
 
 export function AnalyticsTrendsTab({
@@ -116,9 +132,36 @@ export function AnalyticsTrendsTab({
   topVpasLoading,
   largestTransactions,
   largestLoading,
+  periodComparison,
+  periodComparisonLoading,
+  filterActions,
 }: AnalyticsTrendsTabProps) {
+  const [dayOfWeekView, setDayOfWeekView] = useState<ChartCardView>('chart')
+  const drillDown = useAnalyticsDrillDown()
+  const navigate = useNavigate()
+
+  const sparseActions = buildSparsePeriodActions(filterActions ?? {}, {
+    hasCardFilter: selectedCardLast4 != null,
+    period,
+  })
+
+  const drillDownMonth = (month: string) => {
+    const monthStart = parseISO(`${month}-01`)
+    return drillDown({
+      cardLast4: selectedCardLast4,
+      dateFrom: format(startOfMonth(monthStart), 'yyyy-MM-dd'),
+      dateTo: format(endOfMonth(monthStart), 'yyyy-MM-dd'),
+    })
+  }
+
   return (
     <div className="flex flex-col gap-6">
+      <PeriodComparisonSection
+        data={periodComparison}
+        loading={periodComparisonLoading}
+        period={period}
+      />
+
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <Card className="overflow-hidden">
           <CardHeader>
@@ -129,11 +172,21 @@ export function AnalyticsTrendsTab({
             {monthlyTrendLoading ? (
               <Skeleton className="h-75 w-full" />
             ) : monthlyTrend.length > 0 ? (
-              <ChartContainer
-                config={trendChartConfig}
-                className="h-75 w-full"
-              >
-                <LineChart data={monthlyTrend}>
+              <ChartContainer config={trendChartConfig} className="h-75 w-full">
+                <LineChart
+                  data={monthlyTrend}
+                  onClick={(state) => {
+                    const activePayload = (
+                      state as {
+                        activePayload?: Array<{ payload?: { month?: string } }>
+                      }
+                    ).activePayload
+                    const month = activePayload?.[0]?.payload?.month
+                    if (month) {
+                      void navigate(drillDownMonth(month))
+                    }
+                  }}
+                >
                   <CartesianGrid vertical={false} />
                   <XAxis
                     dataKey="month"
@@ -182,14 +235,14 @@ export function AnalyticsTrendsTab({
                     dataKey="debited"
                     stroke="var(--color-debited)"
                     strokeWidth={2}
-                    dot={false}
+                    dot={{ r: 3, cursor: 'pointer' }}
                   />
                   <Line
                     type="monotone"
                     dataKey="credited"
                     stroke="var(--color-credited)"
                     strokeWidth={2}
-                    dot={false}
+                    dot={{ r: 3, cursor: 'pointer' }}
                   />
                   <Line
                     type="monotone"
@@ -202,21 +255,31 @@ export function AnalyticsTrendsTab({
                 </LineChart>
               </ChartContainer>
             ) : (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                No trend data yet.
-              </p>
+              <AnalyticsEmptyHint
+                title="No trend data yet."
+                actions={sparseActions}
+              />
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="size-4 text-muted-foreground" />
-              <div>
-                <CardTitle className="text-base">Day-of-Week Spending</CardTitle>
-                <CardDescription>When do you spend the most?</CardDescription>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="size-4 text-muted-foreground" />
+                <div>
+                  <CardTitle className="text-base">
+                    Day-of-Week Spending
+                  </CardTitle>
+                  <CardDescription>When do you spend the most?</CardDescription>
+                </div>
               </div>
+              <ChartCardToolbar
+                view={dayOfWeekView}
+                onViewChange={setDayOfWeekView}
+                views={['chart', 'radar']}
+              />
             </div>
             <Separator className="w-full mt-2" />
           </CardHeader>
@@ -224,65 +287,98 @@ export function AnalyticsTrendsTab({
             {dayOfWeekLoading ? (
               <Skeleton className="h-60 w-full" />
             ) : dayOfWeekData.length > 0 ? (
-              <ChartContainer config={dayOfWeekConfig} className="h-60 w-full">
-                <BarChart data={dayOfWeekData}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="dayName"
-                    tickLine={false}
-                    axisLine={false}
-                    fontSize={12}
-                  />
-                  <YAxis
-                    tickFormatter={fmtCompact}
-                    tickLine={false}
-                    axisLine={false}
-                    width={50}
-                    fontSize={12}
-                  />
-                  <ChartTooltip
-                    wrapperStyle={{ zIndex: 100 }}
-                    content={
-                      <ChartTooltipContent
-                        formatter={(value) => (
-                          <div className="flex items-center justify-between gap-4">
-                            <span className="text-muted-foreground">
-                              Amount Spent
-                            </span>
-                            <span className="font-mono font-medium tabular-nums">
-                              {fmtCurrency(Number(value))}
-                            </span>
-                          </div>
-                        )}
-                      />
-                    }
-                  />
-                  <Bar
-                    dataKey="amount"
-                    fill="var(--color-chart-1)"
-                    radius={[4, 4, 0, 0]}
-                  >
-                    {dayOfWeekData.map((entry) => {
-                      const maxAmt = Math.max(
-                        ...dayOfWeekData.map((d) => d.amount),
-                      )
-                      const opacity =
-                        maxAmt > 0 ? 0.4 + (entry.amount / maxAmt) * 0.6 : 0.5
-                      return (
-                        <Cell
-                          key={entry.dayName}
-                          fill="var(--color-chart-1)"
-                          fillOpacity={opacity}
+              dayOfWeekView === 'radar' ? (
+                <ChartContainer config={dayOfWeekConfig} className="h-60 w-full">
+                  <RadarChart data={dayOfWeekData} cx="50%" cy="50%" outerRadius="75%">
+                    <PolarGrid />
+                    <PolarAngleAxis dataKey="dayName" tick={{ fontSize: 11 }} />
+                    <ChartTooltip
+                      wrapperStyle={{ zIndex: 100 }}
+                      content={
+                        <ChartTooltipContent
+                          formatter={(value) => (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-muted-foreground">
+                                Amount Spent
+                              </span>
+                              <span className="font-mono font-medium tabular-nums">
+                                {fmtCurrency(Number(value))}
+                              </span>
+                            </div>
+                          )}
                         />
-                      )
-                    })}
-                  </Bar>
-                </BarChart>
-              </ChartContainer>
+                      }
+                    />
+                    <Radar
+                      dataKey="amount"
+                      stroke="var(--color-chart-1)"
+                      fill="var(--color-chart-1)"
+                      fillOpacity={0.45}
+                    />
+                  </RadarChart>
+                </ChartContainer>
+              ) : (
+                <ChartContainer config={dayOfWeekConfig} className="h-60 w-full">
+                  <BarChart data={dayOfWeekData}>
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="dayName"
+                      tickLine={false}
+                      axisLine={false}
+                      fontSize={12}
+                    />
+                    <YAxis
+                      tickFormatter={fmtCompact}
+                      tickLine={false}
+                      axisLine={false}
+                      width={50}
+                      fontSize={12}
+                    />
+                    <ChartTooltip
+                      wrapperStyle={{ zIndex: 100 }}
+                      content={
+                        <ChartTooltipContent
+                          formatter={(value) => (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-muted-foreground">
+                                Amount Spent
+                              </span>
+                              <span className="font-mono font-medium tabular-nums">
+                                {fmtCurrency(Number(value))}
+                              </span>
+                            </div>
+                          )}
+                        />
+                      }
+                    />
+                    <Bar
+                      dataKey="amount"
+                      fill="var(--color-chart-1)"
+                      radius={[4, 4, 0, 0]}
+                    >
+                      {dayOfWeekData.map((entry) => {
+                        const maxAmt = Math.max(
+                          ...dayOfWeekData.map((d) => d.amount),
+                        )
+                        const opacity =
+                          maxAmt > 0 ? 0.4 + (entry.amount / maxAmt) * 0.6 : 0.5
+                        return (
+                          <Cell
+                            key={entry.dayName}
+                            fill="var(--color-chart-1)"
+                            fillOpacity={opacity}
+                          />
+                        )
+                      })}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
+              )
             ) : (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                No data for this period.
-              </p>
+              <AnalyticsEmptyHint
+                title="No day-of-week data for this period."
+                actions={sparseActions}
+              />
             )}
           </CardContent>
         </Card>
@@ -305,7 +401,25 @@ export function AnalyticsTrendsTab({
               <Skeleton className="h-60 w-full" />
             ) : cumulativeData.length > 0 ? (
               <ChartContainer config={cumulativeConfig} className="h-60 w-full">
-                <AreaChart data={cumulativeData}>
+                <AreaChart
+                  data={cumulativeData}
+                  onClick={(state) => {
+                    const activePayload = (
+                      state as {
+                        activePayload?: Array<{ payload?: { date?: string } }>
+                      }
+                    ).activePayload
+                    const date = activePayload?.[0]?.payload?.date
+                    if (date) {
+                      void navigate(
+                        drillDown({
+                          date,
+                          cardLast4: selectedCardLast4,
+                        }),
+                      )
+                    }
+                  }}
+                >
                   <defs>
                     <linearGradient
                       id="cumulativeFill"
@@ -370,13 +484,15 @@ export function AnalyticsTrendsTab({
                     stroke="var(--color-chart-1)"
                     fill="url(#cumulativeFill)"
                     strokeWidth={2}
+                    activeDot={{ r: 5, cursor: 'pointer' }}
                   />
                 </AreaChart>
               </ChartContainer>
             ) : (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                No data for this period.
-              </p>
+              <AnalyticsEmptyHint
+                title="No cumulative spend data for this period."
+                actions={sparseActions}
+              />
             )}
           </CardContent>
         </Card>
@@ -453,9 +569,10 @@ export function AnalyticsTrendsTab({
                 </LineChart>
               </ChartContainer>
             ) : (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                Not enough data for trends.
-              </p>
+              <AnalyticsEmptyHint
+                title="Not enough data for category trends."
+                actions={sparseActions}
+              />
             )}
           </CardContent>
         </Card>
@@ -562,9 +679,10 @@ export function AnalyticsTrendsTab({
                 </ComposedChart>
               </ChartContainer>
             ) : (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                Not enough months of data.
-              </p>
+              <AnalyticsEmptyHint
+                title="Not enough months for savings rate."
+                actions={sparseActions}
+              />
             )}
           </CardContent>
         </Card>
@@ -656,9 +774,10 @@ export function AnalyticsTrendsTab({
                 </AreaChart>
               </ChartContainer>
             ) : (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                Not enough data for velocity.
-              </p>
+              <AnalyticsEmptyHint
+                title="Not enough data for spending velocity."
+                actions={sparseActions}
+              />
             )}
           </CardContent>
         </Card>
@@ -667,20 +786,33 @@ export function AnalyticsTrendsTab({
       <RankedSpendListCard
         title="Top UPI Payees"
         description="Most-paid VPA addresses"
-        items={(topVpas ?? []).map((v) => ({
-          key: v.vpa,
-          label: v.merchant,
-          sublabel: v.vpa,
-          amount: v.amount,
-          count: v.count,
-          href: buildExpensesDrillDownUrl({
-            period,
-            cardLast4: selectedCardLast4,
-            merchant: v.merchant,
-          }),
-        }))}
+        items={(topVpas ?? []).map((v) => {
+          const upiMeta = getPaymentModeMeta('upi')
+          const UpiIcon = upiMeta.icon
+          return {
+            key: v.vpa,
+            label: v.merchant,
+            sublabel: v.vpa,
+            amount: v.amount,
+            count: v.count,
+            href: drillDown({
+              period,
+              cardLast4: selectedCardLast4,
+              merchant: v.merchant,
+            }),
+            leading: (
+              <span
+                className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+                aria-hidden
+              >
+                <UpiIcon className="size-3.5" style={{ color: upiMeta.color }} />
+              </span>
+            ),
+          }
+        })}
         loading={topVpasLoading}
-        emptyMessage="No UPI data available."
+        emptyMessage="No UPI data for this period."
+        emptyActions={sparseActions}
         barColor="var(--color-chart-3)"
       />
 
@@ -707,7 +839,7 @@ export function AnalyticsTrendsTab({
               {largestTransactions.map((txn, i) => (
                 <Link
                   key={txn.id}
-                  to={buildExpensesDrillDownUrl({
+                  to={drillDown({
                     date: txn.transactionDate,
                     cardLast4: selectedCardLast4,
                     merchant: txn.merchant,
@@ -715,12 +847,14 @@ export function AnalyticsTrendsTab({
                   className="flex items-center justify-between py-3 transition-colors hover:bg-muted/50 rounded-sm px-1 -mx-1"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="flex size-6 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                      {i + 1}
-                    </span>
+                    <TransactionCategoryTile
+                      category={txn.category}
+                      size="sm"
+                    />
                     <div>
                       <p className="text-sm font-medium">{txn.merchant}</p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="text-muted-foreground/70">#{i + 1}</span>
                         <span>
                           {(() => {
                             try {
@@ -745,7 +879,36 @@ export function AnalyticsTrendsTab({
                         >
                           {txn.transactionMode.replace(/_/g, ' ')}
                         </Badge>
+                        {txn.categorizationMethod ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] capitalize"
+                          >
+                            {txn.categorizationMethod.replace(/_/g, ' ')}
+                          </Badge>
+                        ) : null}
+                        {txn.requiresReview ? (
+                          <Badge variant="destructive" className="text-[10px]">
+                            Review
+                          </Badge>
+                        ) : null}
                       </div>
+                      {txn.confidence !== undefined ? (
+                        <div className="mt-1">
+                          <TransactionMetadataBadges
+                            transaction={{
+                              confidence: txn.confidence,
+                              categorizationMethod:
+                                txn.categorizationMethod ?? 'default',
+                              requiresReview: txn.requiresReview ?? false,
+                              vpa: txn.vpa ?? undefined,
+                              merchantRaw: undefined,
+                              cardLast4: txn.cardLast4 ?? undefined,
+                            }}
+                            compact
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                   <span className="text-sm font-semibold tabular-nums text-destructive">
@@ -755,9 +918,10 @@ export function AnalyticsTrendsTab({
               ))}
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              No transactions for this period.
-            </p>
+            <AnalyticsEmptyHint
+              title="No transactions for this period."
+              actions={sparseActions}
+            />
           )}
         </CardContent>
       </Card>

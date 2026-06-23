@@ -292,9 +292,13 @@ function ShellFrame({ children }: { children: ReactNode }) {
   )
 }
 
-function SidebarShell({ children }: NavigationShellProps) {
+function SidebarShell({
+  children,
+  variant = 'docked',
+}: NavigationShellProps & { variant?: 'docked' | 'floating' }) {
   const { activeItem } = useShellContext()
   const { user } = useAuthSession()
+  const isFloating = variant === 'floating'
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') {
       return false
@@ -320,11 +324,14 @@ function SidebarShell({ children }: NavigationShellProps) {
 
   return (
     <ShellFrame>
-      <div className="flex min-h-dvh">
+      <div className={cn('min-h-dvh', !isFloating && 'flex')}>
         <aside
           className={cn(
-            'hidden border-r border-border/60 bg-card/70 backdrop-blur-xl md:flex md:sticky md:top-0 md:h-dvh md:flex-col md:transition-[width] md:duration-200',
-            collapsed ? 'md:w-20' : 'md:w-72',
+            'hidden md:flex md:flex-col md:transition-[width] md:duration-200',
+            isFloating
+              ? 'fixed z-50 left-4 top-4 bottom-4 overflow-hidden rounded-[1.25rem] border border-border/60 bg-card/90 shadow-lg backdrop-blur-xl'
+              : 'border-r border-border/60 bg-card/70 backdrop-blur-xl md:sticky md:top-0 md:h-dvh',
+            collapsed ? 'md:w-16' : 'md:w-64',
           )}
         >
           <div className="flex items-center border-b border-border/60 px-3 py-3">
@@ -380,7 +387,7 @@ function SidebarShell({ children }: NavigationShellProps) {
                               to={item.href}
                               aria-current={active ? 'page' : undefined}
                               className={cn(
-                                'group flex items-center gap-3 rounded-2xl border px-3 py-2.5 transition-colors',
+                                'group flex items-center gap-3 rounded-2xl border px-2 py-2 transition-colors',
                                 active
                                   ? 'border-primary/40 bg-primary/10 text-foreground'
                                   : 'border-transparent text-muted-foreground hover:border-border/60 hover:bg-secondary/60 hover:text-foreground',
@@ -389,7 +396,7 @@ function SidebarShell({ children }: NavigationShellProps) {
                             >
                               <Icon className="size-4 shrink-0" />
                               {!collapsed && (
-                                <span className="font-medium">
+                                <span className="font-medium text-xs text-foreground">
                                   {item.label}
                                 </span>
                               )}
@@ -434,7 +441,12 @@ function SidebarShell({ children }: NavigationShellProps) {
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div
+          className={cn(
+            'flex min-w-0 flex-1 flex-col',
+            isFloating && (collapsed ? 'md:pl-24' : 'md:pl-72'),
+          )}
+        >
           <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl md:hidden">
             <div className="flex h-14 items-center justify-between gap-3 px-4">
               <Logo />
@@ -790,6 +802,8 @@ export function ProtectedNavigationShell({ children }: NavigationShellProps) {
   const { navigationLayout } = useThemeCustomization()
 
   switch (navigationLayout) {
+    case 'floating-sidebar':
+      return <SidebarShell variant="floating">{children}</SidebarShell>
     case 'categorized-topnav':
       return <CategorizedTopNavShell>{children}</CategorizedTopNavShell>
     case 'mega-menu':

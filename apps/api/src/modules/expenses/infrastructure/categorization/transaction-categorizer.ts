@@ -2,13 +2,22 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import type { CategoryMetadata } from '@workspace/domain'
+import {
+  evaluateRuleConditionGroup
+  
+} from '@/modules/expenses/infrastructure/categorization/rule-condition-evaluator'
+
+import type {RuleEvaluationInput} from '@/modules/expenses/infrastructure/categorization/rule-condition-evaluator';
+import type { CategoryMetadata, CategorizationRule, RuleAction  } from '@workspace/domain'
+
+
 
 type CategorizationMethod
   = | 'manual'
     | 'merchant_rule'
     | 'vpa_rule'
     | 'neft_rule'
+    | 'user_rule'
     | 'default'
 
 interface CategoryInfo {
@@ -83,15 +92,20 @@ export interface UserCategorizationRules {
   merchant_patterns?: MerchantPatternRule[]
   vpa_amount_rules?: VpaAmountRule[]
   vpa_rules?: Record<string, UserVpaRule>
+  composite_rules?: CategorizationRule[]
 }
 
 export interface CategorizationInput {
   id?: string
   paid_to?: string
+  merchant?: string
+  merchant_raw?: string
   vpa?: string
   transaction_mode?: string
   amount?: number
   transaction_type?: string
+  card_last4?: string
+  transaction_date?: string | Date
 }
 
 export interface CategorizationResult {
@@ -148,6 +162,11 @@ export class TransactionCategorizer {
         }
         return this.enrichCategoryInfo(categoryInfo)
       }
+    }
+
+    const compositeMatch = this.checkCompositeRules(transaction, userRules)
+    if (compositeMatch) {
+      return this.enrichCategoryInfo(compositeMatch.categoryInfo, compositeMatch.action)
     }
 
     if (paidTo) {
@@ -414,11 +433,56 @@ export class TransactionCategorizer {
     return true
   }
 
-  private enrichCategoryInfo(categoryInfo: CategoryInfo): CategorizationResult {
+  private checkCompositeRules(
+    transaction: CategorizationInput,
+    userRules?: UserCategorizationRules,
+  ): { categoryInfo: CategoryInfo, action: RuleAction } | null {
+    const rules = userRules?.composite_rules ?? []
+    if (rules.length === 0) {
+      return null
+    }
+
+    const evaluationInput: RuleEvaluationInput = {
+      id: transaction.id,
+      merchant: transaction.merchant ?? transaction.paid_to,
+      merchantRaw: transaction.merchant_raw ?? transaction.paid_to,
+      vpa: transaction.vpa,
+      amount: transaction.amount,
+      transactionType: transaction.transaction_type,
+      transactionMode: transaction.transaction_mode,
+      cardLast4: transaction.card_last4,
+      transactionDate: transaction.transaction_date,
+    }
+
+    const sortedRules = [...rules].sort((a, b) => a.priority - b.priority)
+
+    for (const rule of sortedRules) {
+      if (!rule.enabled) continue
+      if (evaluateRuleConditionGroup(rule.conditions, evaluationInput)) {
+        return {
+          categoryInfo: {
+            category: rule.action.category,
+            subcategory: rule.action.subcategory,
+            confidence: 0.98,
+            method: 'user_rule',
+            requiresReview: rule.action.requiresReview ?? false,
+          },
+          action: rule.action,
+        }
+      }
+    }
+
+    return null
+  }
+
+  private enrichCategoryInfo(
+    categoryInfo: CategoryInfo,
+    action?: RuleAction,
+  ): CategorizationResult {
     const categoryData = this.defaultCategories.categories?.[categoryInfo.category]
     return {
       category: categoryInfo.category,
-      subcategory: categoryInfo.subcategory ?? categoryInfo.category,
+      subcategory: action?.subcategory ?? categoryInfo.subcategory ?? categoryInfo.category,
       confidence: categoryInfo.confidence,
       method: categoryInfo.method,
       requiresReview: categoryInfo.requiresReview,

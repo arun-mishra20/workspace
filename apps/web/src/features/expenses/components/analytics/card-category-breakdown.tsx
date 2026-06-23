@@ -1,10 +1,19 @@
-import type { CardCategoryItem } from '@workspace/domain'
-import { CreditCard } from 'lucide-react'
+import type { CardCategoryItem, CreditCardProfile } from '@workspace/domain'
 
 import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
+import { CategoryIcon } from '@/features/expenses/components/category-icon'
+import { CreditCardTile } from '@/features/expenses/components/credit-card-tile'
+import { getCategoryColor } from '@/features/expenses/lib/category-meta'
 import { Badge } from '@workspace/ui/components/ui/badge'
 
-export function CardCategoryBreakdown({ data }: { data: CardCategoryItem[] }) {
+interface CardCategoryBreakdownProps {
+  data: CardCategoryItem[]
+  cards: CreditCardProfile[]
+}
+
+export function CardCategoryBreakdown({ data, cards }: CardCategoryBreakdownProps) {
+  const cardByLast4 = new Map(cards.map((card) => [card.cardLast4, card]))
+
   const byCard = new Map<
     string,
     { cardName: string; items: CardCategoryItem[] }
@@ -21,10 +30,12 @@ export function CardCategoryBreakdown({ data }: { data: CardCategoryItem[] }) {
     <div className="space-y-4">
       {[...byCard.entries()].map(([last4, { cardName, items }]) => {
         const total = items.reduce((sum, item) => sum + item.amount, 0)
+        const cardProfile = cardByLast4.get(last4)
+
         return (
           <div key={last4} className="space-y-2">
             <div className="flex items-center gap-2">
-              <CreditCard className="size-3.5 text-muted-foreground" />
+              {cardProfile ? <CreditCardTile card={cardProfile} compact /> : null}
               <span className="text-sm font-medium">{cardName}</span>
               <Badge variant="outline" className="text-[10px]">
                 ••{last4}
@@ -36,12 +47,16 @@ export function CardCategoryBreakdown({ data }: { data: CardCategoryItem[] }) {
             <div className="ml-5 space-y-1.5">
               {items.map((item) => {
                 const pct = total > 0 ? (item.amount / total) * 100 : 0
+                const color = getCategoryColor(item.category)
                 return (
                   <div key={item.category} className="space-y-0.5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="capitalize text-foreground/80">
-                        {item.displayName}
-                      </span>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <CategoryIcon category={item.category} size={12} />
+                        <span className="capitalize text-foreground/80">
+                          {item.displayName}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-2">
                         <Badge
                           variant="secondary"
@@ -56,8 +71,11 @@ export function CardCategoryBreakdown({ data }: { data: CardCategoryItem[] }) {
                     </div>
                     <div className="h-1 rounded-full bg-muted">
                       <div
-                        className="h-full rounded-full bg-primary/60 transition-all"
-                        style={{ width: `${pct}%` }}
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${pct}%`,
+                          backgroundColor: color,
+                        }}
                       />
                     </div>
                   </div>

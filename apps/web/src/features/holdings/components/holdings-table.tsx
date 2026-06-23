@@ -42,6 +42,8 @@ import { formatCurrency } from '@/lib/utils'
 import type { Holding } from '@workspace/domain'
 import { toast } from 'sonner'
 import { EmptyState } from '@/components/empty-state'
+import { DataTablePagination } from '@/components/data-table'
+import { useClientPagination } from '@/hooks/use-client-pagination'
 import { HoldingFormDialog } from './holding-form-dialog'
 
 // --- Types & Constants ---
@@ -305,6 +307,15 @@ export function HoldingsTable({
     return sortedData
   }, [filtered, sortKey, sortDir])
 
+  const {
+    paginatedItems,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useClientPagination(sorted)
+
   // Handlers
   const toggleSort = useCallback(
     (key: SortKey) => {
@@ -433,7 +444,7 @@ export function HoldingsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sorted.map((holding) => (
+            {paginatedItems.map((holding) => (
               <HoldingRow
                 key={holding.id}
                 holding={holding}
@@ -445,6 +456,16 @@ export function HoldingsTable({
           </TableBody>
         </Table>
       </div>
+
+      <DataTablePagination
+        page={page}
+        pageSize={pageSize}
+        totalItems={totalItems}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        itemLabel={config.label}
+        className="border-none pt-3"
+      />
 
       {/* Dialogs */}
       {editHolding && (

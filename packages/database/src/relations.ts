@@ -11,6 +11,8 @@ import {
   statementsTable,
   transactionsTable,
   merchantCategoryRulesTable,
+  categorizationRulesTable,
+  ruleDashboardsTable,
   webauthnCredentialsTable,
   aiConversationsTable,
   aiMessagesTable,
@@ -38,6 +40,10 @@ export const usersRelations = relations(usersTable, ({ one, many }) => ({
   transactions: many(transactionsTable),
   // 1:N with merchant_category_rules
   merchantCategoryRules: many(merchantCategoryRulesTable),
+  // 1:N with categorization_rules
+  categorizationRules: many(categorizationRulesTable),
+  // 1:N with rule_dashboards
+  ruleDashboards: many(ruleDashboardsTable),
   // 1:N with flight_activities
   flightActivities: many(flightActivitiesTable),
   // 1:N with flight_email_processing
@@ -155,6 +161,26 @@ export const merchantCategoryRulesRelations = relations(
     // N:1 with users
     user: one(usersTable, {
       fields: [merchantCategoryRulesTable.userId],
+      references: [usersTable.id],
+    }),
+  }),
+)
+
+export const categorizationRulesRelations = relations(
+  categorizationRulesTable,
+  ({ one }) => ({
+    user: one(usersTable, {
+      fields: [categorizationRulesTable.userId],
+      references: [usersTable.id],
+    }),
+  }),
+)
+
+export const ruleDashboardsRelations = relations(
+  ruleDashboardsTable,
+  ({ one }) => ({
+    user: one(usersTable, {
+      fields: [ruleDashboardsTable.userId],
       references: [usersTable.id],
     }),
   }),

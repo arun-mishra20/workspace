@@ -3,14 +3,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   useReactTable,
   getCoreRowModel,
-  flexRender,
   type ColumnDef,
   type RowSelectionState,
+  type SortingState,
 } from '@tanstack/react-table'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import { format } from 'date-fns'
 
 import { MainLayout } from '@/components/layouts'
+import { readStoredPageSize, writeStoredPageSize } from '@/lib/pagination'
+import { DataTable, DataTablePagination, SortableColumnHeader } from '@/components/data-table'
 import { connectGmail } from '@/features/expenses/api/connect-gmail'
 import { disconnectGmail } from '@/features/expenses/api/disconnect-gmail'
 import { fetchGmailStatus } from '@/features/expenses/api/gmail-status'
@@ -26,7 +28,7 @@ import { BulkActionsToolbar } from '@/features/expenses/components/bulk-actions-
 import { CreditCardFilter } from '@/features/expenses/components/credit-card-filter'
 import { LlmCategorizeDialog } from '@/features/expenses/components/llm-categorize-dialog'
 import { fetchCreditCards } from '@/features/expenses/api/credit-cards'
-import { CATEGORY_OPTIONS } from '@/features/expenses/constants/category-options'
+import { CATEGORY_OPTIONS, getSubcategoryLabel, SUBCATEGORY_OPTIONS } from '@/features/expenses/constants/category-options'
 import { Badge } from '@workspace/ui/components/ui/badge'
 import { Button } from '@workspace/ui/components/ui/button'
 import { Calendar } from '@workspace/ui/components/ui/calendar'
@@ -65,14 +67,6 @@ import {
   SheetTitle,
 } from '@workspace/ui/components/ui/sheet'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@workspace/ui/components/ui/table'
-import {
   Tabs,
   TabsContent,
   TabsList,
@@ -91,10 +85,9 @@ import {
   IndianRupee,
   Send,
   ArrowLeft,
-  ArrowRight,
   CreditCard,
 } from 'lucide-react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { appPaths } from '@/config/app-paths'
 import type { Transaction } from '@workspace/domain'
 import {
@@ -107,6 +100,11 @@ import { useDebounce } from '@/hooks/use-debounce'
 import { Separator } from '@workspace/ui/components/ui/separator'
 import { Skeleton } from '@workspace/ui/components/ui/skeleton'
 import { cn } from '@workspace/ui/lib/utils'
+import {
+  parseEmailSorting,
+  parseExpenseSorting,
+  sortingToQueryParams,
+} from '@/lib/table-sort'
 
 const TRANSACTION_TYPES = ['debited', 'credited'] as const
 const TRANSACTION_MODES = [
@@ -116,14 +114,15 @@ const TRANSACTION_MODES = [
   'imps',
   'rtgs',
 ] as const
-function getCategoryMeta(value: string) {
-  return CATEGORY_OPTIONS.find((c) => c.value === value)
-}
+import { getCategoryMeta } from '@/features/expenses/lib/category-meta'
+import { CategoryIcon } from '@/features/expenses/components/category-icon'
+import { CategorySelectOption } from '@/features/expenses/components/category-select-option'
+import { TransactionCategoryTile } from '@/features/expenses/components/transaction-category-tile'
 
 const CATEGORY_FILTER_OPTIONS: FilterOption[] = CATEGORY_OPTIONS.map((c) => ({
   value: c.value,
   label: c.label,
-  color: c.color,
+  categoryIcon: true,
 }))
 
 const MODE_FILTER_OPTIONS: FilterOption[] = TRANSACTION_MODES.map((m) => ({
@@ -135,6 +134,22 @@ const REVIEW_FILTER_OPTIONS: FilterOption[] = [
   { value: 'true', label: 'Needs Review' },
   { value: 'false', label: 'Reviewed' },
 ]
+
+const CATEGORIZATION_METHOD_FILTER_OPTIONS: FilterOption[] = [
+  { value: 'default', label: 'Default' },
+  { value: 'manual', label: 'Manual' },
+  { value: 'merchant_rule', label: 'Merchant Rule' },
+  { value: 'vpa_rule', label: 'VPA Rule' },
+  { value: 'neft_rule', label: 'NEFT Rule' },
+  { value: 'user_rule', label: 'User Rule' },
+]
+
+const SUBCATEGORY_FILTER_OPTIONS: FilterOption[] = SUBCATEGORY_OPTIONS.map(
+  (option) => ({
+    value: option.value,
+    label: option.label,
+  }),
+)
 
 type ExpenseView = 'expense' | 'emails'
 
@@ -180,7 +195,9 @@ const formatAmount = (transaction: Transaction) => {
 const emailColumns: ColumnDef<RawEmail>[] = [
   {
     accessorKey: 'from',
-    header: 'From',
+    header: ({ column }) => (
+      <SortableColumnHeader column={column} title="From" />
+    ),
     cell: ({ row }) => (
       <div className="font-medium text-foreground">
         {row.getValue('from') || 'Unknown sender'}
@@ -189,7 +206,9 @@ const emailColumns: ColumnDef<RawEmail>[] = [
   },
   {
     accessorKey: 'subject',
-    header: 'Subject',
+    header: ({ column }) => (
+      <SortableColumnHeader column={column} title="Subject" />
+    ),
     cell: ({ row }) => (
       <div className="max-w-125 truncate">
         {row.getValue('subject') || '(no subject)'}
@@ -198,12 +217,16 @@ const emailColumns: ColumnDef<RawEmail>[] = [
   },
   {
     accessorKey: 'receivedAt',
-    header: 'Received',
+    header: ({ column }) => (
+      <SortableColumnHeader column={column} title="Received" />
+    ),
     cell: ({ row }) => formatDate(row.getValue('receivedAt')),
   },
   {
     accessorKey: 'provider',
-    header: 'Provider',
+    header: ({ column }) => (
+      <SortableColumnHeader column={column} title="Provider" />
+    ),
     cell: ({ row }) => (
       <Badge variant="secondary" className="capitalize">
         {row.getValue('provider')}
@@ -242,34 +265,50 @@ const buildExpenseColumns = (
   },
   {
     accessorKey: 'transactionDate',
-    header: 'Date',
+    header: ({ column }) => (
+      <SortableColumnHeader column={column} title="Date" />
+    ),
     cell: ({ row }) => formatDate(row.original.transactionDate),
   },
   {
     accessorKey: 'merchant',
-    header: 'Merchant',
+    header: ({ column }) => (
+      <SortableColumnHeader column={column} title="Merchant" />
+    ),
     cell: ({ row }) => (
       <div className="flex gap-2 items-center max-w-72">
-        <div className="font-medium text-foreground">
-          {row.original.merchant}
-        </div>
-        <Badge className="ml-2 text-[10px] p-0.5 px-2" variant={'outline'}>
-          <div className="h-fit max-w-30 flex gap-1 items-center">
-            <p className="truncate">
-              {row.original.cardName ??
-                row.original.vpa ??
-                row.original.merchantRaw ??
-                'Unknown source'}
-            </p>
-            {row.original.cardName && <CreditCard className={cn('size-3')} />}
+        <TransactionCategoryTile
+          category={row.original.category}
+          size="sm"
+        />
+        <div className="min-w-0 flex flex-col gap-1">
+          <div className="font-medium text-foreground truncate">
+            {row.original.merchant}
           </div>
-        </Badge>
+          <Badge className="w-fit text-[10px] p-0.5 px-2" variant="outline">
+            <div className="h-fit max-w-30 flex gap-1 items-center">
+              <p className="truncate">
+                {row.original.cardName ??
+                  row.original.vpa ??
+                  row.original.merchantRaw ??
+                  'Unknown source'}
+              </p>
+              {row.original.cardName && <CreditCard className={cn('size-3')} />}
+            </div>
+          </Badge>
+        </div>
       </div>
     ),
   },
   {
     accessorKey: 'amount',
-    header: 'Amount',
+    header: ({ column }) => (
+      <SortableColumnHeader
+        column={column}
+        title="Amount"
+        className="justify-end"
+      />
+    ),
     cell: ({ row }) => (
       <div
         className={
@@ -284,21 +323,24 @@ const buildExpenseColumns = (
   },
   {
     accessorKey: 'category',
-    header: 'Category',
+    header: ({ column }) => (
+      <SortableColumnHeader column={column} title="Category" />
+    ),
     cell: ({ row }) => {
       const meta = getCategoryMeta(row.original.category)
       return (
         <Badge
           variant="secondary"
-          className="capitalize"
+          className="inline-flex items-center capitalize gap-1.5"
           style={{
             borderColor: meta?.color,
             color: meta?.color,
           }}
         >
-          <span
-            className="inline-block size-2 rounded-full mr-1.5"
-            style={{ backgroundColor: meta?.color ?? '#95A5A6' }}
+          <CategoryIcon
+            category={row.original.category}
+            size={12}
+            className="mr-1.5"
           />
           {meta?.label ?? row.original.category.replace(/_/g, ' ')}
         </Badge>
@@ -306,8 +348,39 @@ const buildExpenseColumns = (
     },
   },
   {
+    accessorKey: 'subcategory',
+    header: ({ column }) => (
+      <SortableColumnHeader column={column} title="Subcategory" />
+    ),
+    cell: ({ row }) => {
+      const subcategory = row.original.subcategory
+      if (!subcategory) {
+        return <span className="text-muted-foreground">—</span>
+      }
+
+      return (
+        <span className="text-sm">
+          {getSubcategoryLabel(subcategory, row.original.category)}
+        </span>
+      )
+    },
+  },
+  {
+    accessorKey: 'categorizationMethod',
+    header: ({ column }) => (
+      <SortableColumnHeader column={column} title="Method" />
+    ),
+    cell: ({ row }) => (
+      <Badge variant="outline" className="text-[10px] capitalize">
+        {row.original.categorizationMethod.replace(/_/g, ' ')}
+      </Badge>
+    ),
+  },
+  {
     accessorKey: 'transactionMode',
-    header: 'Mode',
+    header: ({ column }) => (
+      <SortableColumnHeader column={column} title="Mode" />
+    ),
     cell: ({ row }) => (
       <span className="capitalize">
         {row.original.transactionMode.replace(/_/g, ' ')}
@@ -316,14 +389,18 @@ const buildExpenseColumns = (
   },
   {
     accessorKey: 'confidence',
-    header: 'Confidence',
+    header: ({ column }) => (
+      <SortableColumnHeader column={column} title="Confidence" />
+    ),
     cell: ({ row }) => (
       <span className="capitalize">{row.original.confidence}</span>
     ),
   },
   {
     accessorKey: 'requiresReview',
-    header: 'Review',
+    header: ({ column }) => (
+      <SortableColumnHeader column={column} title="Review" />
+    ),
     cell: ({ row }) =>
       row.original.requiresReview ? (
         <Badge variant="outline">Required</Badge>
@@ -334,6 +411,7 @@ const buildExpenseColumns = (
   {
     id: 'actions',
     header: '',
+    enableSorting: false,
     cell: ({ row }) => (
       <Button
         variant="ghost"
@@ -370,12 +448,16 @@ const ExpenseEmailsPage = () => {
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const filterCard = searchParams.get('card') ?? ''
+  const returnTo = searchParams.get('return')
   const [activeView, setActiveView] = useState<ExpenseView>('expense')
   const [emailPageIndex, setEmailPageIndex] = useState(0)
   const [expensePageIndex, setExpensePageIndex] = useState(0)
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null)
-  const pageSize = 20
+  const [expensePageSize, setExpensePageSize] = useState(() =>
+    readStoredPageSize(20),
+  )
+  const [emailPageSize, setEmailPageSize] = useState(() => readStoredPageSize(20))
   const navigate = useNavigate()
 
   // ── Row selection ──
@@ -386,8 +468,18 @@ const ExpenseEmailsPage = () => {
   const [filterCategory, setFilterCategory] = useState(
     () => searchParams.get('category') ?? '',
   )
-  const [filterMode, setFilterMode] = useState('')
-  const [filterReview, setFilterReview] = useState('')
+  const [filterMode, setFilterMode] = useState(
+    () => searchParams.get('mode') ?? '',
+  )
+  const [filterReview, setFilterReview] = useState(
+    () => searchParams.get('review') ?? '',
+  )
+  const [filterSubcategory, setFilterSubcategory] = useState(
+    () => searchParams.get('subcategory') ?? '',
+  )
+  const [filterCategorizationMethod, setFilterCategorizationMethod] = useState(
+    () => searchParams.get('categorization_method') ?? '',
+  )
   const [filterDateFrom, setFilterDateFrom] = useState<string | undefined>(
     () => searchParams.get('date_from') ?? undefined,
   )
@@ -398,6 +490,75 @@ const ExpenseEmailsPage = () => {
     () => searchParams.get('search') ?? '',
   )
   const debouncedSearch = useDebounce(searchInput, 300)
+
+  const [expenseSorting, setExpenseSorting] = useState<SortingState>(() =>
+    parseExpenseSorting(searchParams),
+  )
+  const [emailSorting, setEmailSorting] = useState<SortingState>(() =>
+    parseEmailSorting(searchParams),
+  )
+
+  const activeExpenseSort = expenseSorting[0]
+  const activeEmailSort = emailSorting[0]
+
+  useEffect(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        const setOrDelete = (key: string, value: string | undefined) => {
+          if (value) {
+            next.set(key, value)
+          } else {
+            next.delete(key)
+          }
+        }
+
+        setOrDelete('category', filterCategory || undefined)
+        setOrDelete('subcategory', filterSubcategory || undefined)
+        setOrDelete('mode', filterMode || undefined)
+        setOrDelete(
+          'categorization_method',
+          filterCategorizationMethod || undefined,
+        )
+        setOrDelete('review', filterReview || undefined)
+        setOrDelete('date_from', filterDateFrom)
+        setOrDelete('date_to', filterDateTo)
+        setOrDelete('search', debouncedSearch || undefined)
+
+        const sortParams =
+          activeView === 'expense'
+            ? sortingToQueryParams(expenseSorting, {
+                id: 'transactionDate',
+                desc: true,
+              })
+            : sortingToQueryParams(emailSorting, {
+                id: 'receivedAt',
+                desc: true,
+              })
+        setOrDelete('sort_by', sortParams.sort_by)
+        setOrDelete('sort_order', sortParams.sort_order)
+
+        if (prev.toString() === next.toString()) {
+          return prev
+        }
+        return next
+      },
+      { replace: true },
+    )
+  }, [
+    debouncedSearch,
+    filterCategory,
+    filterSubcategory,
+    filterCategorizationMethod,
+    filterDateFrom,
+    filterDateTo,
+    filterMode,
+    filterReview,
+    expenseSorting,
+    emailSorting,
+    activeView,
+    setSearchParams,
+  ])
 
   const handleCardSelect = (last4: string | undefined) => {
     setSearchParams(
@@ -420,8 +581,23 @@ const ExpenseEmailsPage = () => {
     enabled: activeView === 'expense',
   })
 
+  const subcategoryFilterOptions = useMemo(() => {
+    if (!filterCategory) {
+      return SUBCATEGORY_FILTER_OPTIONS
+    }
+
+    return SUBCATEGORY_OPTIONS.filter(
+      (option) => option.parent === filterCategory,
+    ).map((option) => ({
+      value: option.value,
+      label: option.label,
+    }))
+  }, [filterCategory])
+
   const hasActiveFilters =
     filterCategory ||
+    filterSubcategory ||
+    filterCategorizationMethod ||
     filterMode ||
     filterReview ||
     filterDateFrom ||
@@ -438,12 +614,15 @@ const ExpenseEmailsPage = () => {
     setRowSelection({})
   }, [
     filterCategory,
+    filterSubcategory,
+    filterCategorizationMethod,
     filterMode,
     filterReview,
     filterDateFrom,
     filterDateTo,
     debouncedSearch,
     filterCard,
+    expenseSorting,
   ])
 
   // ── Edit form state ──
@@ -507,9 +686,23 @@ const ExpenseEmailsPage = () => {
     isLoading: isEmailsLoading,
     isError: isEmailsError,
   } = useQuery({
-    queryKey: ['expenses', 'emails', emailPageIndex + 1],
+    queryKey: [
+      'expenses',
+      'emails',
+      emailPageIndex + 1,
+      emailPageSize,
+      activeEmailSort?.id,
+      activeEmailSort?.desc,
+    ],
     queryFn: () =>
-      listExpenseEmails({ page: emailPageIndex + 1, page_size: pageSize }),
+      listExpenseEmails({
+        page: emailPageIndex + 1,
+        page_size: emailPageSize,
+        ...(activeEmailSort && {
+          sort_by: activeEmailSort.id,
+          sort_order: activeEmailSort.desc ? 'desc' : 'asc',
+        }),
+      }),
     enabled: activeView === 'emails',
   })
 
@@ -522,25 +715,38 @@ const ExpenseEmailsPage = () => {
       'expenses',
       'transactions',
       expensePageIndex + 1,
+      expensePageSize,
       filterCategory,
+      filterSubcategory,
+      filterCategorizationMethod,
       filterMode,
       filterReview,
       filterDateFrom,
       filterDateTo,
       debouncedSearch,
       filterCard,
+      activeExpenseSort?.id,
+      activeExpenseSort?.desc,
     ],
     queryFn: () =>
       listExpenses({
         page: expensePageIndex + 1,
-        page_size: pageSize,
+        page_size: expensePageSize,
         ...(filterCategory && { category: filterCategory }),
+        ...(filterSubcategory && { subcategory: filterSubcategory }),
+        ...(filterCategorizationMethod && {
+          categorization_method: filterCategorizationMethod,
+        }),
         ...(filterMode && { mode: filterMode }),
         ...(filterReview && { review: filterReview }),
         ...(filterDateFrom && { date_from: filterDateFrom }),
         ...(filterDateTo && { date_to: filterDateTo }),
         ...(debouncedSearch && { search: debouncedSearch }),
         ...(filterCard && { card_last4: filterCard }),
+        ...(activeExpenseSort && {
+          sort_by: activeExpenseSort.id,
+          sort_order: activeExpenseSort.desc ? 'desc' : 'asc',
+        }),
       }),
     enabled: activeView === 'expense',
   })
@@ -570,19 +776,35 @@ const ExpenseEmailsPage = () => {
     state: {
       pagination: {
         pageIndex: emailPageIndex,
-        pageSize,
+        pageSize: emailPageSize,
       },
+      sorting: emailSorting,
+    },
+    onSortingChange: (updater) => {
+      setEmailSorting((prev) =>
+        typeof updater === 'function' ? updater(prev) : updater,
+      )
     },
     onPaginationChange: (updater) => {
-      if (typeof updater === 'function') {
-        const newState = updater({ pageIndex: emailPageIndex, pageSize })
+      const newState =
+        typeof updater === 'function'
+          ? updater({ pageIndex: emailPageIndex, pageSize: emailPageSize })
+          : updater
+
+      if (newState.pageIndex !== emailPageIndex) {
         setEmailPageIndex(newState.pageIndex)
-      } else {
-        setEmailPageIndex(updater.pageIndex)
+      }
+
+      if (newState.pageSize !== emailPageSize) {
+        writeStoredPageSize(newState.pageSize)
+        setEmailPageSize(newState.pageSize)
+        setEmailPageIndex(0)
       }
     },
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
+    manualSorting: true,
+    enableMultiSort: false,
   })
 
   const expenseTable = useReactTable({
@@ -594,17 +816,33 @@ const ExpenseEmailsPage = () => {
     state: {
       pagination: {
         pageIndex: expensePageIndex,
-        pageSize,
+        pageSize: expensePageSize,
       },
       rowSelection,
+      sorting: expenseSorting,
+    },
+    onSortingChange: (updater) => {
+      setExpenseSorting((prev) =>
+        typeof updater === 'function' ? updater(prev) : updater,
+      )
+      setRowSelection({})
     },
     onPaginationChange: (updater) => {
-      if (typeof updater === 'function') {
-        const newState = updater({ pageIndex: expensePageIndex, pageSize })
+      const newState =
+        typeof updater === 'function'
+          ? updater({ pageIndex: expensePageIndex, pageSize: expensePageSize })
+          : updater
+
+      if (newState.pageIndex !== expensePageIndex) {
         setExpensePageIndex(newState.pageIndex)
-      } else {
-        setExpensePageIndex(updater.pageIndex)
       }
+
+      if (newState.pageSize !== expensePageSize) {
+        writeStoredPageSize(newState.pageSize)
+        setExpensePageSize(newState.pageSize)
+        setExpensePageIndex(0)
+      }
+
       setRowSelection({})
     },
     onRowSelectionChange: setRowSelection,
@@ -612,7 +850,14 @@ const ExpenseEmailsPage = () => {
     enableRowSelection: true,
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
+    manualSorting: true,
+    enableMultiSort: false,
   })
+
+  // Reset to first page when email sort changes
+  useEffect(() => {
+    setEmailPageIndex(0)
+  }, [emailSorting])
 
   const statusQuery = useQuery({
     queryKey: ['expenses', 'gmail-status'],
@@ -940,6 +1185,14 @@ const ExpenseEmailsPage = () => {
               {/* ── Filter bar (expense tab only) ── */}
               {activeView === 'expense' && (
                 <div className="flex flex-wrap items-center gap-2 mb-4">
+                  {returnTo ? (
+                    <Button variant="outline" size="sm" className="h-9" asChild>
+                      <Link to={returnTo}>
+                        <ArrowLeft className="mr-1.5 size-3.5" />
+                        Back to analytics
+                      </Link>
+                    </Button>
+                  ) : null}
                   <SearchFilter
                     value={searchInput}
                     onChange={setSearchInput}
@@ -954,13 +1207,39 @@ const ExpenseEmailsPage = () => {
                     label="Categories"
                     value={filterCategory}
                     options={CATEGORY_FILTER_OPTIONS}
-                    onChange={setFilterCategory}
+                    onChange={(value) => {
+                      setFilterCategory(value)
+                      if (
+                        filterSubcategory &&
+                        value &&
+                        !SUBCATEGORY_OPTIONS.some(
+                          (option) =>
+                            option.value === filterSubcategory &&
+                            option.parent === value,
+                        )
+                      ) {
+                        setFilterSubcategory('')
+                      }
+                    }}
+                  />
+                  <SelectFilter
+                    label="Subcategories"
+                    value={filterSubcategory}
+                    options={subcategoryFilterOptions}
+                    onChange={setFilterSubcategory}
                   />
                   <SelectFilter
                     label="Modes"
                     value={filterMode}
                     options={MODE_FILTER_OPTIONS}
                     onChange={setFilterMode}
+                  />
+                  <SelectFilter
+                    label="Method"
+                    value={filterCategorizationMethod}
+                    options={CATEGORIZATION_METHOD_FILTER_OPTIONS}
+                    onChange={setFilterCategorizationMethod}
+                    className="w-35 h-9 text-xs"
                   />
                   <SelectFilter
                     label="Review"
@@ -984,6 +1263,8 @@ const ExpenseEmailsPage = () => {
                       className="h-9 text-xs text-muted-foreground"
                       onClick={() => {
                         setFilterCategory('')
+                        setFilterSubcategory('')
+                        setFilterCategorizationMethod('')
                         setFilterMode('')
                         setFilterReview('')
                         setFilterDateFrom(undefined)
@@ -1042,74 +1323,14 @@ const ExpenseEmailsPage = () => {
                 !isExpensesError &&
                 expenseTable.getRowModel().rows.length > 0 ? (
                   <div className="space-y-4">
-                    <Table>
-                      <TableHeader>
-                        {expenseTable.getHeaderGroups().map((headerGroup) => (
-                          <TableRow key={headerGroup.id}>
-                            {headerGroup.headers.map((header) => (
-                              <TableHead key={header.id}>
-                                {header.isPlaceholder
-                                  ? null
-                                  : flexRender(
-                                      header.column.columnDef.header,
-                                      header.getContext(),
-                                    )}
-                              </TableHead>
-                            ))}
-                          </TableRow>
-                        ))}
-                      </TableHeader>
-                      <TableBody>
-                        {expenseTable.getRowModel().rows.map((row) => (
-                          <TableRow
-                            key={row.id}
-                            data-state={row.getIsSelected() && 'selected'}
-                          >
-                            {row.getVisibleCells().map((cell) => (
-                              <TableCell key={cell.id}>
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext(),
-                                )}
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    <DataTable table={expenseTable} />
 
-                    {expenseTable.getPageCount() > 1 && (
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-muted-foreground">
-                          Showing {expensePageIndex * pageSize + 1} to{' '}
-                          {Math.min(
-                            (expensePageIndex + 1) * pageSize,
-                            expensesData?.total ?? 0,
-                          )}{' '}
-                          of {expensesData?.total ?? 0} expenses
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => expenseTable.previousPage()}
-                            disabled={!expenseTable.getCanPreviousPage()}
-                          >
-                            <ArrowLeft />
-                            Previous
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => expenseTable.nextPage()}
-                            disabled={!expenseTable.getCanNextPage()}
-                          >
-                            Next
-                            <ArrowRight />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+                    <DataTablePagination
+                      table={expenseTable}
+                      totalItems={expensesData?.total ?? 0}
+                      itemLabel="expenses"
+                      onPageSizeChange={writeStoredPageSize}
+                    />
                     <BulkActionsToolbar
                       selectedIds={Object.keys(rowSelection)}
                       selectedTransactions={(expensesData?.data ?? []).filter(
@@ -1145,94 +1366,23 @@ const ExpenseEmailsPage = () => {
                 !isEmailsError &&
                 emailTable.getRowModel().rows.length > 0 ? (
                   <div className="space-y-4">
-                    <Table>
-                      <TableHeader>
-                        {emailTable.getHeaderGroups().map((headerGroup) => (
-                          <TableRow key={headerGroup.id}>
-                            {headerGroup.headers.map((header) => (
-                              <TableHead key={header.id}>
-                                {header.isPlaceholder
-                                  ? null
-                                  : flexRender(
-                                      header.column.columnDef.header,
-                                      header.getContext(),
-                                    )}
-                              </TableHead>
-                            ))}
-                          </TableRow>
-                        ))}
-                      </TableHeader>
-                      <TableBody>
-                        {emailTable.getRowModel().rows.map((row) => (
-                          <TableRow
-                            key={row.id}
-                            className="cursor-pointer hover:bg-muted/40"
-                            role="link"
-                            tabIndex={0}
-                            onClick={() => {
-                              const email = row.original
-                              navigate(
-                                appPaths.auth.expensesEmailDetails.getHref(
-                                  email.id,
-                                ),
-                              )
-                            }}
-                            onKeyDown={(event) => {
-                              if (event.key !== 'Enter' && event.key !== ' ') {
-                                return
-                              }
-                              event.preventDefault()
-                              const email = row.original
-                              navigate(
-                                appPaths.auth.expensesEmailDetails.getHref(
-                                  email.id,
-                                ),
-                              )
-                            }}
-                          >
-                            {row.getVisibleCells().map((cell) => (
-                              <TableCell key={cell.id}>
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext(),
-                                )}
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    <DataTable
+                      table={emailTable}
+                      onRowClick={(row) => {
+                        navigate(
+                          appPaths.auth.expensesEmailDetails.getHref(
+                            row.original.id,
+                          ),
+                        )
+                      }}
+                    />
 
-                    {emailTable.getPageCount() > 1 && (
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-muted-foreground">
-                          Showing {emailPageIndex * pageSize + 1} to{' '}
-                          {Math.min(
-                            (emailPageIndex + 1) * pageSize,
-                            emailData?.total ?? 0,
-                          )}{' '}
-                          of {emailData?.total ?? 0} emails
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => emailTable.previousPage()}
-                            disabled={!emailTable.getCanPreviousPage()}
-                          >
-                            Previous
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => emailTable.nextPage()}
-                            disabled={!emailTable.getCanNextPage()}
-                          >
-                            Next
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+                    <DataTablePagination
+                      table={emailTable}
+                      totalItems={emailData?.total ?? 0}
+                      itemLabel="emails"
+                      onPageSizeChange={writeStoredPageSize}
+                    />
                   </div>
                 ) : null}
               </TabsContent>
@@ -1373,13 +1523,7 @@ const ExpenseEmailsPage = () => {
                 <SelectContent>
                   {CATEGORY_OPTIONS.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="inline-block size-2 rounded-full"
-                          style={{ backgroundColor: cat.color }}
-                        />
-                        {cat.label}
-                      </span>
+                      <CategorySelectOption category={cat.value} />
                     </SelectItem>
                   ))}
                 </SelectContent>

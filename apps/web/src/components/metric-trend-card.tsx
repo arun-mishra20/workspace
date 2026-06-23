@@ -29,6 +29,7 @@ interface MetricTrendCardProps {
   formatTrendValue?: (value: number) => string
   className?: string
   valueClassName?: string
+  footer?: ReactNode
 }
 
 export function MetricTrendCard({
@@ -44,6 +45,7 @@ export function MetricTrendCard({
   formatTrendValue = (nextValue) => nextValue.toLocaleString(),
   className,
   valueClassName = 'text-2xl font-semibold text-foreground',
+  footer,
 }: MetricTrendCardProps) {
   const chartConfig = {
     value: {
@@ -55,12 +57,12 @@ export function MetricTrendCard({
   const hasTrend = Boolean(trendData && trendData.length > 0)
 
   return (
-    <Card data-slot="badge" className={className}>
+    <Card data-slot="metric-card" className={className}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        <span data-slot="badge">{icon}</span>
+        <span data-slot="metric-icon">{icon}</span>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -74,6 +76,8 @@ export function MetricTrendCard({
         ) : description ? (
           <p className={descriptionClassName}>{description}</p>
         ) : null}
+
+        {footer ? <div className="mt-2">{footer}</div> : null}
 
         {loading ? (
           <Skeleton className="mt-4 h-16 w-full" />
