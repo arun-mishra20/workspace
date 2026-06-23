@@ -14,6 +14,8 @@ import { Input } from '@workspace/ui/components/ui/input'
 import { Skeleton } from '@workspace/ui/components/ui/skeleton'
 import { Badge } from '@workspace/ui/components/ui/badge'
 import { EmptyState } from '@/components/empty-state'
+import { DataTablePagination } from '@/components/data-table'
+import { useClientPagination } from '@/hooks/use-client-pagination'
 import {
   useDividends,
   useEnrichDividendYield,
@@ -33,6 +35,15 @@ export function DividendsTable() {
   const { data: dividends = [], isLoading } = useDividends()
   const enrichMutation = useEnrichDividendYield()
   const deleteMutation = useDeleteDividend()
+
+  const {
+    paginatedItems,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useClientPagination(dividends)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -83,8 +94,9 @@ export function DividendsTable() {
   }
 
   return (
-    <div className="rounded-md border overflow-x-auto">
-      <Table>
+    <div className="space-y-3">
+      <div className="rounded-md border overflow-x-auto">
+        <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="flex items-center gap-1">
@@ -104,7 +116,7 @@ export function DividendsTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {dividends.map((d) => {
+          {paginatedItems.map((d) => {
             const yieldPct =
               d.investedValue && Number(d.investedValue) > 0
                 ? ((Number(d.amount) / Number(d.investedValue)) * 100).toFixed(
@@ -206,6 +218,17 @@ export function DividendsTable() {
           })}
         </TableBody>
       </Table>
+    </div>
+
+      <DataTablePagination
+        page={page}
+        pageSize={pageSize}
+        totalItems={totalItems}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        itemLabel="dividends"
+        className="border-none pt-0"
+      />
     </div>
   )
 }

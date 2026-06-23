@@ -16,6 +16,8 @@ import {
 
 import { EmptyState } from '@/components/empty-state'
 import { MainLayout } from '@/components/layouts'
+import { DataTablePagination } from '@/components/data-table'
+import { useClientPagination } from '@/hooks/use-client-pagination'
 import { fetchBusAnalytics } from '@/features/expenses/api/bus-analytics'
 import { fetchInvestmentAnalytics } from '@/features/expenses/api/investment-analytics'
 import { PrincipalInvestmentTab } from '@/features/principal/components/principal-tab'
@@ -211,6 +213,15 @@ function SummaryCards({ data }: { data: BusAnalytics }) {
 // ── Top Bus Routes Table ──
 
 function TopRoutesTable({ routes }: { routes: BusAnalytics['routes'] }) {
+  const {
+    paginatedItems,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useClientPagination(routes)
+
   if (routes.length === 0) return null
 
   return (
@@ -225,7 +236,7 @@ function TopRoutesTable({ routes }: { routes: BusAnalytics['routes'] }) {
         </CardDescription>
         <Separator className="w-full mt-2" />
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         <Table>
           <TableHeader>
             <TableRow>
@@ -237,7 +248,7 @@ function TopRoutesTable({ routes }: { routes: BusAnalytics['routes'] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {routes.map((r) => (
+            {paginatedItems.map((r) => (
               <TableRow key={r.busNumber}>
                 <TableCell className="font-mono font-medium">
                   {r.busNumber}
@@ -258,6 +269,16 @@ function TopRoutesTable({ routes }: { routes: BusAnalytics['routes'] }) {
             ))}
           </TableBody>
         </Table>
+
+        <DataTablePagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          itemLabel="routes"
+          className="border-none pt-0"
+        />
       </CardContent>
     </Card>
   )
@@ -780,6 +801,15 @@ function AssetBreakdownTable({
 }: {
   data: InvestmentAnalytics['assetTypeBreakdown']
 }) {
+  const {
+    paginatedItems,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useClientPagination(data)
+
   if (data.length === 0) return null
 
   return (
@@ -791,7 +821,7 @@ function AssetBreakdownTable({
         </CardDescription>
         <Separator className="w-full mt-2" />
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         <Table>
           <TableHeader>
             <TableRow>
@@ -805,7 +835,7 @@ function AssetBreakdownTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((asset) => (
+            {paginatedItems.map((asset) => (
               <TableRow key={asset.assetType}>
                 <TableCell className="font-medium">
                   {ASSET_TYPE_LABELS[asset.assetType] ?? asset.assetType}
@@ -832,6 +862,16 @@ function AssetBreakdownTable({
             ))}
           </TableBody>
         </Table>
+
+        <DataTablePagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          itemLabel="asset types"
+          className="border-none pt-0"
+        />
       </CardContent>
     </Card>
   )
@@ -844,6 +884,15 @@ function PlatformBreakdownTable({
 }: {
   data: InvestmentAnalytics['platformBreakdown']
 }) {
+  const {
+    paginatedItems,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useClientPagination(data)
+
   if (data.length === 0) return null
 
   return (
@@ -855,7 +904,7 @@ function PlatformBreakdownTable({
         </CardDescription>
         <Separator className="w-full mt-2" />
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         <Table>
           <TableHeader>
             <TableRow>
@@ -867,7 +916,7 @@ function PlatformBreakdownTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((platform) => (
+            {paginatedItems.map((platform) => (
               <TableRow key={platform.platform}>
                 <TableCell className="font-medium">
                   {platform.platform}
@@ -891,6 +940,16 @@ function PlatformBreakdownTable({
             ))}
           </TableBody>
         </Table>
+
+        <DataTablePagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          itemLabel="platforms"
+          className="border-none pt-0"
+        />
       </CardContent>
     </Card>
   )
@@ -990,16 +1049,25 @@ function LargestInvestmentsTable({
 }: {
   data: InvestmentAnalytics['largestInvestments']
 }) {
+  const {
+    paginatedItems,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useClientPagination(data)
+
   if (data.length === 0) return null
 
   return (
     <Card className="gap-4">
       <CardHeader>
         <CardTitle>Largest Investments</CardTitle>
-        <CardDescription>Top 10 single transactions by amount</CardDescription>
+        <CardDescription>Top single transactions by amount</CardDescription>
         <Separator className="w-full mt-2" />
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         <Table>
           <TableHeader>
             <TableRow>
@@ -1010,7 +1078,7 @@ function LargestInvestmentsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((inv) => (
+            {paginatedItems.map((inv) => (
               <TableRow key={inv.id}>
                 <TableCell className="text-muted-foreground text-sm">
                   {format(parseISO(inv.date), 'dd MMM yyyy')}
@@ -1028,6 +1096,16 @@ function LargestInvestmentsTable({
             ))}
           </TableBody>
         </Table>
+
+        <DataTablePagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          itemLabel="investments"
+          className="border-none pt-0"
+        />
       </CardContent>
     </Card>
   )
@@ -1040,6 +1118,15 @@ function SipDetectionTable({
 }: {
   data: InvestmentAnalytics['detectedSips']
 }) {
+  const {
+    paginatedItems,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useClientPagination(data)
+
   if (data.length === 0) return null
 
   return (
@@ -1054,7 +1141,7 @@ function SipDetectionTable({
         </CardDescription>
         <Separator className="w-full mt-2" />
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         <Table>
           <TableHeader>
             <TableRow>
@@ -1068,7 +1155,7 @@ function SipDetectionTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((sip) => (
+            {paginatedItems.map((sip) => (
               <TableRow key={sip.merchant}>
                 <TableCell className="font-medium">{sip.merchant}</TableCell>
                 <TableCell>
@@ -1095,6 +1182,16 @@ function SipDetectionTable({
             ))}
           </TableBody>
         </Table>
+
+        <DataTablePagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          itemLabel="SIPs"
+          className="border-none pt-0"
+        />
       </CardContent>
     </Card>
   )

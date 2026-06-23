@@ -1,10 +1,18 @@
-import { useQuery } from '@tanstack/react-query'
 import { Bus, Coins, Repeat } from 'lucide-react'
 
-import { fetchBusAnalytics } from '@/features/expenses/api/bus-analytics'
-import { fetchInvestmentAnalytics } from '@/features/expenses/api/investment-analytics'
+import type {
+  AnalyticsPeriod,
+  BusAnalytics,
+  InvestmentAnalytics,
+} from '@workspace/domain'
+import { DataTablePagination } from '@/components/data-table'
 import { fmtCurrency } from '@/features/expenses/components/analytics/analytics-utils'
-import type { AnalyticsPeriod } from '@workspace/domain'
+import { useClientPagination } from '@/hooks/use-client-pagination'
+import { AnalyticsEmptyHint } from '@/features/expenses/components/analytics/analytics-empty-hint'
+import {
+  buildSparsePeriodActions,
+  type AnalyticsFilterActions,
+} from '@/features/expenses/components/analytics/analytics-filter-actions'
 import {
   Card,
   CardContent,
@@ -24,18 +32,30 @@ import {
 
 interface AnalyticsPatternsTabProps {
   period: AnalyticsPeriod
+  busData?: BusAnalytics
+  busLoading: boolean
+  investmentData?: InvestmentAnalytics
+  investmentLoading: boolean
+  filterActions?: AnalyticsFilterActions
 }
 
-export function AnalyticsPatternsTab({ period }: AnalyticsPatternsTabProps) {
-  const busQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'bus', period],
-    queryFn: () => fetchBusAnalytics(period),
+export function AnalyticsPatternsTab({
+  period,
+  busData,
+  busLoading,
+  investmentData,
+  investmentLoading,
+  filterActions,
+}: AnalyticsPatternsTabProps) {
+  const sparseActions = buildSparsePeriodActions(filterActions ?? {}, {
+    hasCardFilter: false,
+    period,
   })
 
-  const investmentQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'investment', period],
-    queryFn: () => fetchInvestmentAnalytics(period),
-  })
+  const busRoutesPagination = useClientPagination(busData?.routes ?? [])
+  const investmentBreakdownPagination = useClientPagination(
+    investmentData?.assetTypeBreakdown ?? [],
+  )
 
   return (
     <div className="flex flex-col gap-6">
@@ -46,12 +66,12 @@ export function AnalyticsPatternsTab({ period }: AnalyticsPatternsTabProps) {
               <Bus className="size-4" /> Bus trips
             </CardDescription>
             <CardTitle className="text-2xl">
-              {busQ.isLoading ? '—' : busQ.data?.totalTrips ?? 0}
+              {busLoading ? '—' : busData?.totalTrips ?? 0}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-xs text-muted-foreground">
-              {busQ.data ? fmtCurrency(busQ.data.totalSpent) : '—'} spent
+              {busData ? fmtCurrency(busData.totalSpent) : '—'} spent
             </p>
           </CardContent>
         </Card>
@@ -62,14 +82,14 @@ export function AnalyticsPatternsTab({ period }: AnalyticsPatternsTabProps) {
               <Coins className="size-4" /> Investments
             </CardDescription>
             <CardTitle className="text-2xl">
-              {investmentQ.isLoading
+              {investmentLoading
                 ? '—'
-                : fmtCurrency(investmentQ.data?.totalInvested ?? 0)}
+                : fmtCurrency(investmentData?.totalInvested ?? 0)}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-xs text-muted-foreground">
-              {investmentQ.data?.transactionCount ?? 0} transactions
+              {investmentData?.transactionCount ?? 0} transactions
             </p>
           </CardContent>
         </Card>
@@ -80,7 +100,7 @@ export function AnalyticsPatternsTab({ period }: AnalyticsPatternsTabProps) {
               <Repeat className="size-4" /> SIP count
             </CardDescription>
             <CardTitle className="text-2xl">
-              {investmentQ.isLoading ? '—' : investmentQ.data?.detectedSips.length ?? 0}
+              {investmentLoading ? '—' : investmentData?.detectedSips.length ?? 0}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -97,9 +117,10 @@ export function AnalyticsPatternsTab({ period }: AnalyticsPatternsTabProps) {
           <CardDescription>Most frequent BMTC routes this period</CardDescription>
         </CardHeader>
         <CardContent>
-          {busQ.isLoading ? (
+          {busLoading ? (
             <Skeleton className="h-40 w-full" />
-          ) : (busQ.data?.routes.length ?? 0) > 0 ? (
+          ) : (busData?.routes.length ?? 0) > 0 ? (
+            <div className="space-y-3">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -109,7 +130,7 @@ export function AnalyticsPatternsTab({ period }: AnalyticsPatternsTabProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {busQ.data!.routes.slice(0, 8).map((route) => (
+                {busRoutesPagination.paginatedItems.map((route) => (
                   <TableRow key={route.busNumber}>
                     <TableCell>{route.busNumber}</TableCell>
                     <TableCell className="text-right">{route.tripCount}</TableCell>
@@ -120,10 +141,22 @@ export function AnalyticsPatternsTab({ period }: AnalyticsPatternsTabProps) {
                 ))}
               </TableBody>
             </Table>
+
+            <DataTablePagination
+              page={busRoutesPagination.page}
+              pageSize={busRoutesPagination.pageSize}
+              totalItems={busRoutesPagination.totalItems}
+              onPageChange={busRoutesPagination.setPage}
+              onPageSizeChange={busRoutesPagination.setPageSize}
+              itemLabel="routes"
+              className="border-none pt-0"
+            />
+            </div>
           ) : (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              No bus data for this period.
-            </p>
+            <AnalyticsEmptyHint
+              title="No bus data for this period."
+              actions={sparseActions}
+            />
           )}
         </CardContent>
       </Card>
@@ -134,9 +167,10 @@ export function AnalyticsPatternsTab({ period }: AnalyticsPatternsTabProps) {
           <CardDescription>By asset class from enriched metadata</CardDescription>
         </CardHeader>
         <CardContent>
-          {investmentQ.isLoading ? (
+          {investmentLoading ? (
             <Skeleton className="h-40 w-full" />
-          ) : (investmentQ.data?.assetTypeBreakdown.length ?? 0) > 0 ? (
+          ) : (investmentData?.assetTypeBreakdown.length ?? 0) > 0 ? (
+            <div className="space-y-3">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -146,7 +180,7 @@ export function AnalyticsPatternsTab({ period }: AnalyticsPatternsTabProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {investmentQ.data!.assetTypeBreakdown.map((item) => (
+                {investmentBreakdownPagination.paginatedItems.map((item) => (
                   <TableRow key={item.assetType}>
                     <TableCell className="capitalize">
                       {item.assetType.replace(/_/g, ' ')}
@@ -159,10 +193,22 @@ export function AnalyticsPatternsTab({ period }: AnalyticsPatternsTabProps) {
                 ))}
               </TableBody>
             </Table>
+
+            <DataTablePagination
+              page={investmentBreakdownPagination.page}
+              pageSize={investmentBreakdownPagination.pageSize}
+              totalItems={investmentBreakdownPagination.totalItems}
+              onPageChange={investmentBreakdownPagination.setPage}
+              onPageSizeChange={investmentBreakdownPagination.setPageSize}
+              itemLabel="asset types"
+              className="border-none pt-0"
+            />
+            </div>
           ) : (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              No investment data for this period.
-            </p>
+            <AnalyticsEmptyHint
+              title="No investment data for this period."
+              actions={sparseActions}
+            />
           )}
         </CardContent>
       </Card>

@@ -30,6 +30,8 @@ import {
 } from '@/features/expenses/api/analytics'
 import { listExpenses } from '@/features/expenses/api/list-expenses'
 import { fetchCreditCards } from '@/features/expenses/api/credit-cards'
+import { fetchBusAnalytics } from '@/features/expenses/api/bus-analytics'
+import { fetchInvestmentAnalytics } from '@/features/expenses/api/investment-analytics'
 import {
   fetchClassificationHealth,
   fetchSpendAnomalies,
@@ -279,6 +281,7 @@ const AnalyticsPage = () => {
   const isTrends = activeTab === 'trends'
   const isDataQuality = activeTab === 'data-quality'
   const isDashboards = activeTab === 'dashboards'
+  const isPatterns = activeTab === 'patterns'
 
   const comparisonPeriod =
     isDashboards && !dashboardRangeCustom ? dashboardPeriod : period
@@ -442,6 +445,18 @@ const AnalyticsPage = () => {
     ],
     queryFn: () => fetchSpendAnomalies(period, analyticsOptions),
     enabled: isDataQuality,
+  })
+
+  const busAnalyticsQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'bus', period],
+    queryFn: () => fetchBusAnalytics(period),
+    enabled: isPatterns,
+  })
+
+  const investmentAnalyticsQ = useQuery({
+    queryKey: ['expenses', 'analytics', 'investment', period],
+    queryFn: () => fetchInvestmentAnalytics(period),
+    enabled: isPatterns,
   })
 
   const daySummaryQ = useQuery({
@@ -620,35 +635,92 @@ const AnalyticsPage = () => {
   )
 
   const tabError =
-    (isOverview && summaryQ.isError) ||
-    (isCards && cardQ.isError) ||
-    (isCategories && categoryQ.isError) ||
-    (isTrends && trendQ.isError) ||
-    (isDataQuality && classificationHealthQ.isError)
+    (isOverview
+      && (summaryQ.isError
+        || dailyQ.isError
+        || modeQ.isError
+        || merchantQ.isError
+        || periodComparisonQ.isError
+        || daySummaryQ.isError
+        || dayTransactionsQ.isError))
+    || (isCards
+      && (cardQ.isError || milestoneEtaQ.isError || cardCategoriesQ.isError))
+    || (isCategories
+      && (categoryQ.isError || subcategoryQ.isError || periodComparisonQ.isError))
+    || (isTrends
+      && (trendQ.isError
+        || dayOfWeekQ.isError
+        || cumulativeQ.isError
+        || categoryTrendQ.isError
+        || savingsRateQ.isError
+        || velocityQ.isError
+        || topVpasQ.isError
+        || largestQ.isError
+        || periodComparisonQ.isError))
+    || (isDataQuality
+      && (classificationHealthQ.isError || spendAnomaliesQ.isError))
+    || (isPatterns && (busAnalyticsQ.isError || investmentAnalyticsQ.isError))
+    || (isDashboards && !dashboardRangeCustom && periodComparisonQ.isError)
 
   const retryTabQueries = () => {
-    if (isOverview) void summaryQ.refetch()
-    if (isCards) void cardQ.refetch()
-    if (isCategories) void categoryQ.refetch()
-    if (isTrends) void trendQ.refetch()
-    if (isDataQuality) void classificationHealthQ.refetch()
+    if (isOverview) {
+      void summaryQ.refetch()
+      void dailyQ.refetch()
+      void modeQ.refetch()
+      void merchantQ.refetch()
+      void periodComparisonQ.refetch()
+      void daySummaryQ.refetch()
+      void dayTransactionsQ.refetch()
+    }
+    if (isCards) {
+      void cardQ.refetch()
+      void milestoneEtaQ.refetch()
+      void cardCategoriesQ.refetch()
+    }
+    if (isCategories) {
+      void categoryQ.refetch()
+      void subcategoryQ.refetch()
+      void periodComparisonQ.refetch()
+    }
+    if (isTrends) {
+      void trendQ.refetch()
+      void dayOfWeekQ.refetch()
+      void cumulativeQ.refetch()
+      void categoryTrendQ.refetch()
+      void savingsRateQ.refetch()
+      void velocityQ.refetch()
+      void topVpasQ.refetch()
+      void largestQ.refetch()
+      void periodComparisonQ.refetch()
+    }
+    if (isDataQuality) {
+      void classificationHealthQ.refetch()
+      void spendAnomaliesQ.refetch()
+    }
+    if (isPatterns) {
+      void busAnalyticsQ.refetch()
+      void investmentAnalyticsQ.refetch()
+    }
+    if (isDashboards && !dashboardRangeCustom) {
+      void periodComparisonQ.refetch()
+    }
   }
 
   return (
     <MainLayout>
-      <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
-        <AnalyticsPageHeader
-          isSyncing={isSyncing}
-          job={job}
-          onReprocess={startReprocess}
-        />
-
+      <div className="flex flex-1 flex-col p-4 sm:p-6">
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
           className="gap-4"
         >
-          <div className="sticky top-[var(--analytics-header-offset,5.5rem)] z-10 -mx-4 sm:-mx-6 bg-background/95 px-4 sm:px-6 pb-0 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 border-b bg-background/95 px-4 sm:px-6 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <AnalyticsPageHeader
+              isSyncing={isSyncing}
+              job={job}
+              onReprocess={startReprocess}
+            />
+
             <TabsList className="h-auto w-full justify-start overflow-x-auto">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="cards">Cards</TabsTrigger>
@@ -796,7 +868,14 @@ const AnalyticsPage = () => {
             </TabsContent>
 
             <TabsContent value="patterns" className="mt-2">
-              <AnalyticsPatternsTab period={period} />
+              <AnalyticsPatternsTab
+                period={period}
+                busData={busAnalyticsQ.data}
+                busLoading={busAnalyticsQ.isLoading}
+                investmentData={investmentAnalyticsQ.data}
+                investmentLoading={investmentAnalyticsQ.isLoading}
+                filterActions={filterActions}
+              />
             </TabsContent>
 
             <TabsContent value="dashboards" className="mt-2">

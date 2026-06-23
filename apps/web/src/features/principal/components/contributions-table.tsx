@@ -26,6 +26,8 @@ import {
 } from '@workspace/ui/components/ui/select'
 import { toast } from 'sonner'
 
+import { DataTablePagination } from '@/components/data-table'
+import { useClientPagination } from '@/hooks/use-client-pagination'
 import {
   useCreateContribution,
   useUpdateContribution,
@@ -76,6 +78,15 @@ export function ContributionsTable({ contributions }: ContributionsTableProps) {
       return monthIndex(b.month) - monthIndex(a.month)
     })
   }, [contributions])
+
+  const {
+    paginatedItems,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useClientPagination(sortedContributions)
 
   // Build chronological order for MoM calculation (oldest first)
   const chronologicalOrder = useMemo(() => {
@@ -348,7 +359,7 @@ export function ContributionsTable({ contributions }: ContributionsTableProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                sortedContributions.map((row) => {
+                paginatedItems.map((row) => {
                   const isEditing = editingId === row.id
                   const savingsRate =
                     row.salaryLakhs != null && row.salaryLakhs > 0
@@ -526,6 +537,18 @@ export function ContributionsTable({ contributions }: ContributionsTableProps) {
             )}
           </Table>
         </div>
+
+        {contributions.length > 0 ? (
+          <DataTablePagination
+            page={page}
+            pageSize={pageSize}
+            totalItems={totalItems}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            itemLabel="contributions"
+            className="border-none pt-0"
+          />
+        ) : null}
       </CardContent>
     </Card>
   )

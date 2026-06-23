@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 
 import { MainLayout } from '@/components/layouts'
+import { DataTablePagination } from '@/components/data-table'
 import { useAiPageContext } from '@/features/ai-assistant/ai-assistant-context'
 import { buildFlightsPageContext } from '@/features/ai-assistant/adapters/flights-context'
 import { FlightActivityEditorSheet } from '@/features/flights/components/flight-activity-editor-sheet'
@@ -97,7 +98,8 @@ import type {
   UpdateFlightActivityInput,
 } from '@workspace/domain'
 
-const PAGE_SIZE = 25
+import { readStoredPageSize, writeStoredPageSize } from '@/lib/pagination'
+
 const REVIEW_CANDIDATE_LIMIT = 50
 const EXTRACTION_METHOD_OPTIONS = [
   { label: 'All methods', value: 'all' },
@@ -179,6 +181,7 @@ export default function FlightsPage() {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('flights')
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(() => readStoredPageSize(25))
   const [search, setSearch] = useState('')
   const [methodFilter, setMethodFilter] =
     useState<(typeof EXTRACTION_METHOD_OPTIONS)[number]['value']>('all')
@@ -199,7 +202,7 @@ export default function FlightsPage() {
   const deferredSearch = useDeferredValue(search)
   const activitiesQuery = useFlightActivities({
     page,
-    page_size: PAGE_SIZE,
+    page_size: pageSize,
   })
   const analyticsQuery = useFlightAnalytics()
   const updateMutation = useUpdateFlightActivity()
@@ -266,6 +269,10 @@ export default function FlightsPage() {
     enabled: reviewSheetOpen && Boolean(reviewFromDate),
   })
 
+  useEffect(() => {
+    setPage(1)
+  }, [deferredSearch, methodFilter, pageSize])
+
   const filteredActivities = useMemo(() => {
     const needle = deferredSearch.trim().toLowerCase()
 
@@ -313,10 +320,6 @@ export default function FlightsPage() {
       nextDeparture,
     }
   }, [activitiesQuery.data])
-
-  const totalPages = activitiesQuery.data
-    ? Math.max(1, Math.ceil(activitiesQuery.data.total / PAGE_SIZE))
-    : 1
 
   const reviewCandidates = reviewCandidatesQuery.data?.data ?? []
 
@@ -788,39 +791,17 @@ export default function FlightsPage() {
                   </div>
                 ) : null}
 
-                <div className="flex flex-col gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="text-sm text-muted-foreground">
-                    Showing {filteredActivities.length} of{' '}
-                    {activitiesQuery.data?.data.length ?? 0} loaded segments
-                    <span className="mx-2">•</span>
-                    {activitiesQuery.data?.total ?? 0} total stored
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setPage((current) => Math.max(1, current - 1))
-                      }
-                      disabled={page <= 1}
-                    >
-                      Previous
-                    </Button>
-                    <Badge variant="outline">
-                      Page {page} / {totalPages}
-                    </Badge>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setPage((current) => Math.min(totalPages, current + 1))
-                      }
-                      disabled={page >= totalPages}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
+                <DataTablePagination
+                  page={page}
+                  pageSize={pageSize}
+                  totalItems={activitiesQuery.data?.total ?? 0}
+                  onPageChange={setPage}
+                  onPageSizeChange={(nextPageSize) => {
+                    writeStoredPageSize(nextPageSize)
+                    setPageSize(nextPageSize)
+                  }}
+                  itemLabel="segments"
+                />
               </CardContent>
             </Card>
           </TabsContent>

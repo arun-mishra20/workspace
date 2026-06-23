@@ -3,9 +3,8 @@ import { format, parseISO } from 'date-fns'
 import {
   ArrowDownRight,
   ArrowUpRight,
+  ClipboardList,
   Receipt,
-  TrendingDown,
-  Wallet,
 } from 'lucide-react'
 import {
   Bar,
@@ -52,6 +51,7 @@ import {
 } from '@/features/expenses/lib/analytics-spend-view'
 import { getPaymentModeMeta } from '@/features/expenses/lib/payment-mode-meta'
 import type { MetricTrendPoint } from '@/lib/metric-trends'
+import { activateOnKeyboardClick } from '@/lib/keyboard'
 import type {
   AnalyticsPeriod,
   PeriodComparison,
@@ -187,7 +187,13 @@ export function AnalyticsOverviewTab({
     }
 
     if (dailyView === 'heatmap') {
-      return <SpendHeatmapCalendar data={dailyData} metric="debited" />
+      return (
+        <SpendHeatmapCalendar
+          data={dailyData}
+          metric="debited"
+          onDateSelect={onSelectedDateChange}
+        />
+      )
     }
 
     if (dailyView === 'table') {
@@ -209,8 +215,16 @@ export function AnalyticsOverviewTab({
               {dailyData.map((row) => (
                 <tr
                   key={row.date}
-                  className="cursor-pointer border-b transition-colors hover:bg-muted/50"
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`View spending for ${format(parseISO(row.date), 'dd MMM yyyy')}`}
+                  className="cursor-pointer border-b transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                   onClick={() => onSelectedDateChange(row.date)}
+                  onKeyDown={(event) =>
+                    activateOnKeyboardClick(event, () =>
+                      onSelectedDateChange(row.date),
+                    )
+                  }
                 >
                   <td className="px-3 py-2">
                     {format(parseISO(row.date), 'dd MMM yyyy')}
@@ -556,7 +570,7 @@ export function AnalyticsOverviewTab({
         <SummaryCard
           title="Pending Review"
           value={summary ? String(summary.reviewPending) : undefined}
-          icon={<TrendingDown className="size-4 text-chart-4" />}
+          icon={<ClipboardList className="size-4 text-chart-4" />}
           subtitle={
             summary
               ? `Top category: ${summary.topCategory.replace(/_/g, ' ')}`
@@ -583,7 +597,7 @@ export function AnalyticsOverviewTab({
               <div>
                 <CardTitle className="text-base">Daily Spending</CardTitle>
                 <CardDescription>
-                  Debits &amp; credits per day — click a point to explore that day
+                  Debits and credits per day. Click a point to explore that day.
                 </CardDescription>
               </div>
               <ChartCardToolbar
@@ -607,12 +621,9 @@ export function AnalyticsOverviewTab({
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="flex items-center gap-2">
-                <Wallet className="size-4 text-muted-foreground" />
-                <div>
-                  <CardTitle className="text-base">Payment Modes</CardTitle>
-                  <CardDescription>How you pay</CardDescription>
-                </div>
+              <div>
+                <CardTitle className="text-base">Payment Modes</CardTitle>
+                <CardDescription>How you pay</CardDescription>
               </div>
               <ChartCardToolbar
                 view={modeView}

@@ -19,6 +19,9 @@ import { Badge } from "@workspace/ui/components/ui/badge";
 import { Progress } from "@workspace/ui/components/ui/progress";
 import type { MilestoneProjection } from "@workspace/domain";
 
+import { DataTablePagination } from "@/components/data-table";
+import { useClientPagination } from "@/hooks/use-client-pagination";
+
 const fmtCurrency = (n: number) =>
   new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -35,6 +38,15 @@ export function MilestoneProjectionsTable({
   milestones,
   currentPortfolio,
 }: MilestoneProjectionsTableProps) {
+  const {
+    paginatedItems,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useClientPagination(milestones);
+
   if (milestones.length === 0) return null;
 
   return (
@@ -53,7 +65,7 @@ export function MilestoneProjectionsTable({
         </CardDescription>
         <Separator className="w-full mt-2" />
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         <Table>
           <TableHeader>
             <TableRow>
@@ -65,7 +77,7 @@ export function MilestoneProjectionsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {milestones.map((m) => {
+            {paginatedItems.map((m) => {
               const progressPct = Math.min(
                 100,
                 (currentPortfolio / m.targetINR) * 100,
@@ -105,6 +117,16 @@ export function MilestoneProjectionsTable({
             })}
           </TableBody>
         </Table>
+
+        <DataTablePagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          itemLabel="milestones"
+          className="border-none pt-0"
+        />
       </CardContent>
     </Card>
   );

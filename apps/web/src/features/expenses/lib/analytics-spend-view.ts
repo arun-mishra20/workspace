@@ -109,6 +109,15 @@ export function buildExcludeCategoriesParam(preferences: SpendExclusionPreferenc
   return tokens.join(',')
 }
 
+export function countActiveSpendExclusions(
+  preferences: SpendExclusionPreferences,
+): number {
+  return (
+    (preferences.excludeCreditCardBills ? 1 : 0)
+    + (preferences.excludeSelfTransfers ? 1 : 0)
+  )
+}
+
 export function formatSpendExclusionSummary(preferences: SpendExclusionPreferences): string {
   if (!preferences.excludeCreditCardBills && !preferences.excludeSelfTransfers) {
     return 'Cash-flow view'

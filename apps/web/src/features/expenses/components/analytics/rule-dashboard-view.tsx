@@ -19,6 +19,7 @@ import {
 } from 'recharts'
 
 import { SummaryCard } from '@/features/expenses/components/analytics/summary-card'
+import { DataTablePagination } from '@/components/data-table'
 import {
   ChartCardToolbar,
   type ChartCardView,
@@ -80,7 +81,9 @@ interface RuleDashboardViewProps {
   loading: boolean
   error?: boolean
   page: number
+  pageSize: number
   onPageChange: (page: number) => void
+  onPageSizeChange: (pageSize: number) => void
   startDate: string
   endDate: string
   rangeSummary: string
@@ -98,7 +101,9 @@ export function RuleDashboardView({
   loading,
   error,
   page,
+  pageSize,
   onPageChange,
+  onPageSizeChange,
   startDate,
   endDate,
   rangeSummary,
@@ -114,9 +119,7 @@ export function RuleDashboardView({
   const drillDown = useAnalyticsDrillDown()
   const navigate = useNavigate()
 
-  const totalPages = analytics
-    ? Math.max(1, Math.ceil(analytics.transactions.total / analytics.transactions.pageSize))
-    : 1
+  const transactionTotal = analytics?.transactions.total ?? 0
 
   const byRuleChartConfig: ChartConfig = Object.fromEntries(
     (analytics?.byRule ?? []).map((item, index) => [
@@ -467,29 +470,14 @@ export function RuleDashboardView({
                 </Table>
               </div>
 
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Page {page} of {totalPages}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page <= 1}
-                    onClick={() => onPageChange(page - 1)}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= totalPages}
-                    onClick={() => onPageChange(page + 1)}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
+              <DataTablePagination
+                page={page}
+                pageSize={pageSize}
+                totalItems={transactionTotal}
+                onPageChange={onPageChange}
+                onPageSizeChange={onPageSizeChange}
+                itemLabel="transactions"
+              />
             </>
           ) : (
             <p className="py-8 text-center text-sm text-muted-foreground">

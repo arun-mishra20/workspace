@@ -13,9 +13,9 @@ function formatMethod(method: string) {
 }
 
 function formatConfidence(confidence: number) {
-  if (confidence >= 0.9) return { label: 'High', className: 'text-emerald-600' }
-  if (confidence >= 0.7) return { label: 'Medium', className: 'text-amber-600' }
-  return { label: 'Low', className: 'text-red-500' }
+  if (confidence >= 0.9) return { label: 'High', className: 'text-positive' }
+  if (confidence >= 0.7) return { label: 'Medium', className: 'text-warning' }
+  return { label: 'Low', className: 'text-negative' }
 }
 
 interface TransactionMetadataBadgesProps {
@@ -44,33 +44,33 @@ export function TransactionMetadataBadges({
     <TooltipProvider>
       <div className="flex flex-wrap items-center gap-1.5">
         {transaction.requiresReview ? (
-          <Badge variant="destructive" className="text-[10px]">
+          <Badge variant="destructive" className="text-xs">
             Review
           </Badge>
         ) : null}
 
-        <Badge variant="outline" className="text-[10px] capitalize">
+        <Badge variant="outline" className="text-xs capitalize">
           {formatMethod(transaction.categorizationMethod)}
         </Badge>
 
-        <Badge variant="secondary" className={`text-[10px] ${confidence.className}`}>
+        <Badge variant="secondary" className={`text-xs ${confidence.className}`}>
           {confidence.label} {Math.round(transaction.confidence * 100)}%
         </Badge>
 
         {attrs?.isRecurring ? (
-          <Badge variant="outline" className="text-[10px]">
+          <Badge variant="outline" className="text-xs">
             Recurring
           </Badge>
         ) : null}
 
         {attrs?.incomeType ? (
-          <Badge variant="outline" className="text-[10px] capitalize">
+          <Badge variant="outline" className="text-xs capitalize">
             {attrs.incomeType.replace(/_/g, ' ')}
           </Badge>
         ) : null}
 
         {attrs?.assetClass ? (
-          <Badge variant="outline" className="text-[10px] capitalize">
+          <Badge variant="outline" className="text-xs capitalize">
             {attrs.assetClass.replace(/_/g, ' ')}
           </Badge>
         ) : null}
@@ -78,7 +78,7 @@ export function TransactionMetadataBadges({
         {!compact && transaction.vpa ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Badge variant="outline" className="max-w-28 truncate text-[10px]">
+              <Badge variant="outline" className="max-w-28 truncate text-xs">
                 {transaction.vpa}
               </Badge>
             </TooltipTrigger>
@@ -89,7 +89,7 @@ export function TransactionMetadataBadges({
         {!compact && transaction.merchantRaw ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Badge variant="outline" className="max-w-32 truncate text-[10px]">
+              <Badge variant="outline" className="max-w-32 truncate text-xs">
                 Raw payee
               </Badge>
             </TooltipTrigger>

@@ -18,6 +18,8 @@ import { Button } from "@workspace/ui/components/ui/button";
 import { Input } from "@workspace/ui/components/ui/input";
 import { toast } from "sonner";
 
+import { DataTablePagination } from "@/components/data-table";
+import { useClientPagination } from "@/hooks/use-client-pagination";
 import {
   useCreateDistribution,
   useUpdateDistribution,
@@ -139,6 +141,15 @@ export function DistributionTable({ distribution }: DistributionTableProps) {
 
   const total = distribution.reduce((sum, d) => sum + d.value, 0);
 
+  const {
+    paginatedItems,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useClientPagination(distribution);
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -228,7 +239,7 @@ export function DistributionTable({ distribution }: DistributionTableProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                distribution.map((row) => {
+                paginatedItems.map((row) => {
                   const isEditing = editingId === row.id;
                   const pct = total > 0 ? (row.value / total) * 100 : 0;
                   return (
@@ -333,6 +344,18 @@ export function DistributionTable({ distribution }: DistributionTableProps) {
             </TableBody>
           </Table>
         </div>
+
+        {distribution.length > 0 ? (
+          <DataTablePagination
+            page={page}
+            pageSize={pageSize}
+            totalItems={totalItems}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            itemLabel="assets"
+            className="border-none pt-0"
+          />
+        ) : null}
       </CardContent>
     </Card>
   );

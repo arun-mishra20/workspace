@@ -243,11 +243,11 @@ function DayTransactionsList({
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-sm font-medium">{transaction.merchant}</p>
-              <Badge variant="outline" className="text-[10px] capitalize">
+              <Badge variant="outline" className="text-xs capitalize">
                 {transaction.subcategory ||
                   transaction.category.replace(/_/g, ' ')}
               </Badge>
-              <Badge variant="secondary" className="text-[10px] uppercase">
+              <Badge variant="secondary" className="text-xs uppercase">
                 {transaction.transactionMode.replace(/_/g, ' ')}
               </Badge>
             </div>

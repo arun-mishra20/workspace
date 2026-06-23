@@ -57,12 +57,12 @@ export function MetricTrendCard({
   const hasTrend = Boolean(trendData && trendData.length > 0)
 
   return (
-    <Card data-slot="badge" className={className}>
+    <Card data-slot="metric-card" className={className}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        <span data-slot="badge">{icon}</span>
+        <span data-slot="metric-icon">{icon}</span>
       </CardHeader>
       <CardContent>
         {loading ? (

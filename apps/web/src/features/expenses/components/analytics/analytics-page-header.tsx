@@ -23,11 +23,11 @@ export function AnalyticsPageHeader({
     isSyncing && job?.totalEmails
       ? `Reprocessing (${job.processedEmails}/${job.totalEmails})`
       : job?.status === 'completed'
-        ? 'Reprocessed ✓'
+        ? 'Reprocessed'
         : 'Reprocess Emails'
 
   return (
-    <header className="sticky top-0 z-20 -mx-4 sm:-mx-6 border-b bg-background/95 px-4 sm:px-6 pb-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="-mx-4 sm:-mx-6 px-4 sm:px-6 pb-4">
       <div className="flex flex-col gap-4 pt-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-2">
           <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">

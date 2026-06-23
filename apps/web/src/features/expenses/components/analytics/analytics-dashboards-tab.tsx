@@ -12,6 +12,7 @@ import { RuleDashboardBuilder } from '@/features/expenses/components/analytics/r
 import { RuleDashboardView } from '@/features/expenses/components/analytics/rule-dashboard-view'
 import { SavedDashboardsList } from '@/features/expenses/components/analytics/saved-dashboards-list'
 import { periodToDateRange } from '@/features/expenses/lib/period-to-date-range'
+import { readStoredPageSize, writeStoredPageSize } from '@/lib/pagination'
 import type {
   AnalyticsPeriod,
   DashboardInlineRule,
@@ -62,6 +63,7 @@ export function AnalyticsDashboardsTab({
     useState<RuleDashboardListItem | null>(null)
   const [viewTitle, setViewTitle] = useState('Custom view')
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(() => readStoredPageSize(25))
 
   const rulesQ = useQuery({
     queryKey: ['expenses', 'rules'],
@@ -109,6 +111,7 @@ export function AnalyticsDashboardsTab({
       endDate,
       selectedCardLast4,
       page,
+      pageSize,
     ],
     queryFn: () =>
       fetchRuleDashboardAnalytics({
@@ -118,10 +121,14 @@ export function AnalyticsDashboardsTab({
         endDate,
         cardLast4: selectedCardLast4,
         page,
-        pageSize: 25,
+        pageSize,
       }),
     enabled: mode === 'view' && hasActiveRules,
   })
+
+  useEffect(() => {
+    setPage(1)
+  }, [pageSize])
 
   useEffect(() => {
     if (dashboardParam) {
@@ -226,7 +233,13 @@ export function AnalyticsDashboardsTab({
         loading={analyticsQ.isLoading || savedDashboardQ.isLoading}
         error={analyticsQ.isError}
         page={page}
+        pageSize={pageSize}
         onPageChange={setPage}
+        onPageSizeChange={(nextPageSize) => {
+          writeStoredPageSize(nextPageSize)
+          setPageSize(nextPageSize)
+          setPage(1)
+        }}
         startDate={startDate}
         endDate={endDate}
         rangeSummary={rangeSummary}

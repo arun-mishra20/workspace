@@ -9,6 +9,7 @@ import {
   type AnalyticsTab,
 } from '@/features/expenses/components/analytics/analytics-utils'
 import {
+  countActiveSpendExclusions,
   formatSpendExclusionSummary,
   type SpendExclusionPreferences,
 } from '@/features/expenses/lib/analytics-spend-view'
@@ -86,6 +87,15 @@ export function AnalyticsContextBar({
       <span className="hidden text-xs text-muted-foreground sm:inline">
         {formatSpendExclusionSummary(spendExclusions)}
       </span>
+      {countActiveSpendExclusions(spendExclusions) > 0 ? (
+        <Badge variant="secondary" className="text-xs sm:hidden">
+          {countActiveSpendExclusions(spendExclusions)} excluded
+        </Badge>
+      ) : (
+        <Badge variant="outline" className="text-xs sm:hidden">
+          All included
+        </Badge>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

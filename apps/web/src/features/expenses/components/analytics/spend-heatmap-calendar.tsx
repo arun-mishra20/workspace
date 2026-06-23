@@ -7,6 +7,8 @@ import {
 } from 'date-fns'
 
 import { fmtCompact } from '@/features/expenses/components/analytics/analytics-utils'
+import { AnalyticsEmptyHint } from '@/features/expenses/components/analytics/analytics-empty-hint'
+import { activateOnKeyboardClick } from '@/lib/keyboard'
 import {
   Tooltip,
   TooltipContent,
@@ -18,17 +20,17 @@ import { cn } from '@/lib/utils'
 interface SpendHeatmapCalendarProps {
   data: Array<{ date: string; debited: number; credited?: number }>
   metric?: 'debited' | 'credited'
+  onDateSelect?: (date: string) => void
 }
 
 export function SpendHeatmapCalendar({
   data,
   metric = 'debited',
+  onDateSelect,
 }: SpendHeatmapCalendarProps) {
   if (data.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-muted-foreground">
-        No daily data for heatmap.
-      </p>
+      <AnalyticsEmptyHint title="No daily data for heatmap in this period." />
     )
   }
 
@@ -56,7 +58,7 @@ export function SpendHeatmapCalendar({
             start: startOfMonth(month),
             end: endOfMonth(month),
           })
-          const leadingBlanks = (days[0]?.getDay() ?? 0)
+          const leadingBlanks = days[0]?.getDay() ?? 0
 
           return (
             <div key={month.toISOString()} className="min-w-[280px]">
@@ -65,30 +67,42 @@ export function SpendHeatmapCalendar({
               </p>
               <div className="grid grid-cols-7 gap-1">
                 {Array.from({ length: leadingBlanks }).map((_, index) => (
-                  <div key={`blank-${index}`} className="size-4" />
+                  <div key={`blank-${index}`} className="size-8" aria-hidden />
                 ))}
                 {days.map((day) => {
                   const key = format(day, 'yyyy-MM-dd')
                   const amount = amountByDate.get(key) ?? 0
                   const intensity = amount / maxAmount
+                  const label = `${format(day, 'dd MMM yyyy')}: ${fmtCompact(amount)} spent`
+
+                  const cell = (
+                    <button
+                      type="button"
+                      disabled={!onDateSelect}
+                      aria-label={label}
+                      className={cn(
+                        'size-8 rounded-md border border-border/40 transition-colors',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                        onDateSelect && 'cursor-pointer hover:ring-1 hover:ring-ring/50',
+                        amount === 0 && 'bg-muted/40',
+                      )}
+                      style={
+                        amount > 0
+                          ? {
+                              backgroundColor: `color-mix(in srgb, var(--color-chart-1) ${Math.round(20 + intensity * 80)}%, transparent)`,
+                            }
+                          : undefined
+                      }
+                      onClick={() => onDateSelect?.(key)}
+                      onKeyDown={(event) =>
+                        activateOnKeyboardClick(event, () => onDateSelect?.(key))
+                      }
+                    />
+                  )
 
                   return (
                     <Tooltip key={key}>
-                      <TooltipTrigger asChild>
-                        <div
-                          className={cn(
-                            'size-4 rounded-sm border border-border/40',
-                            amount === 0 && 'bg-muted/40',
-                          )}
-                          style={
-                            amount > 0
-                              ? {
-                                  backgroundColor: `color-mix(in srgb, var(--color-chart-1) ${Math.round(20 + intensity * 80)}%, transparent)`,
-                                }
-                              : undefined
-                          }
-                        />
-                      </TooltipTrigger>
+                      <TooltipTrigger asChild>{cell}</TooltipTrigger>
                       <TooltipContent>
                         <p className="font-medium">{format(day, 'dd MMM yyyy')}</p>
                         <p className="text-xs text-muted-foreground">

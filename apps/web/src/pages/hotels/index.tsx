@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 
 import { MainLayout } from '@/components/layouts'
+import { DataTablePagination } from '@/components/data-table'
 import { useAiPageContext } from '@/features/ai-assistant/ai-assistant-context'
 import { buildHotelsPageContext } from '@/features/ai-assistant/adapters/hotels-context'
 import {
@@ -62,7 +63,8 @@ import type {
   UpdateHotelStayInput,
 } from '@workspace/domain'
 
-const PAGE_SIZE = 25
+import { readStoredPageSize, writeStoredPageSize } from '@/lib/pagination'
+
 const REVIEW_CANDIDATE_LIMIT = 50
 
 interface PendingStayAction {
@@ -112,6 +114,7 @@ export default function HotelsPage() {
 
 export function HotelsPageContent() {
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(() => readStoredPageSize(25))
   const [search, setSearch] = useState('')
   const [editorOpen, setEditorOpen] = useState(false)
   const [selectedStay, setSelectedStay] = useState<HotelStay | null>(null)
@@ -128,7 +131,7 @@ export function HotelsPageContent() {
 
   const staysQuery = useHotelStays({
     page,
-    page_size: PAGE_SIZE,
+    page_size: pageSize,
     includeArchived: showArchived,
   })
   const createMutation = useCreateHotelStay()
@@ -166,7 +169,7 @@ export function HotelsPageContent() {
 
   useEffect(() => {
     setPage(1)
-  }, [showArchived])
+  }, [showArchived, pageSize])
 
   const filteredStays = useMemo(() => {
     const needle = search.trim().toLowerCase()
@@ -211,10 +214,6 @@ export function HotelsPageContent() {
       upcomingStay,
     }
   }, [staysQuery.data])
-
-  const totalPages = staysQuery.data
-    ? Math.max(1, Math.ceil(staysQuery.data.total / PAGE_SIZE))
-    : 1
 
   const reviewCandidates = reviewCandidatesQuery.data?.data ?? []
 
@@ -627,37 +626,17 @@ export function HotelsPageContent() {
             </div>
           ) : null}
 
-          <div className="flex flex-col gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-muted-foreground">
-              Showing {filteredStays.length} of{' '}
-              {staysQuery.data?.data.length ?? 0} loaded stays
-              <span className="mx-2">•</span>
-              {staysQuery.data?.total ?? 0} total stored
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-                disabled={page <= 1}
-              >
-                Previous
-              </Button>
-              <Badge variant="outline">
-                Page {page} / {totalPages}
-              </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setPage((current) => Math.min(totalPages, current + 1))
-                }
-                disabled={page >= totalPages}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+          <DataTablePagination
+            page={page}
+            pageSize={pageSize}
+            totalItems={staysQuery.data?.total ?? 0}
+            onPageChange={setPage}
+            onPageSizeChange={(nextPageSize) => {
+              writeStoredPageSize(nextPageSize)
+              setPageSize(nextPageSize)
+            }}
+            itemLabel="stays"
+          />
         </CardContent>
       </Card>
 

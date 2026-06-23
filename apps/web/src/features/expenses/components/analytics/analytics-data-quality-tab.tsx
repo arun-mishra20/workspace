@@ -211,7 +211,10 @@ export function AnalyticsDataQualityTab({
                 </BarChart>
               </ChartContainer>
             ) : (
-              <p className="py-8 text-center text-sm text-muted-foreground">No data.</p>
+              <AnalyticsEmptyHint
+                title="No classification method data for this period."
+                actions={sparseActions}
+              />
             )}
           </CardContent>
         </Card>
@@ -257,7 +260,10 @@ export function AnalyticsDataQualityTab({
                 </ChartContainer>
               </ChartWithSideLegend>
             ) : (
-              <p className="py-8 text-center text-sm text-muted-foreground">No data.</p>
+              <AnalyticsEmptyHint
+                title="No classification method data for this period."
+                actions={sparseActions}
+              />
             )}
           </CardContent>
         </Card>
@@ -267,7 +273,7 @@ export function AnalyticsDataQualityTab({
         <CardHeader>
           <CardTitle className="text-base">Top uncategorized merchants</CardTitle>
           <CardDescription>
-            Highest spend still uncategorized — create a rule to fix recurring gaps
+            Highest spend still uncategorized. Create a rule to fix recurring gaps.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -333,8 +339,8 @@ export function AnalyticsDataQualityTab({
         <CardHeader>
           <CardTitle className="text-base">Possible credit card bill payments</CardTitle>
           <CardDescription>
-            Uncategorized bank debits that look like card bill payments — categorizing these
-            improves spend totals when bill payments are excluded
+            Uncategorized bank debits that look like card bill payments. Categorizing
+            these improves spend totals when bill payments are excluded.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -388,9 +394,10 @@ export function AnalyticsDataQualityTab({
               </TableBody>
             </Table>
           ) : (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              No likely missed bill payments detected this period.
-            </p>
+            <AnalyticsEmptyHint
+              title="No likely missed bill payments detected this period."
+              actions={sparseActions}
+            />
           )}
         </CardContent>
       </Card>
@@ -417,7 +424,7 @@ export function AnalyticsDataQualityTab({
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">{anomaly.label}</p>
-                    <Badge variant="outline" className="text-[10px] capitalize">
+                    <Badge variant="outline" className="text-xs capitalize">
                       {anomaly.type.replace(/_/g, ' ')}
                     </Badge>
                   </div>
@@ -433,9 +440,7 @@ export function AnalyticsDataQualityTab({
               </div>
             ))
           ) : (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              No anomalies detected.
-            </p>
+            <AnalyticsEmptyHint title="No spending anomalies detected this period." />
           )}
         </CardContent>
       </Card>

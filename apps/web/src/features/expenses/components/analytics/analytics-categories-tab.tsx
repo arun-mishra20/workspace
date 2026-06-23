@@ -114,8 +114,8 @@ export function AnalyticsCategoriesTab({
               <div>
                 <CardTitle className="text-base">By Subcategory</CardTitle>
               <CardDescription>
-                Finer-grained spend by category and subcategory — each bar is
-                scoped to one category
+                Finer-grained spend by category and subcategory. Each bar is scoped
+                to one category.
               </CardDescription>
               </div>
             </div>

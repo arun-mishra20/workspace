@@ -11,7 +11,8 @@ import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import { format } from 'date-fns'
 
 import { MainLayout } from '@/components/layouts'
-import { DataTable, SortableColumnHeader } from '@/components/data-table'
+import { readStoredPageSize, writeStoredPageSize } from '@/lib/pagination'
+import { DataTable, DataTablePagination, SortableColumnHeader } from '@/components/data-table'
 import { connectGmail } from '@/features/expenses/api/connect-gmail'
 import { disconnectGmail } from '@/features/expenses/api/disconnect-gmail'
 import { fetchGmailStatus } from '@/features/expenses/api/gmail-status'
@@ -84,7 +85,6 @@ import {
   IndianRupee,
   Send,
   ArrowLeft,
-  ArrowRight,
   CreditCard,
 } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
@@ -444,7 +444,10 @@ const ExpenseEmailsPage = () => {
   const [expensePageIndex, setExpensePageIndex] = useState(0)
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null)
-  const pageSize = 20
+  const [expensePageSize, setExpensePageSize] = useState(() =>
+    readStoredPageSize(20),
+  )
+  const [emailPageSize, setEmailPageSize] = useState(() => readStoredPageSize(20))
   const navigate = useNavigate()
 
   // ── Row selection ──
@@ -677,13 +680,14 @@ const ExpenseEmailsPage = () => {
       'expenses',
       'emails',
       emailPageIndex + 1,
+      emailPageSize,
       activeEmailSort?.id,
       activeEmailSort?.desc,
     ],
     queryFn: () =>
       listExpenseEmails({
         page: emailPageIndex + 1,
-        page_size: pageSize,
+        page_size: emailPageSize,
         ...(activeEmailSort && {
           sort_by: activeEmailSort.id,
           sort_order: activeEmailSort.desc ? 'desc' : 'asc',
@@ -701,6 +705,7 @@ const ExpenseEmailsPage = () => {
       'expenses',
       'transactions',
       expensePageIndex + 1,
+      expensePageSize,
       filterCategory,
       filterSubcategory,
       filterCategorizationMethod,
@@ -716,7 +721,7 @@ const ExpenseEmailsPage = () => {
     queryFn: () =>
       listExpenses({
         page: expensePageIndex + 1,
-        page_size: pageSize,
+        page_size: expensePageSize,
         ...(filterCategory && { category: filterCategory }),
         ...(filterSubcategory && { subcategory: filterSubcategory }),
         ...(filterCategorizationMethod && {
@@ -761,7 +766,7 @@ const ExpenseEmailsPage = () => {
     state: {
       pagination: {
         pageIndex: emailPageIndex,
-        pageSize,
+        pageSize: emailPageSize,
       },
       sorting: emailSorting,
     },
@@ -771,11 +776,19 @@ const ExpenseEmailsPage = () => {
       )
     },
     onPaginationChange: (updater) => {
-      if (typeof updater === 'function') {
-        const newState = updater({ pageIndex: emailPageIndex, pageSize })
+      const newState =
+        typeof updater === 'function'
+          ? updater({ pageIndex: emailPageIndex, pageSize: emailPageSize })
+          : updater
+
+      if (newState.pageIndex !== emailPageIndex) {
         setEmailPageIndex(newState.pageIndex)
-      } else {
-        setEmailPageIndex(updater.pageIndex)
+      }
+
+      if (newState.pageSize !== emailPageSize) {
+        writeStoredPageSize(newState.pageSize)
+        setEmailPageSize(newState.pageSize)
+        setEmailPageIndex(0)
       }
     },
     getCoreRowModel: getCoreRowModel(),
@@ -793,7 +806,7 @@ const ExpenseEmailsPage = () => {
     state: {
       pagination: {
         pageIndex: expensePageIndex,
-        pageSize,
+        pageSize: expensePageSize,
       },
       rowSelection,
       sorting: expenseSorting,
@@ -805,12 +818,21 @@ const ExpenseEmailsPage = () => {
       setRowSelection({})
     },
     onPaginationChange: (updater) => {
-      if (typeof updater === 'function') {
-        const newState = updater({ pageIndex: expensePageIndex, pageSize })
+      const newState =
+        typeof updater === 'function'
+          ? updater({ pageIndex: expensePageIndex, pageSize: expensePageSize })
+          : updater
+
+      if (newState.pageIndex !== expensePageIndex) {
         setExpensePageIndex(newState.pageIndex)
-      } else {
-        setExpensePageIndex(updater.pageIndex)
       }
+
+      if (newState.pageSize !== expensePageSize) {
+        writeStoredPageSize(newState.pageSize)
+        setExpensePageSize(newState.pageSize)
+        setExpensePageIndex(0)
+      }
+
       setRowSelection({})
     },
     onRowSelectionChange: setRowSelection,
@@ -1293,38 +1315,12 @@ const ExpenseEmailsPage = () => {
                   <div className="space-y-4">
                     <DataTable table={expenseTable} />
 
-                    {expenseTable.getPageCount() > 1 && (
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-muted-foreground">
-                          Showing {expensePageIndex * pageSize + 1} to{' '}
-                          {Math.min(
-                            (expensePageIndex + 1) * pageSize,
-                            expensesData?.total ?? 0,
-                          )}{' '}
-                          of {expensesData?.total ?? 0} expenses
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => expenseTable.previousPage()}
-                            disabled={!expenseTable.getCanPreviousPage()}
-                          >
-                            <ArrowLeft />
-                            Previous
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => expenseTable.nextPage()}
-                            disabled={!expenseTable.getCanNextPage()}
-                          >
-                            Next
-                            <ArrowRight />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+                    <DataTablePagination
+                      table={expenseTable}
+                      totalItems={expensesData?.total ?? 0}
+                      itemLabel="expenses"
+                      onPageSizeChange={writeStoredPageSize}
+                    />
                     <BulkActionsToolbar
                       selectedIds={Object.keys(rowSelection)}
                       selectedTransactions={(expensesData?.data ?? []).filter(
@@ -1371,36 +1367,12 @@ const ExpenseEmailsPage = () => {
                       }}
                     />
 
-                    {emailTable.getPageCount() > 1 && (
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-muted-foreground">
-                          Showing {emailPageIndex * pageSize + 1} to{' '}
-                          {Math.min(
-                            (emailPageIndex + 1) * pageSize,
-                            emailData?.total ?? 0,
-                          )}{' '}
-                          of {emailData?.total ?? 0} emails
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => emailTable.previousPage()}
-                            disabled={!emailTable.getCanPreviousPage()}
-                          >
-                            Previous
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => emailTable.nextPage()}
-                            disabled={!emailTable.getCanNextPage()}
-                          >
-                            Next
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+                    <DataTablePagination
+                      table={emailTable}
+                      totalItems={emailData?.total ?? 0}
+                      itemLabel="emails"
+                      onPageSizeChange={writeStoredPageSize}
+                    />
                   </div>
                 ) : null}
               </TabsContent>
