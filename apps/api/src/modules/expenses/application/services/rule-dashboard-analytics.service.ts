@@ -8,7 +8,12 @@ import {
   TRANSACTION_REPOSITORY,
 } from '@/modules/expenses/application/ports/transaction.repository.port'
 import {
+  buildRuleDashboardInsights,
   computeDashboardSummary,
+  computeInsightsLookbackStartDate,
+  computeRulePeriodComparison,
+  filterTransactionsByDateRange,
+  groupByRuleMonthly,
   groupDailySpending,
   matchTransactionsToRules,
   RuleDashboardsService,
@@ -50,10 +55,16 @@ export class RuleDashboardAnalyticsService {
       throw new BadRequestException('No valid rules found for this dashboard')
     }
 
+    const lookbackStartDate = computeInsightsLookbackStartDate(request.endDate)
+    const fetchStartDate =
+      request.startDate < lookbackStartDate
+        ? request.startDate
+        : lookbackStartDate
+
     const transactions = await this.transactionRepository.listByUserInDateRange({
       userId,
       range: {
-        start: new Date(`${request.startDate}T00:00:00.000Z`),
+        start: new Date(`${fetchStartDate}T00:00:00.000Z`),
         end: new Date(`${request.endDate}T23:59:59.999Z`),
       },
       cardLast4: request.cardLast4,
@@ -65,11 +76,21 @@ export class RuleDashboardAnalyticsService {
       ? transactions.slice(0, MAX_TRANSACTIONS)
       : transactions
 
-    const matched = matchTransactionsToRules(scopedTransactions, rules)
-    const uniqueMatched = matched.map((entry) => entry.transaction)
+    const allMatched = matchTransactionsToRules(scopedTransactions, rules)
+    const lookbackEndDate = request.endDate
+    const lookbackMatchedTransactions = filterTransactionsByDateRange(
+      allMatched.map((entry) => entry.transaction),
+      lookbackStartDate,
+      lookbackEndDate,
+    )
+    const viewMatchedEntries = allMatched.filter((entry) => {
+      const date = entry.transaction.transactionDate.slice(0, 10)
+      return date >= request.startDate && date <= request.endDate
+    })
+    const uniqueMatched = viewMatchedEntries.map((entry) => entry.transaction)
 
     const byRule = rules.map((rule) => {
-      const ruleMatches = matched.filter((entry) =>
+      const ruleMatches = viewMatchedEntries.filter((entry) =>
         entry.matchedRules.some((matchedRule) => matchedRule.id === rule.id),
       )
       return {
@@ -83,7 +104,26 @@ export class RuleDashboardAnalyticsService {
     const page = request.page ?? 1
     const pageSize = request.pageSize ?? 25
     const offset = (page - 1) * pageSize
-    const pageItems = matched.slice(offset, offset + pageSize)
+    const pageItems = viewMatchedEntries.slice(offset, offset + pageSize)
+
+    const viewSummary = computeDashboardSummary(uniqueMatched)
+    const periodComparison = computeRulePeriodComparison(
+      allMatched.map((entry) => entry.transaction),
+      request.startDate,
+      request.endDate,
+    )
+    const insights = buildRuleDashboardInsights({
+      lookbackMatchedTransactions,
+      viewMatchedTransactions: uniqueMatched,
+      viewSummary,
+      byRule,
+      startDate: request.startDate,
+      endDate: request.endDate,
+    })
+    const byRuleMonthly =
+      rules.length > 1
+        ? groupByRuleMonthly(viewMatchedEntries, rules)
+        : undefined
 
     return {
       startDate: request.startDate,
@@ -99,14 +139,17 @@ export class RuleDashboardAnalyticsService {
       })),
       missingRuleIds,
       ...(truncated ? { truncated: true } : {}),
-      summary: computeDashboardSummary(uniqueMatched),
+      summary: viewSummary,
       daily: groupDailySpending(uniqueMatched),
       byRule,
+      ...(byRuleMonthly ? { byRuleMonthly } : {}),
+      periodComparison,
+      insights,
       transactions: {
         data: pageItems.map((entry) =>
           this.toDashboardTransaction(entry.transaction, entry.matchedRules),
         ),
-        total: matched.length,
+        total: viewMatchedEntries.length,
         page,
         pageSize,
       },

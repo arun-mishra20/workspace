@@ -290,8 +290,7 @@ const AnalyticsPage = () => {
   const isDashboards = activeTab === 'dashboards'
   const isPatterns = activeTab === 'patterns'
 
-  const comparisonPeriod =
-    isDashboards && !dashboardRangeCustom ? dashboardPeriod : period
+  const comparisonPeriod = period
 
   const filterActions: AnalyticsFilterActions = {
     onWidenPeriod: handlePeriodChange,
@@ -423,11 +422,7 @@ const AnalyticsPage = () => {
       spendExclusions,
     ],
     queryFn: () => fetchPeriodComparison(comparisonPeriod, analyticsOptions),
-    enabled:
-      isOverview ||
-      isTrends ||
-      isCategories ||
-      (isDashboards && !dashboardRangeCustom),
+    enabled: isOverview || isTrends || isCategories,
   })
 
   const cumulativeQ = useQuery({
@@ -745,8 +740,7 @@ const AnalyticsPage = () => {
         periodComparisonQ.isError)) ||
     (isDataQuality &&
       (classificationHealthQ.isError || spendAnomaliesQ.isError)) ||
-    (isPatterns && (busAnalyticsQ.isError || investmentAnalyticsQ.isError)) ||
-    (isDashboards && !dashboardRangeCustom && periodComparisonQ.isError)
+    (isPatterns && (busAnalyticsQ.isError || investmentAnalyticsQ.isError))
 
   const retryTabQueries = () => {
     if (isOverview) {
@@ -972,8 +966,6 @@ const AnalyticsPage = () => {
                 rangeSummary={dashboardRangeSummary}
                 dashboardPeriod={dashboardPeriod}
                 dashboardRangeCustom={dashboardRangeCustom}
-                periodComparison={periodComparisonQ.data}
-                periodComparisonLoading={periodComparisonQ.isLoading}
               />
             </TabsContent>
           </AnalyticsQueryBoundary>

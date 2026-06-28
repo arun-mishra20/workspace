@@ -4,6 +4,7 @@ import { RuleConditionGroupSchema } from './categorization-rules.js'
 import {
   CategoryMetadataSchema,
   DailySpendingItemSchema,
+  PeriodComparisonSchema,
   TransactionAttributesSchema,
   TransactionModeSchema,
   TransactionTypeSchema,
@@ -149,6 +150,81 @@ export const RuleDashboardTransactionSchema = z.object({
 
 export type RuleDashboardTransaction = z.infer<typeof RuleDashboardTransactionSchema>
 
+export const RuleDashboardMonthlyItemSchema = z.object({
+  month: z.string(),
+  debited: z.number(),
+  credited: z.number(),
+  transactionCount: z.number(),
+})
+
+export type RuleDashboardMonthlyItem = z.infer<typeof RuleDashboardMonthlyItemSchema>
+
+export const RuleDashboardCadenceSchema = z.enum([
+  'recurring',
+  'occasional',
+  'sparse',
+])
+
+export type RuleDashboardCadence = z.infer<typeof RuleDashboardCadenceSchema>
+
+export const RuleDashboardBaselinesSchema = z.object({
+  medianMonthlySpend: z.number(),
+  avgMonthlySpend: z.number(),
+  avgTransactionsPerActiveMonth: z.number(),
+  monthsWithSpend: z.number(),
+})
+
+export type RuleDashboardBaselines = z.infer<typeof RuleDashboardBaselinesSchema>
+
+export const RuleDashboardPrimaryComparisonSchema = z.object({
+  mode: z.enum(['month_over_month', 'vs_baseline', 'vs_prior_period']),
+  label: z.string(),
+  referenceLabel: z.string(),
+  currentValue: z.number(),
+  referenceValue: z.number(),
+  changePct: z.number(),
+})
+
+export type RuleDashboardPrimaryComparison = z.infer<
+  typeof RuleDashboardPrimaryComparisonSchema
+>
+
+export const RuleDashboardLargestTransactionSchema = z.object({
+  id: z.string(),
+  merchant: z.string(),
+  amount: z.number(),
+  transactionDate: z.string(),
+})
+
+export type RuleDashboardLargestTransaction = z.infer<
+  typeof RuleDashboardLargestTransactionSchema
+>
+
+export const RuleDashboardInsightsSchema = z.object({
+  cadence: RuleDashboardCadenceSchema,
+  cadenceLabel: z.string(),
+  lookbackMonths: z.number(),
+  monthlyTrend: z.array(RuleDashboardMonthlyItemSchema),
+  baselines: RuleDashboardBaselinesSchema,
+  primaryComparison: RuleDashboardPrimaryComparisonSchema,
+  daysSinceLastSpend: z.number().optional(),
+  highlights: z.array(z.string()),
+  largestTransactions: z.array(RuleDashboardLargestTransactionSchema),
+})
+
+export type RuleDashboardInsights = z.infer<typeof RuleDashboardInsightsSchema>
+
+export const RuleDashboardByRuleMonthlyItemSchema = z.object({
+  ruleId: z.string().uuid(),
+  name: z.string(),
+  month: z.string(),
+  amount: z.number(),
+})
+
+export type RuleDashboardByRuleMonthlyItem = z.infer<
+  typeof RuleDashboardByRuleMonthlyItemSchema
+>
+
 export const RuleDashboardAnalyticsSchema = z.object({
   startDate: z.string(),
   endDate: z.string(),
@@ -160,6 +236,9 @@ export const RuleDashboardAnalyticsSchema = z.object({
   summary: RuleDashboardSummarySchema,
   daily: z.array(DailySpendingItemSchema),
   byRule: z.array(RuleDashboardByRuleItemSchema),
+  byRuleMonthly: z.array(RuleDashboardByRuleMonthlyItemSchema).optional(),
+  periodComparison: PeriodComparisonSchema,
+  insights: RuleDashboardInsightsSchema,
   transactions: z.object({
     data: z.array(RuleDashboardTransactionSchema),
     total: z.number(),
