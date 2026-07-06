@@ -50,6 +50,12 @@ export const rawEmailsTable = pgTable(
       table.providerMessageId,
     ),
     index('raw_emails_user_category_idx').on(table.userId, table.category),
+    index('raw_emails_user_category_received_at_id_idx').on(
+      table.userId,
+      table.category,
+      table.receivedAt,
+      table.id,
+    ),
   ],
 )
 
@@ -78,9 +84,7 @@ export const statementsTable = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [
-    index('statements_user_id_idx').on(table.userId),
-  ],
+  (table) => [index('statements_user_id_idx').on(table.userId)],
 )
 
 /**
@@ -117,10 +121,11 @@ export const transactionsTable = pgTable(
     requiresReview: boolean('requires_review').notNull().default(false),
     categoryMetadata: jsonb('category_metadata')
       .notNull()
-      .$type<{ icon: string, color: string, parent: string | null }>()
+      .$type<{ icon: string; color: string; parent: string | null }>()
       .default({ icon: 'question-circle', color: '#BDC3C7', parent: null }),
-    transactionAttributes: jsonb('transaction_attributes')
-      .$type<Record<string, unknown>>(),
+    transactionAttributes: jsonb('transaction_attributes').$type<
+      Record<string, unknown>
+    >(),
     statementId: uuid('statement_id').references(() => statementsTable.id, {
       onDelete: 'set null',
     }),
@@ -145,6 +150,38 @@ export const transactionsTable = pgTable(
       table.userId,
       table.transactionDate,
     ),
+    index('transactions_user_transaction_date_id_idx').on(
+      table.userId,
+      table.transactionDate,
+      table.id,
+    ),
+    index('transactions_user_type_date_idx').on(
+      table.userId,
+      table.transactionType,
+      table.transactionDate,
+    ),
+    index('transactions_user_type_mode_date_idx').on(
+      table.userId,
+      table.transactionType,
+      table.transactionMode,
+      table.transactionDate,
+    ),
+    index('transactions_user_card_last4_date_idx').on(
+      table.userId,
+      table.cardLast4,
+      table.transactionDate,
+    ),
+    index('transactions_user_requires_review_date_idx').on(
+      table.userId,
+      table.requiresReview,
+      table.transactionDate,
+    ),
+    index('transactions_user_categorization_method_date_idx').on(
+      table.userId,
+      table.categorizationMethod,
+      table.transactionDate,
+    ),
+    index('transactions_user_merchant_idx').on(table.userId, table.merchant),
     index('transactions_user_category_idx').on(table.userId, table.category),
     index('transactions_transaction_date_idx').on(table.transactionDate),
     index('transactions_card_last4_idx').on(table.cardLast4),
@@ -208,7 +245,11 @@ export const syncJobsTable = pgTable(
   },
   (table) => [
     index('sync_jobs_user_id_idx').on(table.userId),
-    index('sync_jobs_user_status_category_idx').on(table.userId, table.status, table.category),
+    index('sync_jobs_user_status_category_idx').on(
+      table.userId,
+      table.status,
+      table.category,
+    ),
   ],
 )
 

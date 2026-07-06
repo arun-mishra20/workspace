@@ -148,6 +148,13 @@
       "when": 1782133000000,
       "tag": "0021_rule_dashboards_inline_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1783338040876,
+      "tag": "0021_strange_viper",
+      "breakpoints": true
     }
   ]
 }

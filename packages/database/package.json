@@ -23,14 +23,14 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.schemas.json",
+    "build": "rm -rf dist && tsc -p tsconfig.schemas.json --incremental false",
     "dev": "tsc -p tsconfig.schemas.json --watch",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "check-types": "tsc --noEmit",
-    "db:generate": "drizzle-kit generate",
+    "db:generate": "pnpm run build && drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
