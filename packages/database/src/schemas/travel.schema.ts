@@ -25,7 +25,9 @@ export const flightActivitiesTable = pgTable(
     sourceEmailId: uuid('source_email_id')
       .notNull()
       .references(() => rawEmailsTable.id, { onDelete: 'cascade' }),
-    activityType: text('activity_type').notNull().default('booking_confirmation'),
+    activityType: text('activity_type')
+      .notNull()
+      .default('booking_confirmation'),
     extractionMethod: text('extraction_method')
       .array()
       .notNull()
@@ -66,7 +68,17 @@ export const flightActivitiesTable = pgTable(
       table.userId,
       table.departureDate,
     ),
+    index('flight_activities_user_departure_segment_id_idx').on(
+      table.userId,
+      table.departureDate,
+      table.segmentIndex,
+      table.id,
+    ),
     index('flight_activities_user_pnr_idx').on(table.userId, table.pnr),
+    index('flight_activities_user_source_email_idx').on(
+      table.userId,
+      table.sourceEmailId,
+    ),
   ],
 )
 
@@ -98,8 +110,13 @@ export const flightEmailProcessingTable = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    uniqueIndex('flight_email_processing_source_email_idx').on(table.sourceEmailId),
-    index('flight_email_processing_user_status_idx').on(table.userId, table.status),
+    uniqueIndex('flight_email_processing_source_email_idx').on(
+      table.sourceEmailId,
+    ),
+    index('flight_email_processing_user_status_idx').on(
+      table.userId,
+      table.status,
+    ),
   ],
 )
 
@@ -151,8 +168,20 @@ export const hotelStaysTable = pgTable(
       table.userId,
       table.canonicalHash,
     ),
-    index('hotel_stays_user_check_in_date_idx').on(table.userId, table.checkInDate),
-    index('hotel_stays_user_archived_at_idx').on(table.userId, table.archivedAt),
+    index('hotel_stays_user_check_in_date_idx').on(
+      table.userId,
+      table.checkInDate,
+    ),
+    index('hotel_stays_user_archived_at_idx').on(
+      table.userId,
+      table.archivedAt,
+    ),
+    index('hotel_stays_user_archived_check_in_created_idx').on(
+      table.userId,
+      table.archivedAt,
+      table.checkInDate,
+      table.createdAt,
+    ),
     index('hotel_stays_source_email_idx').on(table.sourceEmailId),
   ],
 )
@@ -185,16 +214,25 @@ export const hotelEmailProcessingTable = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    uniqueIndex('hotel_email_processing_source_email_idx').on(table.sourceEmailId),
-    index('hotel_email_processing_user_status_idx').on(table.userId, table.status),
+    uniqueIndex('hotel_email_processing_source_email_idx').on(
+      table.sourceEmailId,
+    ),
+    index('hotel_email_processing_user_status_idx').on(
+      table.userId,
+      table.status,
+    ),
   ],
 )
 
 export type FlightActivityRecord = typeof flightActivitiesTable.$inferSelect
 export type InsertFlightActivity = typeof flightActivitiesTable.$inferInsert
-export type FlightEmailProcessingRecord = typeof flightEmailProcessingTable.$inferSelect
-export type InsertFlightEmailProcessing = typeof flightEmailProcessingTable.$inferInsert
+export type FlightEmailProcessingRecord =
+  typeof flightEmailProcessingTable.$inferSelect
+export type InsertFlightEmailProcessing =
+  typeof flightEmailProcessingTable.$inferInsert
 export type HotelStayRecord = typeof hotelStaysTable.$inferSelect
 export type InsertHotelStay = typeof hotelStaysTable.$inferInsert
-export type HotelEmailProcessingRecord = typeof hotelEmailProcessingTable.$inferSelect
-export type InsertHotelEmailProcessing = typeof hotelEmailProcessingTable.$inferInsert
+export type HotelEmailProcessingRecord =
+  typeof hotelEmailProcessingTable.$inferSelect
+export type InsertHotelEmailProcessing =
+  typeof hotelEmailProcessingTable.$inferInsert

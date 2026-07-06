@@ -14,6 +14,13 @@ export type {
   ThemePreset,
 } from "./types";
 export { ALL_THEME_VARIABLES, CATEGORY_LABELS, THEME_VARIABLES } from "./types";
+export {
+  DEFAULT_SEMANTIC_TOKENS,
+  ensureSemanticTokens,
+  PRESET_SEMANTIC_OVERRIDES,
+  SEMANTIC_THEME_VARIABLES,
+} from "./semantic-tokens";
+export { applyOklchColorTokens, EXPRESSIVE_OKLCH_COLORS } from "./expressive-oklch";
 
 // Presets
 export { DEFAULT_PRESET_NAME, presets } from "./presets";

@@ -9,6 +9,24 @@ import { presetDefinitions } from './registry'
 
 const presetStyleLoaders = new Map<string, Promise<unknown>>()
 let previousPresetName: string | null = null
+const PRESET_SWITCH_FADE_MS = 150
+
+function playPresetSwitchFade(): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return
+  }
+
+  const root = document.documentElement
+  root.classList.add('theme-switching')
+
+  window.setTimeout(() => {
+    root.classList.remove('theme-switching')
+  }, PRESET_SWITCH_FADE_MS)
+}
 
 /**
  * Apply theme to the DOM by setting CSS custom properties
@@ -41,6 +59,7 @@ export function applyThemeWithPreset(
   if (previousPresetName && previousPresetName !== presetName) {
     const previousDefinition = presetDefinitions[previousPresetName]
     cleanupPresetInlineStyles(previousDefinition?.cleanupPrefixes)
+    playPresetSwitchFade()
   }
 
   ensurePresetStyles(presetName)

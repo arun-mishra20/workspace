@@ -5,7 +5,8 @@ import {
   deleteRuleDashboard,
   updateRuleDashboard,
 } from '@/features/expenses/api/rule-dashboards'
-import type { RuleDashboardListItem } from '@workspace/domain'
+import type { CategorizationRule, RuleDashboardListItem } from '@workspace/domain'
+import { CategoryIcon } from '@/features/expenses/components/category-icon'
 import { Badge } from '@workspace/ui/components/ui/badge'
 import { Button } from '@workspace/ui/components/ui/button'
 import {
@@ -20,6 +21,7 @@ import { Skeleton } from '@workspace/ui/components/ui/skeleton'
 interface SavedDashboardsListProps {
   dashboards: RuleDashboardListItem[]
   loading: boolean
+  globalRules: CategorizationRule[]
   onOpen: (dashboard: RuleDashboardListItem) => void
   onEdit: (dashboard: RuleDashboardListItem) => void
   editingDashboardId?: string | null
@@ -28,11 +30,15 @@ interface SavedDashboardsListProps {
 export function SavedDashboardsList({
   dashboards,
   loading,
+  globalRules,
   onOpen,
   onEdit,
   editingDashboardId,
 }: SavedDashboardsListProps) {
   const queryClient = useQueryClient()
+  const categoryByRuleId = new Map(
+    globalRules.map((rule) => [rule.id, rule.action.category]),
+  )
 
   const deleteDashboard = useMutation({
     mutationFn: deleteRuleDashboard,
@@ -87,15 +93,26 @@ export function SavedDashboardsList({
                     ) : null}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {dashboard.rules.map((rule) => (
+                    {dashboard.rules.map((rule) => {
+                      const category =
+                        rule.source === 'global'
+                          ? categoryByRuleId.get(rule.id)
+                          : undefined
+
+                      return (
                       <Badge
                         key={rule.id}
                         variant={rule.source === 'inline' ? 'secondary' : 'outline'}
+                        className="gap-1.5"
                       >
+                        {category ? (
+                          <CategoryIcon category={category} size={12} />
+                        ) : null}
                         {rule.name}
                         {rule.source === 'inline' ? ' · dashboard' : ''}
                       </Badge>
-                    ))}
+                      )
+                    })}
                     {dashboard.missingRuleIds?.map((ruleId) => (
                       <Badge key={ruleId} variant="destructive">
                         Missing rule

@@ -58,8 +58,7 @@
     }
   }
 
-  :root[data-theme-preset='forest'].dark,
-  :root[data-theme-preset='forest'] .dark {
+  :root.dark[data-theme-preset='forest'] {
     [data-slot='card'] {
       border-color: oklch(0.22 0.02 142);
       box-shadow: 0 3px 12px -2px oklch(0.08 0.03 142 / 0.3);
@@ -94,6 +93,24 @@
 
     [data-slot='table-cell'] {
       border-color: oklch(0.22 0.015 142 / 0.6);
+    }
+  }
+
+  /* ── Dialogs: earthy elevation ───────────────────────────── */
+  :root[data-theme-preset='forest'] [data-slot='dialog-content'] {
+    border: 1px solid oklch(0.9 0.01 142);
+    box-shadow: 0 8px 24px -4px oklch(0.45 0.08 142 / 0.12);
+  }
+
+  :root.dark[data-theme-preset='forest'] [data-slot='dialog-content'] {
+    border-color: oklch(0.22 0.02 142);
+    box-shadow: 0 8px 28px -4px oklch(0.08 0.03 142 / 0.45);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root[data-theme-preset='forest'] [data-slot='card']:hover,
+    :root.dark[data-theme-preset='forest'] [data-slot='card']:hover {
+      transform: none;
     }
   }
 }

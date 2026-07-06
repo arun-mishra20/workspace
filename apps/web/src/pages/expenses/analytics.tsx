@@ -103,10 +103,13 @@ const AnalyticsPage = () => {
     : 'overview'
   const spendExclusions = resolveSpendExclusionPreferences(searchParams)
 
-  const analyticsOptions = useMemo<AnalyticsQueryOptions>(() => ({
-    ...(selectedCard ? { cardLast4: selectedCard } : {}),
-    spendExclusions,
-  }), [selectedCard, spendExclusions])
+  const analyticsOptions = useMemo<AnalyticsQueryOptions>(
+    () => ({
+      ...(selectedCard ? { cardLast4: selectedCard } : {}),
+      spendExclusions,
+    }),
+    [selectedCard, spendExclusions],
+  )
 
   const dashboardPeriodParam = searchParams.get('dashboardPeriod')
   const dashboardPeriod: AnalyticsPeriod = isAnalyticsPeriod(
@@ -208,13 +211,17 @@ const AnalyticsPage = () => {
     handleTabChange('rules')
   }
 
-  const handleSpendExclusionsChange = (nextSpendExclusions: SpendExclusionPreferences) => {
+  const handleSpendExclusionsChange = (
+    nextSpendExclusions: SpendExclusionPreferences,
+  ) => {
     writeSpendExclusionPreferences(nextSpendExclusions)
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
         next.delete('spendExclusions')
-        for (const [key, value] of Object.entries(buildSpendExclusionSearchParams(nextSpendExclusions))) {
+        for (const [key, value] of Object.entries(
+          buildSpendExclusionSearchParams(nextSpendExclusions),
+        )) {
           next.set(key, value)
         }
         return next
@@ -283,8 +290,7 @@ const AnalyticsPage = () => {
   const isDashboards = activeTab === 'dashboards'
   const isPatterns = activeTab === 'patterns'
 
-  const comparisonPeriod =
-    isDashboards && !dashboardRangeCustom ? dashboardPeriod : period
+  const comparisonPeriod = period
 
   const filterActions: AnalyticsFilterActions = {
     onWidenPeriod: handlePeriodChange,
@@ -298,37 +304,79 @@ const AnalyticsPage = () => {
   })
 
   const summaryQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'summary', period, selectedCard, spendExclusions],
+    queryKey: [
+      'expenses',
+      'analytics',
+      'summary',
+      period,
+      selectedCard,
+      spendExclusions,
+    ],
     queryFn: () => fetchSpendingSummary(period, analyticsOptions),
     enabled: isOverview,
   })
 
   const categoryQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'by-category', period, selectedCard, spendExclusions],
+    queryKey: [
+      'expenses',
+      'analytics',
+      'by-category',
+      period,
+      selectedCard,
+      spendExclusions,
+    ],
     queryFn: () => fetchSpendingByCategory(period, analyticsOptions),
     enabled: isCategories,
   })
 
   const subcategoryQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'by-subcategory', period, selectedCard, spendExclusions],
+    queryKey: [
+      'expenses',
+      'analytics',
+      'by-subcategory',
+      period,
+      selectedCard,
+      spendExclusions,
+    ],
     queryFn: () => fetchSpendingBySubcategory(period, analyticsOptions),
     enabled: isCategories,
   })
 
   const modeQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'by-mode', period, selectedCard, spendExclusions],
+    queryKey: [
+      'expenses',
+      'analytics',
+      'by-mode',
+      period,
+      selectedCard,
+      spendExclusions,
+    ],
     queryFn: () => fetchSpendingByMode(period, analyticsOptions),
     enabled: isOverview,
   })
 
   const merchantQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'top-merchants', period, selectedCard, spendExclusions],
+    queryKey: [
+      'expenses',
+      'analytics',
+      'top-merchants',
+      period,
+      selectedCard,
+      spendExclusions,
+    ],
     queryFn: () => fetchTopMerchants(period, 10, analyticsOptions),
     enabled: isOverview,
   })
 
   const dailyQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'daily', period, selectedCard, spendExclusions],
+    queryKey: [
+      'expenses',
+      'analytics',
+      'daily',
+      period,
+      selectedCard,
+      spendExclusions,
+    ],
     queryFn: () => fetchDailySpending(period, analyticsOptions),
     enabled: isOverview,
   })
@@ -346,7 +394,14 @@ const AnalyticsPage = () => {
   })
 
   const dayOfWeekQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'day-of-week', period, selectedCard, spendExclusions],
+    queryKey: [
+      'expenses',
+      'analytics',
+      'day-of-week',
+      period,
+      selectedCard,
+      spendExclusions,
+    ],
     queryFn: () => fetchDayOfWeekSpending(period, analyticsOptions),
     enabled: isTrends,
   })
@@ -367,15 +422,18 @@ const AnalyticsPage = () => {
       spendExclusions,
     ],
     queryFn: () => fetchPeriodComparison(comparisonPeriod, analyticsOptions),
-    enabled:
-      isOverview ||
-      isTrends ||
-      isCategories ||
-      (isDashboards && !dashboardRangeCustom),
+    enabled: isOverview || isTrends || isCategories,
   })
 
   const cumulativeQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'cumulative', period, selectedCard, spendExclusions],
+    queryKey: [
+      'expenses',
+      'analytics',
+      'cumulative',
+      period,
+      selectedCard,
+      spendExclusions,
+    ],
     queryFn: () => fetchCumulativeSpend(period, analyticsOptions),
     enabled: isTrends,
   })
@@ -399,13 +457,27 @@ const AnalyticsPage = () => {
   })
 
   const topVpasQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'top-vpas', period, selectedCard, spendExclusions],
+    queryKey: [
+      'expenses',
+      'analytics',
+      'top-vpas',
+      period,
+      selectedCard,
+      spendExclusions,
+    ],
     queryFn: () => fetchTopVpas(period, 10, analyticsOptions),
     enabled: isTrends,
   })
 
   const velocityQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'velocity', period, selectedCard, spendExclusions],
+    queryKey: [
+      'expenses',
+      'analytics',
+      'velocity',
+      period,
+      selectedCard,
+      spendExclusions,
+    ],
     queryFn: () => fetchSpendingVelocity(period, analyticsOptions),
     enabled: isTrends,
   })
@@ -417,7 +489,14 @@ const AnalyticsPage = () => {
   })
 
   const largestQ = useQuery({
-    queryKey: ['expenses', 'analytics', 'largest', period, selectedCard, spendExclusions],
+    queryKey: [
+      'expenses',
+      'analytics',
+      'largest',
+      period,
+      selectedCard,
+      spendExclusions,
+    ],
     queryFn: () => fetchLargestTransactions(period, 10, analyticsOptions),
     enabled: isTrends,
   })
@@ -635,32 +714,33 @@ const AnalyticsPage = () => {
   )
 
   const tabError =
-    (isOverview
-      && (summaryQ.isError
-        || dailyQ.isError
-        || modeQ.isError
-        || merchantQ.isError
-        || periodComparisonQ.isError
-        || daySummaryQ.isError
-        || dayTransactionsQ.isError))
-    || (isCards
-      && (cardQ.isError || milestoneEtaQ.isError || cardCategoriesQ.isError))
-    || (isCategories
-      && (categoryQ.isError || subcategoryQ.isError || periodComparisonQ.isError))
-    || (isTrends
-      && (trendQ.isError
-        || dayOfWeekQ.isError
-        || cumulativeQ.isError
-        || categoryTrendQ.isError
-        || savingsRateQ.isError
-        || velocityQ.isError
-        || topVpasQ.isError
-        || largestQ.isError
-        || periodComparisonQ.isError))
-    || (isDataQuality
-      && (classificationHealthQ.isError || spendAnomaliesQ.isError))
-    || (isPatterns && (busAnalyticsQ.isError || investmentAnalyticsQ.isError))
-    || (isDashboards && !dashboardRangeCustom && periodComparisonQ.isError)
+    (isOverview &&
+      (summaryQ.isError ||
+        dailyQ.isError ||
+        modeQ.isError ||
+        merchantQ.isError ||
+        periodComparisonQ.isError ||
+        daySummaryQ.isError ||
+        dayTransactionsQ.isError)) ||
+    (isCards &&
+      (cardQ.isError || milestoneEtaQ.isError || cardCategoriesQ.isError)) ||
+    (isCategories &&
+      (categoryQ.isError ||
+        subcategoryQ.isError ||
+        periodComparisonQ.isError)) ||
+    (isTrends &&
+      (trendQ.isError ||
+        dayOfWeekQ.isError ||
+        cumulativeQ.isError ||
+        categoryTrendQ.isError ||
+        savingsRateQ.isError ||
+        velocityQ.isError ||
+        topVpasQ.isError ||
+        largestQ.isError ||
+        periodComparisonQ.isError)) ||
+    (isDataQuality &&
+      (classificationHealthQ.isError || spendAnomaliesQ.isError)) ||
+    (isPatterns && (busAnalyticsQ.isError || investmentAnalyticsQ.isError))
 
   const retryTabQueries = () => {
     if (isOverview) {
@@ -714,7 +794,7 @@ const AnalyticsPage = () => {
           onValueChange={handleTabChange}
           className="gap-4"
         >
-          <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 border-b bg-background/95 px-4 sm:px-6 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 bg-background/95 px-4 sm:px-6 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <AnalyticsPageHeader
               isSyncing={isSyncing}
               job={job}
@@ -886,8 +966,6 @@ const AnalyticsPage = () => {
                 rangeSummary={dashboardRangeSummary}
                 dashboardPeriod={dashboardPeriod}
                 dashboardRangeCustom={dashboardRangeCustom}
-                periodComparison={periodComparisonQ.data}
-                periodComparisonLoading={periodComparisonQ.isLoading}
               />
             </TabsContent>
           </AnalyticsQueryBoundary>

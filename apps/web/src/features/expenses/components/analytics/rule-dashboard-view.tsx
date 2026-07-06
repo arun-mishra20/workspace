@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import {
   ArrowDownRight,
@@ -29,8 +29,13 @@ import {
   type ChartLegendItem,
 } from '@/features/expenses/components/analytics/chart-with-side-legend'
 import { PeriodComparisonSection } from '@/features/expenses/components/analytics/period-comparison-section'
+import { RuleDashboardByRuleMonthlyCard } from '@/features/expenses/components/analytics/rule-dashboard-by-rule-monthly-card'
+import { RuleDashboardInsightsCard } from '@/features/expenses/components/analytics/rule-dashboard-insights-card'
+import { RuleDashboardLargestSpendsCard } from '@/features/expenses/components/analytics/rule-dashboard-largest-spends-card'
+import { RuleDashboardMonthlyTrendCard } from '@/features/expenses/components/analytics/rule-dashboard-monthly-trend-card'
 import { SpendHeatmapCalendar } from '@/features/expenses/components/analytics/spend-heatmap-calendar'
 import { TransactionMetadataBadges } from '@/features/expenses/components/analytics/transaction-metadata-badges'
+import { CategoryIcon } from '@/features/expenses/components/category-icon'
 import { TransactionCategoryTile } from '@/features/expenses/components/transaction-category-tile'
 import {
   fmtCompact,
@@ -38,9 +43,10 @@ import {
   getChartTokenColor,
 } from '@/features/expenses/components/analytics/analytics-utils'
 import { useAnalyticsDrillDown } from '@/features/expenses/hooks/use-analytics-drill-down'
+import { takeLastMetricTrendPoints } from '@/lib/metric-trends'
 import type {
   AnalyticsPeriod,
-  PeriodComparison,
+  CategorizationRule,
   RuleDashboardAnalytics,
 } from '@workspace/domain'
 import { Alert, AlertDescription } from '@workspace/ui/components/ui/alert'
@@ -79,6 +85,7 @@ const dailyChartConfig: ChartConfig = {
 interface RuleDashboardViewProps {
   title: string
   analytics?: RuleDashboardAnalytics
+  globalRules: CategorizationRule[]
   loading: boolean
   error?: boolean
   page: number
@@ -90,8 +97,7 @@ interface RuleDashboardViewProps {
   rangeSummary: string
   selectedCardLast4?: string
   dashboardPeriod?: AnalyticsPeriod
-  periodComparison?: PeriodComparison
-  periodComparisonLoading?: boolean
+  dashboardRangeCustom?: boolean
   onRefresh: () => void
   onBack: () => void
 }
@@ -99,6 +105,7 @@ interface RuleDashboardViewProps {
 export function RuleDashboardView({
   title,
   analytics,
+  globalRules,
   loading,
   error,
   page,
@@ -110,8 +117,7 @@ export function RuleDashboardView({
   rangeSummary,
   selectedCardLast4,
   dashboardPeriod = 'month',
-  periodComparison,
-  periodComparisonLoading = false,
+  dashboardRangeCustom = false,
   onRefresh,
   onBack,
 }: RuleDashboardViewProps) {
@@ -119,6 +125,20 @@ export function RuleDashboardView({
   const [byRuleView, setByRuleView] = useState<ChartCardView>('chart')
   const drillDown = useAnalyticsDrillDown()
   const navigate = useNavigate()
+  const categoryByRuleId = new Map(
+    globalRules.map((rule) => [rule.id, rule.action.category]),
+  )
+  const spentTrendData = useMemo(
+    () =>
+      takeLastMetricTrendPoints(
+        (analytics?.insights.monthlyTrend ?? []).map((item) => ({
+          label: item.month,
+          value: item.debited,
+        })),
+        6,
+      ),
+    [analytics?.insights.monthlyTrend],
+  )
 
   const transactionTotal = analytics?.transactions.total ?? 0
   const hasMultipleRules = analytics ? analytics.rules.length > 1 : null
@@ -213,16 +233,26 @@ export function RuleDashboardView({
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-2">
-          <Button variant="ghost" size="sm" className="-ml-2 w-fit" onClick={onBack}>
+          <Button variant="secondary" size="sm" className="-ml-2 w-fit" onClick={onBack}>
             ← Back to dashboards
           </Button>
           <h2 className="text-lg font-semibold">{title}</h2>
           <div className="flex flex-wrap gap-1.5">
-            {analytics?.rules.map((rule) => (
-              <Badge key={rule.id} variant="secondary">
-                {rule.name}
-              </Badge>
-            ))}
+            {analytics?.rules.map((rule) => {
+              const category =
+                rule.source === 'global'
+                  ? categoryByRuleId.get(rule.id)
+                  : undefined
+
+              return (
+                <Badge key={rule.id} variant="secondary" className="gap-1.5">
+                  {category ? (
+                    <CategoryIcon category={category} size={12} />
+                  ) : null}
+                  {rule.name}
+                </Badge>
+              )
+            })}
           </div>
         </div>
 
@@ -261,13 +291,21 @@ export function RuleDashboardView({
         </Alert>
       ) : null}
 
-      {periodComparison || periodComparisonLoading ? (
-        <PeriodComparisonSection
-          data={periodComparison}
-          loading={periodComparisonLoading}
-          period={dashboardPeriod}
-        />
-      ) : null}
+      <RuleDashboardInsightsCard
+        insights={analytics?.insights}
+        loading={loading}
+      />
+
+      <PeriodComparisonSection
+        data={analytics?.periodComparison}
+        loading={loading}
+        period={dashboardPeriod}
+        description={
+          dashboardRangeCustom
+            ? 'Selected range vs prior period of equal length (rule-matched)'
+            : `Current ${dashboardPeriod} vs previous ${dashboardPeriod} (rule-matched)`
+        }
+      />
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
@@ -275,6 +313,8 @@ export function RuleDashboardView({
           value={analytics ? fmtCurrency(analytics.summary.totalSpent) : undefined}
           icon={<ArrowUpRight className="size-4 text-chart-1" />}
           loading={loading}
+          trendData={spentTrendData}
+          formatTrendValue={(value) => fmtCurrency(value)}
         />
         <SummaryCard
           title="Total received"
@@ -300,6 +340,25 @@ export function RuleDashboardView({
           loading={loading}
         />
       </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <RuleDashboardMonthlyTrendCard
+          insights={analytics?.insights}
+          loading={loading}
+          startDate={startDate}
+          endDate={endDate}
+        />
+        <RuleDashboardLargestSpendsCard
+          insights={analytics?.insights}
+          loading={loading}
+          selectedCardLast4={selectedCardLast4}
+        />
+      </div>
+
+      <RuleDashboardByRuleMonthlyCard
+        byRuleMonthly={analytics?.byRuleMonthly}
+        loading={loading}
+      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

@@ -16,7 +16,6 @@ import { readStoredPageSize, writeStoredPageSize } from '@/lib/pagination'
 import type {
   AnalyticsPeriod,
   DashboardInlineRule,
-  PeriodComparison,
   RuleDashboardListItem,
 } from '@workspace/domain'
 
@@ -29,8 +28,6 @@ interface AnalyticsDashboardsTabProps {
   rangeSummary: string
   dashboardPeriod: AnalyticsPeriod
   dashboardRangeCustom: boolean
-  periodComparison?: PeriodComparison
-  periodComparisonLoading: boolean
 }
 
 export function AnalyticsDashboardsTab({
@@ -40,8 +37,6 @@ export function AnalyticsDashboardsTab({
   rangeSummary,
   dashboardPeriod,
   dashboardRangeCustom,
-  periodComparison,
-  periodComparisonLoading,
 }: AnalyticsDashboardsTabProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const builderRef = useRef<HTMLDivElement>(null)
@@ -230,6 +225,7 @@ export function AnalyticsDashboardsTab({
       <RuleDashboardView
         title={viewTitle}
         analytics={analyticsQ.data}
+        globalRules={rulesQ.data ?? []}
         loading={analyticsQ.isLoading || savedDashboardQ.isLoading}
         error={analyticsQ.isError}
         page={page}
@@ -245,10 +241,7 @@ export function AnalyticsDashboardsTab({
         rangeSummary={rangeSummary}
         selectedCardLast4={selectedCardLast4}
         dashboardPeriod={dashboardPeriod}
-        periodComparison={
-          dashboardRangeCustom ? undefined : periodComparison
-        }
-        periodComparisonLoading={periodComparisonLoading}
+        dashboardRangeCustom={dashboardRangeCustom}
         onRefresh={() => void analyticsQ.refetch()}
         onBack={backToLibrary}
       />
@@ -277,6 +270,7 @@ export function AnalyticsDashboardsTab({
       <SavedDashboardsList
         dashboards={dashboardsQ.data ?? []}
         loading={dashboardsQ.isLoading}
+        globalRules={rulesQ.data ?? []}
         onOpen={openSavedDashboard}
         onEdit={editSavedDashboard}
         editingDashboardId={editingDashboard?.id}

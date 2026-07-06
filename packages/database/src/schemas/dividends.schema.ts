@@ -49,6 +49,10 @@ export const dividendsTable = pgTable(
   (table) => ({
     userIdIdx: index('dividends_user_id_idx').on(table.userId),
     exDateIdx: index('dividends_ex_date_idx').on(table.exDate),
+    userExDateIdx: index('dividends_user_ex_date_idx').on(
+      table.userId,
+      table.exDate,
+    ),
     /** Composite unique — enables upsert dedup */
     userIsinExDateUq: uniqueIndex('dividends_user_isin_exdate_uq').on(
       table.userId,

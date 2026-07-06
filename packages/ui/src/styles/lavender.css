@@ -60,8 +60,7 @@
     }
   }
 
-  :root[data-theme-preset='lavender'].dark,
-  :root[data-theme-preset='lavender'] .dark {
+  :root.dark[data-theme-preset='lavender'] {
     [data-slot='card'] {
       border-color: oklch(0.24 0.02 320);
       box-shadow: 0 4px 20px -3px oklch(0.1 0.04 320 / 0.3);
@@ -97,6 +96,24 @@
 
     [data-slot='table-cell'] {
       border-color: oklch(0.24 0.015 320 / 0.6);
+    }
+  }
+
+  /* ── Dialogs: purple glow elevation ────────────────────────── */
+  :root[data-theme-preset='lavender'] [data-slot='dialog-content'] {
+    border: 1px solid oklch(0.92 0.012 320);
+    box-shadow: 0 8px 28px -4px oklch(0.55 0.08 320 / 0.12);
+  }
+
+  :root.dark[data-theme-preset='lavender'] [data-slot='dialog-content'] {
+    border-color: oklch(0.24 0.02 320);
+    box-shadow: 0 8px 32px -4px oklch(0.1 0.04 320 / 0.45);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root[data-theme-preset='lavender'] [data-slot='card']:hover,
+    :root.dark[data-theme-preset='lavender'] [data-slot='card']:hover {
+      transform: none;
     }
   }
 }

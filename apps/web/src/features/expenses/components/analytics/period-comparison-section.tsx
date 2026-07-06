@@ -18,10 +18,12 @@ export function PeriodComparisonSection({
   data,
   loading,
   period,
+  description,
 }: {
   data?: PeriodComparison
   loading: boolean
   period: AnalyticsPeriod
+  description?: string
 }) {
   const metrics = data
     ? [
@@ -58,7 +60,7 @@ export function PeriodComparisonSection({
       <CardHeader>
         <CardTitle className="text-base">Period Comparison</CardTitle>
         <CardDescription>
-          Current {period} vs previous {period}
+          {description ?? `Current ${period} vs previous ${period}`}
         </CardDescription>
         <Separator className="w-full mt-2" />
       </CardHeader>

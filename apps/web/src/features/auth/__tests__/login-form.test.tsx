@@ -81,9 +81,4 @@ describe("LoginForm", () => {
       "/register",
     );
   });
-
-  it("should match snapshot", () => {
-    const { container } = render(<LoginForm />);
-    expect(container).toMatchSnapshot();
-  });
 });

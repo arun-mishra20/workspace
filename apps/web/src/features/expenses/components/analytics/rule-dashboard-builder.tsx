@@ -7,6 +7,7 @@ import {
   updateRuleDashboard,
 } from '@/features/expenses/api/rule-dashboards'
 import { DashboardInlineRulesEditor } from '@/features/expenses/components/analytics/dashboard-inline-rules-editor'
+import { TransactionCategoryTile } from '@/features/expenses/components/transaction-category-tile'
 import type { CategorizationRule, DashboardInlineRule } from '@workspace/domain'
 import { Alert, AlertDescription } from '@workspace/ui/components/ui/alert'
 import { Badge } from '@workspace/ui/components/ui/badge'
@@ -155,6 +156,10 @@ export function RuleDashboardBuilder({
                   />
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
+                      <TransactionCategoryTile
+                        category={rule.action.category}
+                        size="sm"
+                      />
                       <span className="font-medium">{rule.name}</span>
                       {!rule.enabled ? (
                         <Badge variant="secondary">Disabled</Badge>

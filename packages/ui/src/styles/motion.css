@@ -1,0 +1,136 @@
+/*
+ * Global minimal micro-interactions — all presets.
+ * Interaction-only (transform/opacity). No ambient loops except skeleton shimmer.
+ */
+
+@layer components {
+  /* ── Preset switch fade ─────────────────────────────────────── */
+  html {
+    transition: opacity var(--motion-fast) var(--motion-ease-out);
+  }
+
+  html.theme-switching {
+    opacity: 0.97;
+  }
+
+  /* ── Buttons ────────────────────────────────────────────────── */
+  [data-slot='button']:not([data-variant='link']) {
+    transition:
+      transform var(--motion-fast) var(--motion-ease-out),
+      background-color var(--motion-normal) var(--motion-ease-out),
+      box-shadow var(--motion-normal) var(--motion-ease-out),
+      border-color var(--motion-normal) var(--motion-ease-out);
+  }
+
+  [data-slot='button']:not([data-variant='link']):hover {
+    transform: translateY(calc(-1 * var(--motion-distance-sm)));
+  }
+
+  [data-slot='button']:not([data-variant='link']):active {
+    transform: scale(0.98) translateY(0);
+  }
+
+  /* ── Inputs / selects — focus ring breathe ──────────────────── */
+  [data-slot='input'],
+  [data-slot='textarea'],
+  [data-slot='select-trigger'] {
+    transition:
+      border-color var(--motion-fast) var(--motion-ease-out),
+      box-shadow var(--motion-fast) var(--motion-ease-out),
+      background-color var(--motion-fast) var(--motion-ease-out);
+  }
+
+  [data-slot='input']:focus-visible,
+  [data-slot='textarea']:focus-visible,
+  [data-slot='select-trigger']:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 25%, transparent);
+  }
+
+  /* ── Cards — subtle hover lift (theme CSS may override) ─────── */
+  [data-slot='card'] {
+    transition:
+      transform var(--motion-normal) var(--motion-ease-out),
+      box-shadow var(--motion-normal) var(--motion-ease-out),
+      border-color var(--motion-normal) var(--motion-ease-out);
+  }
+
+  [data-slot='card']:hover {
+    transform: translateY(calc(-1 * var(--motion-distance-sm)));
+  }
+
+  /* ── Switch thumb spring ────────────────────────────────────── */
+  [data-slot='switch-thumb'] {
+    transition: transform var(--motion-normal) var(--motion-ease-spring);
+  }
+
+  /* ── Tabs — active indicator fade ───────────────────────────── */
+  [data-slot='tabs-trigger'] {
+    transition:
+      box-shadow var(--motion-normal) var(--motion-ease-out),
+      color var(--motion-fast) var(--motion-ease-out),
+      background-color var(--motion-fast) var(--motion-ease-out);
+  }
+
+  [data-slot='tabs-trigger'][data-state='active'] {
+    transition:
+      box-shadow var(--motion-normal) var(--motion-ease-out),
+      color var(--motion-fast) var(--motion-ease-out),
+      background-color var(--motion-fast) var(--motion-ease-out);
+  }
+
+  /* ── Progress fill ──────────────────────────────────────────── */
+  [data-slot='progress-indicator'] {
+    transition: width var(--motion-normal) var(--motion-ease-out);
+  }
+
+  /* ── Table rows ─────────────────────────────────────────────── */
+  [data-slot='table-row'] {
+    transition: background-color var(--motion-fast) var(--motion-ease-out);
+  }
+
+  /* ── Skeleton shimmer ───────────────────────────────────────── */
+  @keyframes motion-shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  [data-slot='skeleton'] {
+    background-image: linear-gradient(
+      90deg,
+      color-mix(in oklch, var(--primary) 8%, transparent) 0%,
+      color-mix(in oklch, var(--primary) 16%, transparent) 50%,
+      color-mix(in oklch, var(--primary) 8%, transparent) 100%
+    );
+    background-size: 200% 100%;
+    animation: motion-shimmer 1.5s var(--motion-ease-out) infinite;
+  }
+
+  /* ── Reduced motion ─────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    html,
+    html.theme-switching {
+      transition: none;
+      opacity: 1;
+    }
+
+    [data-slot='button'],
+    [data-slot='card'],
+    [data-slot='switch-thumb'],
+    [data-slot='tabs-trigger'],
+    [data-slot='input'],
+    [data-slot='textarea'],
+    [data-slot='select-trigger'],
+    [data-slot='progress-indicator'],
+    [data-slot='table-row'],
+    [data-slot='skeleton'] {
+      animation: none !important;
+      transition: none !important;
+      transform: none !important;
+    }
+  }
+}
