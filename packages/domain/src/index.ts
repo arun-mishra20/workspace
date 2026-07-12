@@ -6,3 +6,4 @@ export * from "./holdings.js";
 export * from "./dividends.js";
 export * from "./principal.js";
 export * from "./travel.js";
+export * from "./investment-projection/index.js";

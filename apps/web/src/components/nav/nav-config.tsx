@@ -7,6 +7,7 @@ import {
   ChartArea,
   FlaskConical,
   LayoutDashboard,
+  LineChart,
   Mail,
   Paintbrush,
   Plane,
@@ -111,6 +112,14 @@ export const navItems: NavItem[] = [
     description: 'Track holdings, allocation, and portfolio composition.',
     category: 'finance',
     keywords: ['portfolio', 'assets', 'positions'],
+  },
+  {
+    label: 'Projections',
+    href: appPaths.auth.projections.getHref(),
+    icon: LineChart,
+    description: 'Investment projection calculator with scenario analysis.',
+    category: 'finance',
+    keywords: ['calculator', 'sip', 'projections', 'wealth'],
   },
   {
     label: 'Dividends',

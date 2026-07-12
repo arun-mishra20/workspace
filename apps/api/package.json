@@ -7,8 +7,8 @@
     "author": "vsa-m-nest",
     "type": "module",
     "scripts": {
-        "build": "nest build",
-        "check-types": "tsc -b --noEmit",
+        "build": "NODE_OPTIONS=--max-old-space-size=4096 nest build",
+        "check-types": "NODE_OPTIONS=--max-old-space-size=4096 tsc -b --noEmit",
         "dev": "pnpm start:dev",
         "docker:down": "docker-compose down",
         "docker:up": "docker-compose up -d",
