@@ -17,6 +17,12 @@ import {
   aiConversationsTable,
   aiMessagesTable,
   aiMessageFeedbackTable,
+  investmentPlansTable,
+  investmentPlanAssetsTable,
+  investmentPlanEventsTable,
+  investmentPlanGoalsTable,
+  investmentPlanGoalAllocationsTable,
+  investmentPlanScenariosTable,
 } from './schemas/index.js'
 
 /**
@@ -50,6 +56,8 @@ export const usersRelations = relations(usersTable, ({ one, many }) => ({
   flightEmailProcessing: many(flightEmailProcessingTable),
   // 1:N with webauthn_credentials
   passkeys: many(webauthnCredentialsTable),
+  // 1:N with investment_plans
+  investmentPlans: many(investmentPlansTable),
 }))
 
 /**
@@ -258,3 +266,58 @@ export const aiMessageFeedbackRelations = relations(
     }),
   }),
 )
+
+export const investmentPlansRelations = relations(investmentPlansTable, ({ one, many }) => ({
+  user: one(usersTable, {
+    fields: [investmentPlansTable.userId],
+    references: [usersTable.id],
+  }),
+  assets: many(investmentPlanAssetsTable),
+  goals: many(investmentPlanGoalsTable),
+  scenarios: many(investmentPlanScenariosTable),
+}))
+
+export const investmentPlanAssetsRelations = relations(investmentPlanAssetsTable, ({ one, many }) => ({
+  plan: one(investmentPlansTable, {
+    fields: [investmentPlanAssetsTable.planId],
+    references: [investmentPlansTable.id],
+  }),
+  events: many(investmentPlanEventsTable),
+  goalAllocations: many(investmentPlanGoalAllocationsTable),
+}))
+
+export const investmentPlanEventsRelations = relations(investmentPlanEventsTable, ({ one }) => ({
+  asset: one(investmentPlanAssetsTable, {
+    fields: [investmentPlanEventsTable.assetId],
+    references: [investmentPlanAssetsTable.id],
+  }),
+}))
+
+export const investmentPlanGoalsRelations = relations(investmentPlanGoalsTable, ({ one, many }) => ({
+  plan: one(investmentPlansTable, {
+    fields: [investmentPlanGoalsTable.planId],
+    references: [investmentPlansTable.id],
+  }),
+  allocations: many(investmentPlanGoalAllocationsTable),
+}))
+
+export const investmentPlanGoalAllocationsRelations = relations(
+  investmentPlanGoalAllocationsTable,
+  ({ one }) => ({
+    asset: one(investmentPlanAssetsTable, {
+      fields: [investmentPlanGoalAllocationsTable.assetId],
+      references: [investmentPlanAssetsTable.id],
+    }),
+    goal: one(investmentPlanGoalsTable, {
+      fields: [investmentPlanGoalAllocationsTable.goalId],
+      references: [investmentPlanGoalsTable.id],
+    }),
+  }),
+)
+
+export const investmentPlanScenariosRelations = relations(investmentPlanScenariosTable, ({ one }) => ({
+  plan: one(investmentPlansTable, {
+    fields: [investmentPlanScenariosTable.planId],
+    references: [investmentPlansTable.id],
+  }),
+}))

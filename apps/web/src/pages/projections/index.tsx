@@ -1,10 +1,10 @@
 import { MainLayout } from '@/components/layouts'
-import { ProjectionCalculatorPage } from '@/features/investment-projection/components/projection-calculator-page'
+import { InvestmentPlanDashboard } from '@/features/investment-plans/components/investment-plan-dashboard'
 
 export default function ProjectionsPage() {
   return (
     <MainLayout>
-      <ProjectionCalculatorPage />
+      <InvestmentPlanDashboard />
     </MainLayout>
   )
 }

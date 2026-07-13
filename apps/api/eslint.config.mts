@@ -143,4 +143,27 @@ export default [
       ],
     },
   },
+  // Allow investment-plans module to depend on auth (JWT guard)
+  {
+    files: ['src/modules/investment-plans/**/*.ts'],
+    rules: {
+      'boundaries/element-types': [
+        'error',
+        {
+          default: 'disallow',
+          rules: [
+            {
+              from: ['module'],
+              allow: [
+                'app',
+                'shared-kernel',
+                ['module', { moduleName: 'investment-plans' }],
+                ['module', { moduleName: 'auth' }],
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]

@@ -27,6 +27,7 @@ import { ExpensesModule } from '@/modules/expenses/expenses.module'
 import { FlightsModule } from '@/modules/flights/flights.module'
 import { HoldingsModule } from '@/modules/holdings/holdings.module'
 import { HotelsModule } from '@/modules/hotels/hotels.module'
+import { InvestmentPlansModule } from '@/modules/investment-plans/investment-plans.module'
 import { PlaygroundModule } from '@/modules/playground/playground.module'
 import { PrincipalModule } from '@/modules/principal/principal.module'
 import { TodoModule } from '@/modules/todo/todo.module'
@@ -89,6 +90,7 @@ import type { NestModule, MiddlewareConsumer } from '@nestjs/common'
     HoldingsModule, // Holdings module (investment portfolio management)
     DividendsModule, // Dividends module (dividend income tracking + analytics)
     PrincipalModule, // Principal module (principal investment tracking)
+    InvestmentPlansModule, // Investment plans module (persistent projection plans)
     PlaygroundModule, // Playground module (ad-hoc email fetch for parser experiments)
   ],
   controllers: [
