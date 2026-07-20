@@ -14,6 +14,7 @@ import {
   getNavItemsForCategory,
   isItemActive,
   navCategories,
+  navItems,
   type NavCategory,
   type NavItem,
 } from '@/components/nav/nav-config'
@@ -298,7 +299,7 @@ function SidebarShell({
   children,
   variant = 'docked',
 }: NavigationShellProps & { variant?: 'docked' | 'floating' }) {
-  const { activeItem } = useShellContext()
+  const { activeItem, activeChildHref } = useShellContext()
   const { currentPreset } = useThemeCustomization()
   const { user } = useAuthSession()
   const isFloating = variant === 'floating'
@@ -393,6 +394,8 @@ function SidebarShell({
                         {items.map((item) => {
                           const Icon = item.icon
                           const active = activeItem.href === item.href
+                          const showChildren =
+                            !collapsed && Boolean(item.children?.length)
 
                           const linkEl = (
                             <Link
@@ -430,7 +433,43 @@ function SidebarShell({
                             )
                           }
 
-                          return <div key={item.href}>{linkEl}</div>
+                          return (
+                            <div key={item.href} className="space-y-1">
+                              {linkEl}
+                              {showChildren ? (
+                                <div className="ml-4 flex flex-col gap-1 border-l border-border/60 pl-3">
+                                  {item.children?.map((child) => {
+                                    const ChildIcon = child.icon
+                                    const childActive =
+                                      activeChildHref === child.href
+
+                                    return (
+                                      <Link
+                                        key={child.href}
+                                        to={child.href}
+                                        data-slot="sidebar-nav-link"
+                                        data-active={
+                                          childActive ? 'true' : 'false'
+                                        }
+                                        aria-current={
+                                          childActive ? 'page' : undefined
+                                        }
+                                        className={cn(
+                                          'flex items-center gap-2 rounded-xl px-2 py-1.5 text-xs transition-colors',
+                                          childActive
+                                            ? 'bg-secondary text-foreground'
+                                            : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground',
+                                        )}
+                                      >
+                                        <ChildIcon className="size-3.5 shrink-0" />
+                                        <span>{child.label}</span>
+                                      </Link>
+                                    )
+                                  })}
+                                </div>
+                              ) : null}
+                            </div>
+                          )
                         })}
                       </TooltipProvider>
                     </div>
@@ -486,8 +525,98 @@ function SidebarShell({
   )
 }
 
+function FlatTopNavShell({ children }: NavigationShellProps) {
+  const location = useLocation()
+  const { activeItem, activeChildHref } = useShellContext()
+  const { currentPreset } = useThemeCustomization()
+  const chromeBlur =
+    currentPreset === 'glassmorphism' ? undefined : 'backdrop-blur-xl'
+  const activeHasChildren = Boolean(activeItem.children?.length)
+
+  return (
+    <ShellFrame>
+      <header
+        className={cn(
+          'sticky top-0 z-40 border-b border-border/60 bg-background/85',
+          chromeBlur,
+        )}
+      >
+        <div className="relative flex h-14 items-center px-4 sm:px-6 md:px-8">
+          <div className="z-10 shrink-0">
+            <Logo />
+          </div>
+
+          <nav
+            aria-label="Primary"
+            className="pointer-events-none absolute inset-x-0 hidden justify-center md:flex"
+          >
+            <div className="pointer-events-auto flex max-w-[min(100%,56rem)] items-center gap-1 overflow-x-auto px-2">
+              {navItems.map((item) => {
+                const active = activeItem.href === item.href
+                return (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'shrink-0 rounded-full border px-3 py-1.5 text-sm transition-colors',
+                      active
+                        ? 'border-primary/40 bg-primary/10 text-foreground'
+                        : 'border-transparent text-muted-foreground hover:border-border/60 hover:bg-secondary/60 hover:text-foreground',
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </div>
+          </nav>
+
+          <div className="z-10 ml-auto flex shrink-0 items-center gap-2">
+            <div className="hidden md:block">
+              <DesktopActionCluster />
+            </div>
+            <div className="flex items-center gap-2 md:hidden">
+              <ThemeToggle />
+              <MobileNavigationDrawer />
+            </div>
+          </div>
+        </div>
+
+        {activeHasChildren ? (
+          <div className="hidden border-t border-border/50 px-4 sm:px-6 md:block md:px-8">
+            <div className="flex items-center gap-1 py-2.5">
+              {activeItem.children?.map((child) => {
+                const active = isItemActive(location.pathname, child.href)
+                return (
+                  <Link
+                    key={child.href}
+                    to={child.href}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'rounded-full border px-3 py-1.5 text-sm transition-colors',
+                      active || activeChildHref === child.href
+                        ? 'border-primary/40 bg-primary/10 text-foreground'
+                        : 'border-transparent text-muted-foreground hover:border-border/60 hover:bg-secondary/60 hover:text-foreground',
+                    )}
+                  >
+                    {child.label}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        ) : null}
+      </header>
+
+      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</main>
+    </ShellFrame>
+  )
+}
+
 function CategorizedTopNavShell({ children }: NavigationShellProps) {
-  const { activeCategory, activeItem } = useShellContext()
+  const location = useLocation()
+  const { activeCategory, activeItem, activeChildHref } = useShellContext()
   const { currentPreset } = useThemeCustomization()
   const chromeBlur =
     currentPreset === 'glassmorphism' ? undefined : 'backdrop-blur-xl'
@@ -553,26 +682,51 @@ function CategorizedTopNavShell({ children }: NavigationShellProps) {
           </div>
         </div>
 
-        {/* Level 2 — left-aligned section links */}
+        {/* Level 2 — left-aligned section links (includes nested children) */}
         <div className="hidden border-t border-border/50 px-4 sm:px-6 md:block md:px-8">
-          <div className="flex items-center gap-1 py-2.5">
-            {categoryItems.map((item) => {
-              const active = item.href === activeItem.href
-              return (
+          <div className="flex flex-wrap items-center gap-1 py-2.5">
+            {categoryItems.flatMap((item) => {
+              const parentActive = item.href === activeItem.href
+              const links = [
                 <Link
                   key={item.href}
                   to={item.href}
-                  aria-current={active ? 'page' : undefined}
+                  aria-current={parentActive ? 'page' : undefined}
                   className={cn(
                     'rounded-full border px-3 py-1.5 text-sm transition-colors',
-                    active
+                    parentActive && !activeChildHref
                       ? 'border-primary/40 bg-primary/10 text-foreground'
-                      : 'border-transparent text-muted-foreground hover:border-border/60 hover:bg-secondary/60 hover:text-foreground',
+                      : parentActive
+                        ? 'border-border/60 bg-secondary/60 text-foreground'
+                        : 'border-transparent text-muted-foreground hover:border-border/60 hover:bg-secondary/60 hover:text-foreground',
                   )}
                 >
                   {item.label}
-                </Link>
-              )
+                </Link>,
+              ]
+
+              if (item.children?.length && parentActive) {
+                for (const child of item.children) {
+                  const childActive = isItemActive(location.pathname, child.href)
+                  links.push(
+                    <Link
+                      key={child.href}
+                      to={child.href}
+                      aria-current={childActive ? 'page' : undefined}
+                      className={cn(
+                        'rounded-full border px-3 py-1.5 text-sm transition-colors',
+                        childActive
+                          ? 'border-primary/40 bg-primary/10 text-foreground'
+                          : 'border-transparent text-muted-foreground hover:border-border/60 hover:bg-secondary/60 hover:text-foreground',
+                      )}
+                    >
+                      {child.label}
+                    </Link>,
+                  )
+                }
+              }
+
+              return links
             })}
           </div>
         </div>
@@ -585,11 +739,12 @@ function CategorizedTopNavShell({ children }: NavigationShellProps) {
 
 function MegaMenuShell({ children }: NavigationShellProps) {
   const location = useLocation()
-  const { activeItem } = useShellContext()
+  const { activeItem, activeChildHref } = useShellContext()
   const { currentPreset } = useThemeCustomization()
   const chromeBlur =
     currentPreset === 'glassmorphism' ? undefined : 'backdrop-blur-xl'
-  const onActivePage = isItemActive(location.pathname, activeItem.href)
+  const openPageHref = activeChildHref ?? activeItem.href
+  const onActivePage = isItemActive(location.pathname, openPageHref)
 
   return (
     <ShellFrame>
@@ -623,20 +778,22 @@ function MegaMenuShell({ children }: NavigationShellProps) {
                               </p>
                             </div>
                             <div className="grid gap-2 sm:grid-cols-2">
-                              {items.map((item) => {
+                              {items.flatMap((item) => {
                                 const Icon = item.icon
-                                return (
+                                const entries = [
                                   <NavigationMenuLink asChild key={item.href}>
                                     <Link
                                       to={item.href}
                                       aria-current={
-                                        activeItem.href === item.href
+                                        activeItem.href === item.href &&
+                                        !activeChildHref
                                           ? 'page'
                                           : undefined
                                       }
                                       className={cn(
                                         'rounded-2xl border border-border/60 bg-card/50 p-4 transition-colors hover:bg-secondary/60',
                                         activeItem.href === item.href &&
+                                          !activeChildHref &&
                                           'border-primary/40 bg-primary/10',
                                       )}
                                     >
@@ -648,8 +805,48 @@ function MegaMenuShell({ children }: NavigationShellProps) {
                                         {item.description}
                                       </div>
                                     </Link>
-                                  </NavigationMenuLink>
-                                )
+                                  </NavigationMenuLink>,
+                                ]
+
+                                if (item.children?.length) {
+                                  for (const child of item.children) {
+                                    const ChildIcon = child.icon
+                                    const childActive = isItemActive(
+                                      location.pathname,
+                                      child.href,
+                                    )
+                                    entries.push(
+                                      <NavigationMenuLink
+                                        asChild
+                                        key={child.href}
+                                      >
+                                        <Link
+                                          to={child.href}
+                                          aria-current={
+                                            childActive ? 'page' : undefined
+                                          }
+                                          className={cn(
+                                            'rounded-2xl border border-border/60 bg-card/50 p-4 transition-colors hover:bg-secondary/60',
+                                            childActive &&
+                                              'border-primary/40 bg-primary/10',
+                                          )}
+                                        >
+                                          <ChildIcon className="size-4 text-muted-foreground" />
+                                          <div className="mt-3 text-sm font-medium text-foreground">
+                                            {child.label}
+                                          </div>
+                                          {child.description ? (
+                                            <div className="mt-1 text-sm text-muted-foreground">
+                                              {child.description}
+                                            </div>
+                                          ) : null}
+                                        </Link>
+                                      </NavigationMenuLink>,
+                                    )
+                                  }
+                                }
+
+                                return entries
                               })}
                             </div>
                           </div>
@@ -676,15 +873,23 @@ function MegaMenuShell({ children }: NavigationShellProps) {
         <div className="hidden md:flex items-center justify-between gap-4 border-t border-border/50 px-4 py-3 sm:px-6 md:px-8">
           <div>
             <p className="text-sm font-medium text-foreground">
-              {activeItem.label}
+              {activeChildHref
+                ? (activeItem.children?.find(
+                    (child) => child.href === activeChildHref,
+                  )?.label ?? activeItem.label)
+                : activeItem.label}
             </p>
             <p className="text-sm text-muted-foreground">
-              {activeItem.description}
+              {activeChildHref
+                ? (activeItem.children?.find(
+                    (child) => child.href === activeChildHref,
+                  )?.description ?? activeItem.description)
+                : activeItem.description}
             </p>
           </div>
           {!onActivePage && (
             <Link
-              to={activeItem.href}
+              to={openPageHref}
               className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
             >
               Open page
@@ -808,9 +1013,9 @@ function CommandBarShell({ children }: NavigationShellProps) {
             return (
               <div key={category.id}>
                 <CommandGroup heading={category.label}>
-                  {items.map((item) => {
+                  {items.flatMap((item) => {
                     const Icon = item.icon
-                    return (
+                    const entries = [
                       <CommandItem
                         key={item.href}
                         value={[
@@ -836,8 +1041,47 @@ function CommandBarShell({ children }: NavigationShellProps) {
                           </span>
                         </div>
                         <CommandShortcut>{category.label}</CommandShortcut>
-                      </CommandItem>
-                    )
+                      </CommandItem>,
+                    ]
+
+                    if (item.children?.length) {
+                      for (const child of item.children) {
+                        const ChildIcon = child.icon
+                        entries.push(
+                          <CommandItem
+                            key={child.href}
+                            value={[
+                              child.label,
+                              child.description ?? '',
+                              ...(child.keywords ?? []),
+                              item.label,
+                            ].join(' ')}
+                            onSelect={() => {
+                              navigate(child.href)
+                              setOpen(false)
+                            }}
+                            className={cn(
+                              'rounded-xl',
+                              isItemActive(location.pathname, child.href) &&
+                                'bg-accent/70',
+                            )}
+                          >
+                            <ChildIcon className="size-4" />
+                            <div className="flex flex-1 flex-col gap-0.5">
+                              <span>{child.label}</span>
+                              {child.description ? (
+                                <span className="text-xs text-muted-foreground">
+                                  {child.description}
+                                </span>
+                              ) : null}
+                            </div>
+                            <CommandShortcut>{category.label}</CommandShortcut>
+                          </CommandItem>,
+                        )
+                      }
+                    }
+
+                    return entries
                   })}
                 </CommandGroup>
                 {index < navCategories.length - 1 ? <CommandSeparator /> : null}
@@ -858,6 +1102,8 @@ export function ProtectedNavigationShell({ children }: NavigationShellProps) {
   switch (navigationLayout) {
     case 'floating-sidebar':
       return <SidebarShell variant="floating">{children}</SidebarShell>
+    case 'flat-topnav':
+      return <FlatTopNavShell>{children}</FlatTopNavShell>
     case 'categorized-topnav':
       return <CategorizedTopNavShell>{children}</CategorizedTopNavShell>
     case 'mega-menu':

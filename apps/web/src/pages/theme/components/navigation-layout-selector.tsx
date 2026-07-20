@@ -4,6 +4,7 @@ import {
   Command,
   LayoutPanelTop,
   PanelLeft,
+  PanelLeftDashed,
   PanelTop,
   Rows3,
   Waypoints,
@@ -37,6 +38,11 @@ const layoutOptionData: Record<NavigationLayoutId, LayoutOptionData> = {
   'floating-sidebar': {
     label: 'Floating Sidebar',
     description: 'Detached panel with rounded edges and soft shadow.',
+    Icon: PanelLeftDashed,
+  },
+  'flat-topnav': {
+    label: 'Flat Top Nav',
+    description: 'Single row of pages with no category grouping.',
     Icon: PanelTop,
   },
   'categorized-topnav': {
@@ -88,6 +94,21 @@ function MiniPreview({ id }: { id: NavigationLayoutId }) {
             <div className="h-10 rounded-xl bg-muted/50" />
           </div>
         </div>
+      </div>
+    )
+  }
+
+  if (id === 'flat-topnav') {
+    return (
+      <div className="space-y-2 rounded-2xl border border-border/60 bg-background/70 p-2">
+        <div className="flex gap-1.5 overflow-hidden">
+          <div className="h-4 w-10 shrink-0 rounded-full bg-muted" />
+          <div className="h-4 w-12 shrink-0 rounded-full bg-muted/80" />
+          <div className="h-4 w-14 shrink-0 rounded-full bg-muted/60" />
+          <div className="h-4 w-10 shrink-0 rounded-full bg-muted/50" />
+          <div className="h-4 w-12 shrink-0 rounded-full bg-muted/40" />
+        </div>
+        <div className="h-10 rounded-xl bg-muted/50" />
       </div>
     )
   }

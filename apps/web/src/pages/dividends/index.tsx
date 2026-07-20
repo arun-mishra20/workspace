@@ -63,12 +63,8 @@ export default function DividendsPage() {
           </div>
         </header>
 
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="gap-4"
-        >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-2">
             <TabsList className="h-auto w-fit max-w-full justify-start gap-0.5 overflow-x-auto rounded-[11px] border border-border bg-muted p-1">
               <TabsTrigger
                 value="overview"
