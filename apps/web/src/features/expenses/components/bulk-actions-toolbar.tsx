@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/ui/select";
-import { CheckCircle, CircleAlert, Layers, Sparkles, Tag, X } from "lucide-react";
+import { CheckCircle, CircleAlert, Layers, Sparkles, Tag, Users, X } from "lucide-react";
 
 import type { Transaction } from "@workspace/domain";
 
@@ -88,6 +88,10 @@ export function BulkActionsToolbar({
     mutation.mutate({ ids: selectedIds, data: { requiresReview } });
   };
 
+  const handlePaidForSomeone = (paidForSomeone: boolean) => {
+    mutation.mutate({ ids: selectedIds, data: { paidForSomeone } });
+  };
+
   const handleDialogSubmit = () => {
     const data: BulkUpdateRequest["data"] = {};
     if (formCategory) data.category = formCategory;
@@ -134,6 +138,27 @@ export function BulkActionsToolbar({
         >
           <CircleAlert className="size-3.5" />
           Needs Review
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs gap-1.5"
+          onClick={() => handlePaidForSomeone(true)}
+          disabled={mutation.isPending}
+        >
+          <Users className="size-3.5" />
+          Paid for someone
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs gap-1.5"
+          onClick={() => handlePaidForSomeone(false)}
+          disabled={mutation.isPending}
+        >
+          Clear pass-through
         </Button>
 
         <Button

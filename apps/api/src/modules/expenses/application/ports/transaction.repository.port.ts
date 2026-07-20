@@ -43,6 +43,8 @@ export interface TransactionFilters {
     mode?: string
     categorizationMethod?: string
     requiresReview?: boolean
+    /** Filter by paid-for-someone annotation: any / pending / settled */
+    paidForSomeone?: 'true' | 'pending' | 'settled'
     dateFrom?: Date
     dateTo?: Date
     search?: string
@@ -76,7 +78,9 @@ export interface TransactionRepository {
     updateById(params: {
         userId: string
         id: string
-        data: UpdateTransactionInput
+        data: UpdateTransactionInput & {
+            transactionAttributes?: Transaction['transactionAttributes'] | null
+        }
     }): Promise<Transaction>
     listByUser(params: {
         userId: string
@@ -210,6 +214,7 @@ export interface TransactionRepository {
             subcategory?: string
             transactionMode?: string
             requiresReview?: boolean
+            paidForSomeone?: boolean
         }
     }): Promise<number>
 

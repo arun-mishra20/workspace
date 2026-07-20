@@ -23,6 +23,10 @@ export const TransactionAttributesSchema = z
     incomeType: z.enum(['salary', 'bonus', 'freelance', 'refund', 'dividend', 'reimbursement']).optional(),
     isCreditCardBillPayment: z.boolean().optional(),
     llmReasoning: z.string().optional(),
+    paidForSomeone: z.boolean().optional(),
+    reimbursementStatus: z.enum(['pending', 'settled']).optional(),
+    linkedReimbursementTxnId: z.string().uuid().optional(),
+    reimbursementNote: z.string().max(280).optional(),
   })
   .partial()
 
@@ -36,4 +40,40 @@ export function mergeTransactionAttributes(
     return undefined
   }
   return TransactionAttributesSchema.parse({ ...base, ...patch })
+}
+
+/** Strip paid-for-someone annotation keys from attributes. */
+export function clearPaidForSomeoneAttributes(
+  attrs: TransactionAttributes | undefined,
+): TransactionAttributes | undefined {
+  if (!attrs) {
+    return undefined
+  }
+
+  const {
+    paidForSomeone: _paid,
+    reimbursementStatus: _status,
+    linkedReimbursementTxnId: _link,
+    reimbursementNote: _note,
+    ...rest
+  } = attrs
+
+  return Object.keys(rest).length > 0 ? rest : undefined
+}
+
+/** Strip credit-side reimbursement link markers (keeps other attrs). */
+export function clearReimbursementCreditLink(
+  attrs: TransactionAttributes | undefined,
+): TransactionAttributes | undefined {
+  if (!attrs) {
+    return undefined
+  }
+
+  const next: TransactionAttributes = { ...attrs }
+  delete next.linkedReimbursementTxnId
+  if (next.incomeType === 'reimbursement') {
+    delete next.incomeType
+  }
+
+  return Object.keys(next).length > 0 ? next : undefined
 }

@@ -278,7 +278,9 @@ export class TransactionRepositoryImpl implements TransactionRepository {
     async updateById(params: {
         userId: string
         id: string
-        data: UpdateTransactionInput
+        data: UpdateTransactionInput & {
+            transactionAttributes?: Transaction['transactionAttributes'] | null
+        }
     }): Promise<Transaction> {
         const setClause: Record<string, unknown> = { updatedAt: new Date() }
 
@@ -305,6 +307,9 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         }
         if (params.data.requiresReview !== undefined) {
             setClause.requiresReview = params.data.requiresReview
+        }
+        if (params.data.transactionAttributes !== undefined) {
+            setClause.transactionAttributes = params.data.transactionAttributes ?? null
         }
 
         // Mark as manually categorized
@@ -348,6 +353,16 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         }
         if (filters?.requiresReview !== undefined) {
             conditions.push(eq(transactionsTable.requiresReview, filters.requiresReview))
+        }
+        if (filters?.paidForSomeone) {
+            conditions.push(
+                sql`coalesce(${transactionsTable.transactionAttributes}->>'paidForSomeone', 'false') = 'true'`,
+            )
+            if (filters.paidForSomeone === 'pending' || filters.paidForSomeone === 'settled') {
+                conditions.push(
+                    sql`${transactionsTable.transactionAttributes}->>'reimbursementStatus' = ${filters.paidForSomeone}`,
+                )
+            }
         }
         if (filters?.dateFrom) {
             conditions.push(gte(transactionsTable.transactionDate, filters.dateFrom))
@@ -482,6 +497,16 @@ export class TransactionRepositoryImpl implements TransactionRepository {
         }
         if (filters?.requiresReview !== undefined) {
             conditions.push(eq(transactionsTable.requiresReview, filters.requiresReview))
+        }
+        if (filters?.paidForSomeone) {
+            conditions.push(
+                sql`coalesce(${transactionsTable.transactionAttributes}->>'paidForSomeone', 'false') = 'true'`,
+            )
+            if (filters.paidForSomeone === 'pending' || filters.paidForSomeone === 'settled') {
+                conditions.push(
+                    sql`${transactionsTable.transactionAttributes}->>'reimbursementStatus' = ${filters.paidForSomeone}`,
+                )
+            }
         }
         if (filters?.dateFrom) {
             conditions.push(gte(transactionsTable.transactionDate, filters.dateFrom))

@@ -63,6 +63,16 @@ export function TransactionMetadataBadges({
           </Badge>
         ) : null}
 
+        {attrs?.paidForSomeone ? (
+          <Badge variant="secondary" className="text-xs">
+            {attrs.reimbursementStatus === 'settled'
+              ? 'Settled'
+              : attrs.reimbursementStatus === 'pending'
+                ? 'Awaiting repayment'
+                : 'Paid for someone'}
+          </Badge>
+        ) : null}
+
         {attrs?.incomeType ? (
           <Badge variant="outline" className="text-xs capitalize">
             {attrs.incomeType.replace(/_/g, ' ')}

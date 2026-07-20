@@ -39,6 +39,13 @@ class BulkUpdateFieldsDto {
   @IsBoolean()
   @IsOptional()
   requiresReview?: boolean
+
+  @ApiPropertyOptional({
+    description: 'Mark / clear paid-for-someone annotation (true → pending)',
+  })
+  @IsBoolean()
+  @IsOptional()
+  paidForSomeone?: boolean
 }
 
 /**

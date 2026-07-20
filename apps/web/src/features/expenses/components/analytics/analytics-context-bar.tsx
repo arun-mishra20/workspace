@@ -148,6 +148,25 @@ export function AnalyticsContextBar({
                 })}
             />
           </div>
+          <div className="flex items-center justify-between gap-3 px-2 py-2">
+            <div className="space-y-0.5">
+              <Label htmlFor="exclude-paid-for-someone" className="text-sm font-normal">
+                Paid for someone
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Outflows you marked as repayable / pass-through
+              </p>
+            </div>
+            <Switch
+              id="exclude-paid-for-someone"
+              checked={spendExclusions.excludePaidForSomeone}
+              onCheckedChange={(checked) =>
+                onSpendExclusionsChange({
+                  ...spendExclusions,
+                  excludePaidForSomeone: checked,
+                })}
+            />
+          </div>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

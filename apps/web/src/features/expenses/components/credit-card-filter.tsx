@@ -51,7 +51,7 @@ export function CreditCardFilter({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            'h-9 justify-between gap-2 px-3 text-xs font-normal',
+            'h-9 min-w-0 justify-between gap-2 px-3 text-xs font-normal',
             selectedCard ? 'min-w-44' : 'w-40',
             className,
           )}

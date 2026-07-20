@@ -1,25 +1,36 @@
 export interface SpendExclusionPreferences {
   excludeCreditCardBills: boolean
   excludeSelfTransfers: boolean
+  excludePaidForSomeone: boolean
 }
 
 export const DEFAULT_SPEND_EXCLUSION_PREFERENCES: SpendExclusionPreferences = {
   excludeCreditCardBills: true,
   excludeSelfTransfers: true,
+  excludePaidForSomeone: true,
 }
 
 export const ANALYTICS_SPEND_EXCLUSIONS_STORAGE_KEY = 'expenses-analytics-spend-exclusions'
 
-function isSpendExclusionPreferences(value: unknown): value is SpendExclusionPreferences {
-  if (!value || typeof value !== 'object') {
-    return false
+function normalizeSpendExclusionPreferences(
+  value: Partial<SpendExclusionPreferences>,
+): SpendExclusionPreferences | null {
+  if (
+    typeof value.excludeCreditCardBills !== 'boolean'
+    || typeof value.excludeSelfTransfers !== 'boolean'
+  ) {
+    return null
   }
 
-  const record = value as Partial<SpendExclusionPreferences>
-  return (
-    typeof record.excludeCreditCardBills === 'boolean'
-    && typeof record.excludeSelfTransfers === 'boolean'
-  )
+  return {
+    excludeCreditCardBills: value.excludeCreditCardBills,
+    excludeSelfTransfers: value.excludeSelfTransfers,
+    // Migrate older localStorage prefs that lack this key → default on
+    excludePaidForSomeone:
+      typeof value.excludePaidForSomeone === 'boolean'
+        ? value.excludePaidForSomeone
+        : DEFAULT_SPEND_EXCLUSION_PREFERENCES.excludePaidForSomeone,
+  }
 }
 
 export function readSpendExclusionPreferences(): SpendExclusionPreferences {
@@ -30,9 +41,14 @@ export function readSpendExclusionPreferences(): SpendExclusionPreferences {
     }
 
     const parsed = JSON.parse(raw) as unknown
-    return isSpendExclusionPreferences(parsed)
-      ? parsed
-      : DEFAULT_SPEND_EXCLUSION_PREFERENCES
+    if (!parsed || typeof parsed !== 'object') {
+      return DEFAULT_SPEND_EXCLUSION_PREFERENCES
+    }
+
+    return (
+      normalizeSpendExclusionPreferences(parsed as Partial<SpendExclusionPreferences>)
+      ?? DEFAULT_SPEND_EXCLUSION_PREFERENCES
+    )
   } catch {
     return DEFAULT_SPEND_EXCLUSION_PREFERENCES
   }
@@ -57,18 +73,31 @@ export function resolveSpendExclusionPreferences(
 ): SpendExclusionPreferences {
   const excludeCreditCardBills = parseBooleanParam(searchParams.get('excludeCcBills'))
   const excludeSelfTransfers = parseBooleanParam(searchParams.get('excludeSelfTransfers'))
+  const excludePaidForSomeone = parseBooleanParam(searchParams.get('excludePaidForSomeone'))
 
-  if (excludeCreditCardBills !== undefined || excludeSelfTransfers !== undefined) {
+  if (
+    excludeCreditCardBills !== undefined
+    || excludeSelfTransfers !== undefined
+    || excludePaidForSomeone !== undefined
+  ) {
     return {
-      excludeCreditCardBills: excludeCreditCardBills ?? DEFAULT_SPEND_EXCLUSION_PREFERENCES.excludeCreditCardBills,
-      excludeSelfTransfers: excludeSelfTransfers ?? DEFAULT_SPEND_EXCLUSION_PREFERENCES.excludeSelfTransfers,
+      excludeCreditCardBills:
+        excludeCreditCardBills ?? DEFAULT_SPEND_EXCLUSION_PREFERENCES.excludeCreditCardBills,
+      excludeSelfTransfers:
+        excludeSelfTransfers ?? DEFAULT_SPEND_EXCLUSION_PREFERENCES.excludeSelfTransfers,
+      excludePaidForSomeone:
+        excludePaidForSomeone ?? DEFAULT_SPEND_EXCLUSION_PREFERENCES.excludePaidForSomeone,
     }
   }
 
   // Backward compatibility with the original single toggle
   const includeBillPayments = searchParams.get('includeBillPayments')
   if (includeBillPayments === '1') {
-    return { excludeCreditCardBills: false, excludeSelfTransfers: false }
+    return {
+      excludeCreditCardBills: false,
+      excludeSelfTransfers: false,
+      excludePaidForSomeone: false,
+    }
   }
   if (includeBillPayments === '0') {
     return DEFAULT_SPEND_EXCLUSION_PREFERENCES
@@ -83,6 +112,7 @@ export function buildSpendExclusionSearchParams(
   return {
     excludeCcBills: preferences.excludeCreditCardBills ? '1' : '0',
     excludeSelfTransfers: preferences.excludeSelfTransfers ? '1' : '0',
+    excludePaidForSomeone: preferences.excludePaidForSomeone ? '1' : '0',
   }
 }
 
@@ -94,6 +124,9 @@ export function buildExcludeCategoriesParam(preferences: SpendExclusionPreferenc
   if (preferences.excludeSelfTransfers) {
     tokens.push('personal_transfer:self_transfer')
   }
+  if (preferences.excludePaidForSomeone) {
+    tokens.push('paid_for_someone')
+  }
 
   if (tokens.length === 0) {
     return ''
@@ -102,6 +135,7 @@ export function buildExcludeCategoriesParam(preferences: SpendExclusionPreferenc
   if (
     preferences.excludeCreditCardBills
     && preferences.excludeSelfTransfers
+    && preferences.excludePaidForSomeone
   ) {
     return undefined
   }
@@ -115,11 +149,16 @@ export function countActiveSpendExclusions(
   return (
     (preferences.excludeCreditCardBills ? 1 : 0)
     + (preferences.excludeSelfTransfers ? 1 : 0)
+    + (preferences.excludePaidForSomeone ? 1 : 0)
   )
 }
 
 export function formatSpendExclusionSummary(preferences: SpendExclusionPreferences): string {
-  if (!preferences.excludeCreditCardBills && !preferences.excludeSelfTransfers) {
+  if (
+    !preferences.excludeCreditCardBills
+    && !preferences.excludeSelfTransfers
+    && !preferences.excludePaidForSomeone
+  ) {
     return 'Cash-flow view'
   }
 
@@ -130,13 +169,25 @@ export function formatSpendExclusionSummary(preferences: SpendExclusionPreferenc
   if (preferences.excludeSelfTransfers) {
     excluded.push('self transfers')
   }
+  if (preferences.excludePaidForSomeone) {
+    excluded.push('paid for someone')
+  }
 
-  return `Excludes ${excluded.join(' and ')}`
+  if (excluded.length === 1) {
+    return `Excludes ${excluded[0]}`
+  }
+
+  if (excluded.length === 2) {
+    return `Excludes ${excluded[0]} and ${excluded[1]}`
+  }
+
+  return `Excludes ${excluded.slice(0, -1).join(', ')}, and ${excluded[excluded.length - 1]}`
 }
 
 export function isDefaultSpendExclusionPreferences(preferences: SpendExclusionPreferences): boolean {
   return (
     preferences.excludeCreditCardBills === DEFAULT_SPEND_EXCLUSION_PREFERENCES.excludeCreditCardBills
     && preferences.excludeSelfTransfers === DEFAULT_SPEND_EXCLUSION_PREFERENCES.excludeSelfTransfers
+    && preferences.excludePaidForSomeone === DEFAULT_SPEND_EXCLUSION_PREFERENCES.excludePaidForSomeone
   )
 }

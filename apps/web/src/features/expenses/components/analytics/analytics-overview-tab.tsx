@@ -119,6 +119,7 @@ export function AnalyticsOverviewTab({
   spendExclusions = {
     excludeCreditCardBills: true,
     excludeSelfTransfers: true,
+    excludePaidForSomeone: true,
   },
   summary,
   summaryLoading,

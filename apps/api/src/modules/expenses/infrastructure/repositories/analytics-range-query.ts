@@ -40,6 +40,10 @@ function matchesSpendExclusionRule(rule: SpendExclusionRule): SQL {
     )!
   }
 
+  if (rule.category === 'paid_for_someone') {
+    return sql`coalesce(${transactionsTable.transactionAttributes}->>'paidForSomeone', 'false') = 'true'`
+  }
+
   return eq(transactionsTable.category, rule.category)
 }
 
@@ -111,7 +115,10 @@ export function transactionMatchesSpendExclusion(
     transactionType: string
     category: string
     subcategory: string
-    transactionAttributes?: { isCreditCardBillPayment?: boolean } | null
+    transactionAttributes?: {
+      isCreditCardBillPayment?: boolean
+      paidForSomeone?: boolean
+    } | null
   },
   excludeSpendRules: SpendExclusionRule[],
 ): boolean {
@@ -126,6 +133,10 @@ export function transactionMatchesSpendExclusion(
 
     if (rule.category === 'credit_card_bills') {
       return txn.category === 'credit_card_bills' || txn.transactionAttributes?.isCreditCardBillPayment === true
+    }
+
+    if (rule.category === 'paid_for_someone') {
+      return txn.transactionAttributes?.paidForSomeone === true
     }
 
     return txn.category === rule.category

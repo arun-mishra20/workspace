@@ -49,6 +49,16 @@ export class ListExpensesDto extends OffsetPaginationDto {
   @IsOptional()
   review?: string
 
+  @ApiPropertyOptional({
+    description:
+      "Filter paid-for-someone annotations: 'true' (any), 'pending', or 'settled'",
+    enum: ['true', 'pending', 'settled'],
+  })
+  @IsString()
+  @IsOptional()
+  @IsIn(['true', 'pending', 'settled'])
+  paid_for_someone?: 'true' | 'pending' | 'settled'
+
   @ApiPropertyOptional({ description: 'Start date (inclusive) ISO-8601' })
   @IsDateString()
   @IsOptional()

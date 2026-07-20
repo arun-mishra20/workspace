@@ -213,6 +213,7 @@ export class ExpensesController {
       filters.categorizationMethod = query.categorization_method
     }
     if (query.review !== undefined) filters.requiresReview = query.review === 'true'
+    if (query.paid_for_someone) filters.paidForSomeone = query.paid_for_someone
     if (query.date_from) filters.dateFrom = new Date(query.date_from)
     if (query.date_to) filters.dateTo = new Date(query.date_to)
     if (query.search) filters.search = query.search
@@ -256,6 +257,7 @@ export class ExpensesController {
       filters.categorizationMethod = query.categorization_method
     }
     if (query.review !== undefined) filters.requiresReview = query.review === 'true'
+    if (query.paid_for_someone) filters.paidForSomeone = query.paid_for_someone
     if (query.from) filters.dateFrom = new Date(query.from)
     if (query.to) filters.dateTo = new Date(query.to)
     if (query.search) filters.search = query.search

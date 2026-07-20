@@ -32,7 +32,7 @@ export function SearchFilter({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-9 pl-8 pr-8 text-xs w-50"
+        className="h-9 w-full pl-8 pr-8 text-xs"
       />
       {value && (
         <button

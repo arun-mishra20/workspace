@@ -31,6 +31,7 @@ import { MerchantCategorizeDialog } from '@/features/expenses/components/merchan
 import { BulkActionsToolbar } from '@/features/expenses/components/bulk-actions-toolbar'
 import { CreditCardFilter } from '@/features/expenses/components/credit-card-filter'
 import { LlmCategorizeDialog } from '@/features/expenses/components/llm-categorize-dialog'
+import { LinkRepaymentDialog } from '@/features/expenses/components/link-repayment-dialog'
 import { fetchCreditCards } from '@/features/expenses/api/credit-cards'
 import {
   CATEGORY_OPTIONS,
@@ -74,6 +75,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@workspace/ui/components/ui/sheet'
+import { Switch } from '@workspace/ui/components/ui/switch'
 import {
   Tabs,
   TabsContent,
@@ -141,6 +143,12 @@ const MODE_FILTER_OPTIONS: FilterOption[] = TRANSACTION_MODES.map((m) => ({
 const REVIEW_FILTER_OPTIONS: FilterOption[] = [
   { value: 'true', label: 'Needs Review' },
   { value: 'false', label: 'Reviewed' },
+]
+
+const PAID_FOR_SOMEONE_FILTER_OPTIONS: FilterOption[] = [
+  { value: 'true', label: 'Any pass-through' },
+  { value: 'pending', label: 'Awaiting repayment' },
+  { value: 'settled', label: 'Settled' },
 ]
 
 const CATEGORIZATION_METHOD_FILTER_OPTIONS: FilterOption[] = [
@@ -481,6 +489,9 @@ const ExpenseEmailsPage = () => {
   const [filterReview, setFilterReview] = useState(
     () => searchParams.get('review') ?? '',
   )
+  const [filterPaidForSomeone, setFilterPaidForSomeone] = useState(
+    () => searchParams.get('paid_for_someone') ?? '',
+  )
   const [filterSubcategory, setFilterSubcategory] = useState(
     () => searchParams.get('subcategory') ?? '',
   )
@@ -528,6 +539,7 @@ const ExpenseEmailsPage = () => {
           filterCategorizationMethod || undefined,
         )
         setOrDelete('review', filterReview || undefined)
+        setOrDelete('paid_for_someone', filterPaidForSomeone || undefined)
         setOrDelete('date_from', filterDateFrom)
         setOrDelete('date_to', filterDateTo)
         setOrDelete('search', debouncedSearch || undefined)
@@ -561,6 +573,7 @@ const ExpenseEmailsPage = () => {
     filterDateTo,
     filterMode,
     filterReview,
+    filterPaidForSomeone,
     expenseSorting,
     emailSorting,
     activeView,
@@ -607,10 +620,16 @@ const ExpenseEmailsPage = () => {
     filterCategorizationMethod ||
     filterMode ||
     filterReview ||
+    filterPaidForSomeone ||
     filterDateFrom ||
     filterDateTo ||
     debouncedSearch ||
     filterCard
+
+  const moreFiltersActiveCount = [
+    filterCategorizationMethod,
+    filterPaidForSomeone,
+  ].filter(Boolean).length
 
   const showAiCategorizePrompt =
     filterCategory === 'uncategorized' || filterReview === 'true'
@@ -625,6 +644,7 @@ const ExpenseEmailsPage = () => {
     filterCategorizationMethod,
     filterMode,
     filterReview,
+    filterPaidForSomeone,
     filterDateFrom,
     filterDateTo,
     debouncedSearch,
@@ -634,9 +654,11 @@ const ExpenseEmailsPage = () => {
 
   // ── Edit form state ──
   const [editForm, setEditForm] = useState<UpdateTransactionInput>({})
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false)
 
   const openEditSheet = (transaction: Transaction) => {
     setEditingTransaction(transaction)
+    const attrs = transaction.transactionAttributes
     setEditForm({
       merchant: transaction.merchant,
       category: transaction.category,
@@ -655,12 +677,17 @@ const ExpenseEmailsPage = () => {
       amount: transaction.amount,
       currency: transaction.currency,
       requiresReview: transaction.requiresReview,
+      paidForSomeone: attrs?.paidForSomeone ?? false,
+      reimbursementStatus: attrs?.reimbursementStatus,
+      linkedReimbursementTxnId: attrs?.linkedReimbursementTxnId,
+      reimbursementNote: attrs?.reimbursementNote,
     })
   }
 
   const closeEditSheet = () => {
     setEditingTransaction(null)
     setEditForm({})
+    setLinkDialogOpen(false)
   }
 
   const updateMutation = useMutation({
@@ -670,15 +697,23 @@ const ExpenseEmailsPage = () => {
       void queryClient.invalidateQueries({
         queryKey: ['expenses', 'transactions'],
       })
+      void queryClient.invalidateQueries({ queryKey: ['analytics'] })
       closeEditSheet()
     },
   })
 
   const handleSaveEdit = () => {
     if (!editingTransaction) return
+
+    const data: UpdateTransactionInput = { ...editForm }
+    // Avoid sending empty-string note; use null to clear
+    if (data.reimbursementNote === '') {
+      data.reimbursementNote = null
+    }
+
     updateMutation.mutate({
       id: editingTransaction.id,
-      data: editForm,
+      data,
     })
   }
 
@@ -728,6 +763,7 @@ const ExpenseEmailsPage = () => {
       filterCategorizationMethod,
       filterMode,
       filterReview,
+      filterPaidForSomeone,
       filterDateFrom,
       filterDateTo,
       debouncedSearch,
@@ -746,6 +782,12 @@ const ExpenseEmailsPage = () => {
         }),
         ...(filterMode && { mode: filterMode }),
         ...(filterReview && { review: filterReview }),
+        ...(filterPaidForSomeone && {
+          paid_for_someone: filterPaidForSomeone as
+            | 'true'
+            | 'pending'
+            | 'settled',
+        }),
         ...(filterDateFrom && { date_from: filterDateFrom }),
         ...(filterDateTo && { date_to: filterDateTo }),
         ...(debouncedSearch && { search: debouncedSearch }),
@@ -1212,9 +1254,9 @@ const ExpenseEmailsPage = () => {
             <CardContent>
               {/* ── Filter bar (expense tab only) ── */}
               {activeView === 'expense' && (
-                <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[14px] border border-border bg-muted/40 px-3 py-2.5">
+                <div className="mb-4 flex w-full flex-wrap items-center gap-2 rounded-[14px] border border-border bg-muted/40 px-3 py-2.5 sm:flex-nowrap">
                   {returnTo ? (
-                    <Button variant="outline" size="sm" className="h-9" asChild>
+                    <Button variant="outline" size="sm" className="h-9 shrink-0" asChild>
                       <Link to={returnTo}>
                         <ArrowLeft className="mr-1.5 size-3.5" />
                         Back to analytics
@@ -1225,11 +1267,13 @@ const ExpenseEmailsPage = () => {
                     value={searchInput}
                     onChange={setSearchInput}
                     placeholder="Search merchant…"
+                    className="min-w-40 flex-[1.4]"
                   />
                   <CreditCardFilter
                     cards={creditCards}
                     selectedLast4={filterCard || undefined}
                     onSelect={handleCardSelect}
+                    className="w-full min-w-0 flex-1"
                   />
                   <SelectFilter
                     label="Categories"
@@ -1249,32 +1293,28 @@ const ExpenseEmailsPage = () => {
                         setFilterSubcategory('')
                       }
                     }}
+                    className="h-9 min-w-0 flex-1 text-xs"
                   />
                   <SelectFilter
                     label="Subcategories"
                     value={filterSubcategory}
                     options={subcategoryFilterOptions}
                     onChange={setFilterSubcategory}
+                    className="h-9 min-w-0 flex-1 text-xs"
                   />
                   <SelectFilter
                     label="Modes"
                     value={filterMode}
                     options={MODE_FILTER_OPTIONS}
                     onChange={setFilterMode}
-                  />
-                  <SelectFilter
-                    label="Method"
-                    value={filterCategorizationMethod}
-                    options={CATEGORIZATION_METHOD_FILTER_OPTIONS}
-                    onChange={setFilterCategorizationMethod}
-                    className="w-35 h-9 text-xs"
+                    className="h-9 min-w-0 flex-1 text-xs"
                   />
                   <SelectFilter
                     label="Review"
                     value={filterReview}
                     options={REVIEW_FILTER_OPTIONS}
                     onChange={setFilterReview}
-                    className="w-35 h-9 text-xs"
+                    className="h-9 min-w-0 flex-1 text-xs"
                   />
                   <DateRangeFilter
                     dateFrom={filterDateFrom}
@@ -1283,18 +1323,56 @@ const ExpenseEmailsPage = () => {
                       setFilterDateFrom(from)
                       setFilterDateTo(to)
                     }}
+                    className="min-w-0 flex-1"
                   />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="relative size-9 shrink-0"
+                        aria-label="More filters"
+                      >
+                        <MoreVertical className="size-4" />
+                        {moreFiltersActiveCount > 0 ? (
+                          <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                            {moreFiltersActiveCount}
+                          </span>
+                        ) : null}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-72 space-y-3 p-3">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        More filters
+                      </p>
+                      <SelectFilter
+                        label="Method"
+                        value={filterCategorizationMethod}
+                        options={CATEGORIZATION_METHOD_FILTER_OPTIONS}
+                        onChange={setFilterCategorizationMethod}
+                        className="h-9 w-full text-xs"
+                      />
+                      <SelectFilter
+                        label="Pass-through"
+                        value={filterPaidForSomeone}
+                        options={PAID_FOR_SOMEONE_FILTER_OPTIONS}
+                        onChange={setFilterPaidForSomeone}
+                        className="h-9 w-full text-xs"
+                      />
+                    </PopoverContent>
+                  </Popover>
                   {hasActiveFilters && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-9 text-xs text-muted-foreground"
+                      className="h-9 shrink-0 text-xs text-muted-foreground"
                       onClick={() => {
                         setFilterCategory('')
                         setFilterSubcategory('')
                         setFilterCategorizationMethod('')
                         setFilterMode('')
                         setFilterReview('')
+                        setFilterPaidForSomeone('')
                         setFilterDateFrom(undefined)
                         setFilterDateTo(undefined)
                         setSearchInput('')
@@ -1589,6 +1667,116 @@ const ExpenseEmailsPage = () => {
               />
               <Label htmlFor="edit-requires-review">Requires review</Label>
             </div>
+
+            {/* Paid for someone */}
+            {(editForm.transactionType === 'debited'
+              || editingTransaction?.transactionType === 'debited') && (
+              <div className="space-y-3 rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="edit-paid-for-someone">
+                      Paid for someone
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Pass-through outflow — exclude from spend when the
+                      analytics toggle is on. Linking a repayment is optional.
+                    </p>
+                  </div>
+                  <Switch
+                    id="edit-paid-for-someone"
+                    checked={editForm.paidForSomeone ?? false}
+                    onCheckedChange={(checked) =>
+                      setEditForm((f) => ({
+                        ...f,
+                        paidForSomeone: checked,
+                        reimbursementStatus: checked
+                          ? (f.reimbursementStatus ?? 'pending')
+                          : undefined,
+                        linkedReimbursementTxnId: checked
+                          ? f.linkedReimbursementTxnId
+                          : null,
+                        reimbursementNote: checked
+                          ? f.reimbursementNote
+                          : null,
+                      }))
+                    }
+                  />
+                </div>
+
+                {editForm.paidForSomeone ? (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {editForm.reimbursementStatus === 'settled'
+                          ? 'Settled'
+                          : 'Pending'}
+                      </Badge>
+                      {editForm.linkedReimbursementTxnId ? (
+                        <Badge variant="outline" className="text-xs">
+                          Linked
+                        </Badge>
+                      ) : null}
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-reimbursement-note">Note</Label>
+                      <Input
+                        id="edit-reimbursement-note"
+                        value={editForm.reimbursementNote ?? ''}
+                        onChange={(e) =>
+                          setEditForm((f) => ({
+                            ...f,
+                            reimbursementNote: e.target.value || null,
+                          }))
+                        }
+                        placeholder="e.g. Friend's tax payment"
+                        maxLength={280}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setLinkDialogOpen(true)}
+                      >
+                        Link repayment…
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setEditForm((f) => ({
+                            ...f,
+                            reimbursementStatus: 'settled',
+                          }))
+                        }
+                      >
+                        Mark settled
+                      </Button>
+                      {editForm.linkedReimbursementTxnId ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setEditForm((f) => ({
+                              ...f,
+                              linkedReimbursementTxnId: null,
+                              reimbursementStatus: 'pending',
+                            }))
+                          }
+                        >
+                          Unlink
+                        </Button>
+                      ) : null}
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            )}
           </div>
 
           <SheetFooter className="px-4">
@@ -1604,6 +1792,30 @@ const ExpenseEmailsPage = () => {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      {editingTransaction ? (
+        <LinkRepaymentDialog
+          open={linkDialogOpen}
+          onOpenChange={setLinkDialogOpen}
+          debit={editingTransaction}
+          onLink={(creditId) =>
+            setEditForm((f) => ({
+              ...f,
+              paidForSomeone: true,
+              linkedReimbursementTxnId: creditId,
+              reimbursementStatus: 'settled',
+            }))
+          }
+          onSkip={() => undefined}
+          onMarkSettledWithoutLink={() =>
+            setEditForm((f) => ({
+              ...f,
+              paidForSomeone: true,
+              reimbursementStatus: 'settled',
+            }))
+          }
+        />
+      ) : null}
 
       <LlmCategorizeDialog
         open={queueLlmOpen}

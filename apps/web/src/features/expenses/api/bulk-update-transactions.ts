@@ -11,6 +11,7 @@ export interface BulkUpdateRequest {
     subcategory?: string;
     transactionMode?: string;
     requiresReview?: boolean;
+    paidForSomeone?: boolean;
   };
 }
 

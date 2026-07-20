@@ -45,6 +45,14 @@ import {
   resolveExcludeSpendRules,
   type SpendExclusionRule,
 } from '@/modules/expenses/application/utils/analytics-exclusions'
+import {
+  applyDebitReimbursementAttributes,
+  hasReimbursementPatch,
+  markCreditAsReimbursementLink,
+  previousLinkedCreditId,
+  stripReimbursementFields,
+  unlinkCreditAttributes,
+} from '@/modules/expenses/application/utils/reimbursement-attributes'
 import { transactionMatchesSpendExclusion } from '@/modules/expenses/infrastructure/repositories/analytics-range-query'
 import type { UserCategorizationRules } from '@/modules/expenses/infrastructure/categorization/transaction-categorizer'
 import type {RawEmailRepository, EmailSortField} from '@/shared/application/ports/raw-email.repository.port';
@@ -599,7 +607,117 @@ export class ExpensesService implements OnModuleDestroy {
     id: string
     data: UpdateTransactionInput
   }): Promise<Transaction> {
-    const updated = await this.transactionRepository.updateById(params)
+    const columnData = stripReimbursementFields(params.data)
+
+    if (!hasReimbursementPatch(params.data)) {
+      const updated = await this.transactionRepository.updateById({
+        userId: params.userId,
+        id: params.id,
+        data: columnData,
+      })
+      this.invalidateUserAnalyticsCache(params.userId)
+      return updated
+    }
+
+    const current = await this.transactionRepository.findById({
+      userId: params.userId,
+      id: params.id,
+    })
+    if (!current) {
+      const updated = await this.transactionRepository.updateById({
+        userId: params.userId,
+        id: params.id,
+        data: columnData,
+      })
+      this.invalidateUserAnalyticsCache(params.userId)
+      return updated
+    }
+
+    const attributeUpdates: {
+      id: string
+      transactionAttributes: Transaction['transactionAttributes']
+    }[] = []
+
+    const previousLinkId = previousLinkedCreditId(current)
+    const nextLinkId = params.data.linkedReimbursementTxnId
+    const clearingPaidForSomeone = params.data.paidForSomeone === false
+
+    if (
+      typeof nextLinkId === 'string'
+      && current.transactionType !== 'debited'
+    ) {
+      throw new BadRequestException(
+        'Only debited transactions can link a repayment credit',
+      )
+    }
+
+    if (typeof nextLinkId === 'string') {
+      const credit = await this.transactionRepository.findById({
+        userId: params.userId,
+        id: nextLinkId,
+      })
+      if (!credit) {
+        throw new BadRequestException('Linked repayment transaction not found')
+      }
+      if (credit.transactionType !== 'credited') {
+        throw new BadRequestException(
+          'Linked repayment must be a credited transaction',
+        )
+      }
+      if (credit.id === current.id) {
+        throw new BadRequestException('Cannot link a transaction to itself')
+      }
+
+      attributeUpdates.push({
+        id: credit.id,
+        transactionAttributes: markCreditAsReimbursementLink(
+          credit.transactionAttributes,
+          current.id,
+        ),
+      })
+    }
+
+    const shouldClearPreviousLink =
+      (clearingPaidForSomeone || nextLinkId === null || typeof nextLinkId === 'string')
+      && previousLinkId
+      && previousLinkId !== nextLinkId
+
+    if (shouldClearPreviousLink && previousLinkId) {
+      const previousCredit = await this.transactionRepository.findById({
+        userId: params.userId,
+        id: previousLinkId,
+      })
+      if (previousCredit) {
+        attributeUpdates.push({
+          id: previousCredit.id,
+          transactionAttributes: unlinkCreditAttributes(
+            previousCredit.transactionAttributes,
+          ),
+        })
+      }
+    }
+
+    const nextAttrs = applyDebitReimbursementAttributes(
+      current.transactionAttributes,
+      params.data,
+    )
+
+    const updated = await this.transactionRepository.updateById({
+      userId: params.userId,
+      id: params.id,
+      data: {
+        ...columnData,
+        transactionAttributes: nextAttrs ?? null,
+      },
+    })
+
+    if (attributeUpdates.length > 0) {
+      await this.transactionRepository.updateTransactionAttributesBatch({
+        userId: params.userId,
+        updates: attributeUpdates,
+      })
+    }
+
     this.invalidateUserAnalyticsCache(params.userId)
     return updated
   }
@@ -653,9 +771,43 @@ export class ExpensesService implements OnModuleDestroy {
       subcategory?: string
       transactionMode?: string
       requiresReview?: boolean
+      paidForSomeone?: boolean
     }
   }): Promise<{ updatedCount: number }> {
-    const updatedCount = await this.transactionRepository.bulkUpdateByIds(params)
+    const { paidForSomeone, ...columnData } = params.data
+    const hasColumnUpdates = Object.values(columnData).some((value) => value !== undefined)
+
+    let updatedCount = 0
+
+    if (hasColumnUpdates) {
+      updatedCount = await this.transactionRepository.bulkUpdateByIds({
+        userId: params.userId,
+        ids: params.ids,
+        data: columnData,
+      })
+    }
+
+    if (paidForSomeone !== undefined) {
+      const transactions = await this.transactionRepository.findByIds({
+        userId: params.userId,
+        ids: params.ids,
+      })
+
+      const updates = transactions.map((txn) => ({
+        id: txn.id,
+        transactionAttributes: applyDebitReimbursementAttributes(
+          txn.transactionAttributes,
+          { paidForSomeone },
+        ),
+      }))
+
+      await this.transactionRepository.updateTransactionAttributesBatch({
+        userId: params.userId,
+        updates,
+      })
+      updatedCount = Math.max(updatedCount, updates.length)
+    }
+
     this.invalidateUserAnalyticsCache(params.userId)
     return { updatedCount }
   }

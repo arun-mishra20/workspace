@@ -21,6 +21,20 @@ describe('resolveExcludeSpendRules', () => {
       { category: 'personal_transfer', subcategory: 'self_transfer' },
     ])
   })
+
+  it('parses paid_for_someone virtual token', () => {
+    expect(resolveExcludeSpendRules('paid_for_someone')).toEqual([
+      { category: 'paid_for_someone' },
+    ])
+  })
+
+  it('includes paid_for_someone in default exclusions', () => {
+    expect(DEFAULT_EXCLUDED_SPEND_RULES).toEqual([
+      { category: 'credit_card_bills' },
+      { category: 'personal_transfer', subcategory: 'self_transfer' },
+      { category: 'paid_for_someone' },
+    ])
+  })
 })
 
 describe('serializeExcludeSpendRules', () => {
@@ -29,7 +43,8 @@ describe('serializeExcludeSpendRules', () => {
       serializeExcludeSpendRules([
         { category: 'credit_card_bills' },
         { category: 'personal_transfer', subcategory: 'self_transfer' },
+        { category: 'paid_for_someone' },
       ]),
-    ).toBe('credit_card_bills,personal_transfer:self_transfer')
+    ).toBe('credit_card_bills,personal_transfer:self_transfer,paid_for_someone')
   })
 })

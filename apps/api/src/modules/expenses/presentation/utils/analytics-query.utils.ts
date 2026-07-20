@@ -10,7 +10,7 @@ export const ANALYTICS_EXCLUDE_CATEGORIES_QUERY = {
   required: false,
   type: String,
   description:
-    'Comma-separated spend exclusions. Category-only tokens (credit_card_bills) or category:subcategory (personal_transfer:self_transfer). Omit for defaults. Pass empty to include all debits.',
+    'Comma-separated spend exclusions. Tokens: credit_card_bills, personal_transfer:self_transfer, paid_for_someone. Omit for defaults. Pass empty to include all debits.',
 } as const
 
 export function parseAnalyticsExcludeCategories(excludeCategories?: string): SpendExclusionRule[] {

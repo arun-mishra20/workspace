@@ -12,9 +12,15 @@ export const SELF_TRANSFER_EXCLUSION: SpendExclusionRule = {
   subcategory: 'self_transfer',
 }
 
+/** Virtual token — matches transactionAttributes.paidForSomeone, not a real category. */
+export const PAID_FOR_SOMEONE_EXCLUSION: SpendExclusionRule = {
+  category: 'paid_for_someone',
+}
+
 export const DEFAULT_EXCLUDED_SPEND_RULES: SpendExclusionRule[] = [
   CREDIT_CARD_BILLS_EXCLUSION,
   SELF_TRANSFER_EXCLUSION,
+  PAID_FOR_SOMEONE_EXCLUSION,
 ]
 
 function encodeSpendExclusionRule(rule: SpendExclusionRule): string {
@@ -45,7 +51,7 @@ function parseSpendExclusionToken(token: string): SpendExclusionRule | null {
  * Parse `excludeCategories` query param.
  * - omitted → default exclusions (consumption view)
  * - empty string → no exclusions (cash-flow view)
- * - comma-separated tokens: `credit_card_bills`, `personal_transfer:self_transfer`
+ * - comma-separated tokens: `credit_card_bills`, `personal_transfer:self_transfer`, `paid_for_someone`
  */
 export function resolveExcludeSpendRules(excludeCategoriesParam?: string): SpendExclusionRule[] {
   if (excludeCategoriesParam === '') {

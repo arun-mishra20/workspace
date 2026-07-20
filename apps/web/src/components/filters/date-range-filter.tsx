@@ -88,14 +88,14 @@ export function DateRangeFilter({
   };
 
   return (
-    <div className={cn("flex items-center gap-1", className)}>
+    <div className={cn("flex min-w-0 items-center gap-1", className)}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             size="sm"
             className={cn(
-              "h-9 text-xs justify-start font-normal",
+              "h-9 w-full text-xs justify-start font-normal",
               !hasRange && "text-muted-foreground",
             )}
           >

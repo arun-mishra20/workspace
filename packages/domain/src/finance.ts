@@ -17,6 +17,9 @@ export const CategoryMetadataSchema = z.object({
   color: z.string(),
   parent: z.string().nullable(),
 });
+export const ReimbursementStatusSchema = z.enum(['pending', 'settled']);
+export type ReimbursementStatus = z.infer<typeof ReimbursementStatusSchema>;
+
 export const TransactionAttributesSchema = z
   .object({
     assetClass: z.enum(['stocks', 'mutual_funds', 'gold', 'sip', 'fd_rd']).optional(),
@@ -32,6 +35,12 @@ export const TransactionAttributesSchema = z
     incomeType: z.enum(['salary', 'bonus', 'freelance', 'refund', 'dividend', 'reimbursement']).optional(),
     isCreditCardBillPayment: z.boolean().optional(),
     llmReasoning: z.string().optional(),
+    /** Outflow was a pass-through payment for someone else (exclude from spend when toggled). */
+    paidForSomeone: z.boolean().optional(),
+    reimbursementStatus: ReimbursementStatusSchema.optional(),
+    /** Optional paired transaction id (debit↔credit). */
+    linkedReimbursementTxnId: z.string().uuid().optional(),
+    reimbursementNote: z.string().max(280).optional(),
   })
   .partial();
 
@@ -121,6 +130,12 @@ export const UpdateTransactionSchema = z.object({
   amount: z.number().positive().optional(),
   currency: z.string().min(1).optional(),
   requiresReview: z.boolean().optional(),
+  /** Mark / clear pass-through outflow annotation. */
+  paidForSomeone: z.boolean().optional(),
+  reimbursementStatus: ReimbursementStatusSchema.optional(),
+  /** Set to a credit txn id to link, or null to unlink while keeping paidForSomeone. */
+  linkedReimbursementTxnId: z.string().uuid().nullable().optional(),
+  reimbursementNote: z.string().max(280).nullable().optional(),
 });
 
 export type UpdateTransactionInput = z.infer<typeof UpdateTransactionSchema>;

@@ -22,6 +22,7 @@ export interface ListExpensesParams {
   mode?: string;
   categorization_method?: string;
   review?: string;
+  paid_for_someone?: "true" | "pending" | "settled";
   date_from?: string;
   date_to?: string;
   search?: string;
@@ -61,6 +62,10 @@ export async function listExpenses(
 
   if (params?.review) {
     searchParams.set("review", params.review);
+  }
+
+  if (params?.paid_for_someone) {
+    searchParams.set("paid_for_someone", params.paid_for_someone);
   }
 
   if (params?.date_from) {
