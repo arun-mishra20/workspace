@@ -433,23 +433,23 @@ export default function FlightsPage() {
 
   return (
     <MainLayout>
-      <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
-        <header className="flex flex-col gap-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-2">
-              <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
-                Flights
+      <div className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col px-4 pb-8 sm:px-6 lg:px-10">
+        <header className="pb-5">
+          <div className="flex flex-col gap-4 pt-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex flex-col gap-1.5">
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+                Travel
               </p>
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                  Flight and Hotels Activity
+                <h1 className="font-serif text-3xl font-medium italic tracking-tight text-foreground sm:text-[2.375rem] sm:leading-tight">
+                  Flight & hotel activity
                 </h1>
                 <Badge variant="outline" className="gap-1">
                   <Sparkles className="h-3.5 w-3.5" />
                   Manual correction enabled
                 </Badge>
               </div>
-              <p className="max-w-xl text-sm text-muted-foreground">
+              <p className="max-w-2xl text-sm text-muted-foreground">
                 Review extracted itineraries and hotel stays, trigger syncs, and
                 correct travel records when automated extraction needs help.
               </p>
@@ -513,15 +513,35 @@ export default function FlightsPage() {
           </div>
         </header>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full overflow-x-auto">
-            <TabsTrigger value="flights">Flights</TabsTrigger>
-            <TabsTrigger value="hotels">Hotels</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="map">Map</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-4">
+          <TabsList className="mb-4 h-auto w-fit max-w-full justify-start gap-0.5 overflow-x-auto rounded-[11px] border border-border bg-muted p-1">
+            <TabsTrigger
+              value="flights"
+              className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+            >
+              Flights
+            </TabsTrigger>
+            <TabsTrigger
+              value="hotels"
+              className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+            >
+              Hotels
+            </TabsTrigger>
+            <TabsTrigger
+              value="analytics"
+              className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+            >
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger
+              value="map"
+              className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+            >
+              Map
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="flights" className="mt-4 space-y-6">
+          <TabsContent value="flights" className="mt-2 space-y-6">
             <section className="grid gap-4 xl:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
               <Card className="border-border/60 bg-card/90">
                 <CardHeader className="pb-2">
@@ -530,7 +550,7 @@ export default function FlightsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                  <div className="flex items-center gap-2 font-serif text-lg font-semibold tracking-tight text-foreground">
                     <Plane className="h-5 w-5" />
                     {statusQuery.data?.connected
                       ? 'Connected'
@@ -550,7 +570,7 @@ export default function FlightsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-semibold text-foreground">
+                  <div className="font-mono text-[1.8rem] font-medium tabular-nums tracking-tight text-foreground">
                     {stats.totalStored}
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
@@ -566,7 +586,7 @@ export default function FlightsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-semibold text-foreground">
+                  <div className="font-mono text-[1.8rem] font-medium tabular-nums tracking-tight text-foreground">
                     {stats.manual}
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
@@ -584,7 +604,7 @@ export default function FlightsPage() {
                 <CardContent>
                   {stats.nextDeparture ? (
                     <>
-                      <div className="text-lg font-semibold text-foreground">
+                      <div className="font-serif text-lg font-semibold tracking-tight text-foreground">
                         {formatRoute(stats.nextDeparture)}
                       </div>
                       <p className="mt-2 text-sm text-muted-foreground">
@@ -806,15 +826,15 @@ export default function FlightsPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="analytics" className="mt-4">
+          <TabsContent value="analytics" className="mt-2">
             <FlightAnalyticsDashboard />
           </TabsContent>
 
-          <TabsContent value="hotels" className="mt-4">
-            <HotelsPageContent />
+          <TabsContent value="hotels" className="mt-2">
+            <HotelsPageContent embedded />
           </TabsContent>
 
-          <TabsContent value="map" className="mt-4">
+          <TabsContent value="map" className="mt-2">
             <FlightMapDashboard isActive={activeTab === 'map'} />
           </TabsContent>
         </Tabs>

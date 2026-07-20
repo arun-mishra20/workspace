@@ -112,7 +112,11 @@ export default function HotelsPage() {
   )
 }
 
-export function HotelsPageContent() {
+export function HotelsPageContent({
+  embedded = false,
+}: {
+  embedded?: boolean
+}) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(() => readStoredPageSize(25))
   const [search, setSearch] = useState('')
@@ -305,52 +309,82 @@ export function HotelsPageContent() {
     deleteMutation.isPending
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
-      <header className="flex flex-col gap-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
-              Hotels
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                Hotel Stays
-              </h1>
-              <Badge variant="outline" className="gap-1">
-                <MapPinned className="h-3.5 w-3.5" />
-                Manual coordinates enabled
-              </Badge>
-            </div>
-            <p className="max-w-xl text-sm text-muted-foreground">
-              Capture stays manually, correct extracted hotel details, and
-              review likely reservation emails before sending only selected
-              messages to the LLM.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant={showArchived ? 'default' : 'outline'}
-              onClick={() => setShowArchived((current) => !current)}
-            >
-              {showArchived ? 'Hide Archived' : 'Show Archived'}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setReviewDialogOpen(true)}
-              disabled={isSyncing}
-            >
-              <Bot className="mr-2 h-4 w-4" />
-              Review Hotel Emails
-            </Button>
-            <Button onClick={handleOpenCreate}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Stay
-            </Button>
-          </div>
+    <div
+      className={
+        embedded
+          ? 'flex flex-1 flex-col gap-6'
+          : 'mx-auto flex w-full max-w-[1360px] flex-1 flex-col px-4 pb-8 sm:px-6 lg:px-10'
+      }
+    >
+      {embedded ? (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button
+            variant={showArchived ? 'default' : 'outline'}
+            onClick={() => setShowArchived((current) => !current)}
+          >
+            {showArchived ? 'Hide Archived' : 'Show Archived'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setReviewDialogOpen(true)}
+            disabled={isSyncing}
+          >
+            <Bot className="mr-2 h-4 w-4" />
+            Review Hotel Emails
+          </Button>
+          <Button onClick={handleOpenCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Stay
+          </Button>
         </div>
-      </header>
+      ) : (
+        <header className="pb-5">
+          <div className="flex flex-col gap-4 pt-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex flex-col gap-1.5">
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+                Travel
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="font-serif text-3xl font-medium italic tracking-tight text-foreground sm:text-[2.375rem] sm:leading-tight">
+                  Hotel stays
+                </h1>
+                <Badge variant="outline" className="gap-1">
+                  <MapPinned className="h-3.5 w-3.5" />
+                  Manual coordinates enabled
+                </Badge>
+              </div>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                Capture stays manually, correct extracted hotel details, and
+                review likely reservation emails before sending only selected
+                messages to the LLM.
+              </p>
+            </div>
 
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant={showArchived ? 'default' : 'outline'}
+                onClick={() => setShowArchived((current) => !current)}
+              >
+                {showArchived ? 'Hide Archived' : 'Show Archived'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setReviewDialogOpen(true)}
+                disabled={isSyncing}
+              >
+                <Bot className="mr-2 h-4 w-4" />
+                Review Hotel Emails
+              </Button>
+              <Button onClick={handleOpenCreate}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Stay
+              </Button>
+            </div>
+          </div>
+        </header>
+      )}
+
+      <div className="flex flex-col gap-6">
       <section className="grid gap-4 xl:grid-cols-4">
         <Card className="border-border/60">
           <CardHeader className="pb-2">
@@ -359,7 +393,7 @@ export function HotelsPageContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold text-foreground">
+            <div className="font-mono text-[1.8rem] font-medium tabular-nums tracking-tight text-foreground">
               {stats.totalStored}
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -375,7 +409,7 @@ export function HotelsPageContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold text-foreground">
+            <div className="font-mono text-[1.8rem] font-medium tabular-nums tracking-tight text-foreground">
               {stats.manual}
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -391,7 +425,7 @@ export function HotelsPageContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold text-foreground">
+            <div className="font-mono text-[1.8rem] font-medium tabular-nums tracking-tight text-foreground">
               {stats.geocoded}
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -409,7 +443,7 @@ export function HotelsPageContent() {
           <CardContent>
             {stats.upcomingStay ? (
               <>
-                <div className="text-lg font-semibold text-foreground">
+                <div className="font-serif text-lg font-semibold tracking-tight text-foreground">
                   {stats.upcomingStay.hotelName}
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -639,6 +673,7 @@ export function HotelsPageContent() {
           />
         </CardContent>
       </Card>
+      </div>
 
       <HotelStayEditorSheet
         stay={selectedStay}
