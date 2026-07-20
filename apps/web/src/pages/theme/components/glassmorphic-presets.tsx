@@ -82,7 +82,7 @@ const GLASSMORPHIC_PRESETS = [
   {
     name: 'Crystal',
     tint: '255, 255, 255',
-    background: { light: '#f0f4f8', dark: '#0f172a' },
+    background: { light: '#e4eef8', dark: '#0b1220' },
     accent: '#e2e8f0',
     description: 'Clean clear glass',
   },
@@ -310,21 +310,24 @@ function applyGlassPresetToTheme(
   setOverride(mode, '--glass-border-opacity', borderOpacity.toString())
   setOverride(mode, '--glass-specular', specularEnabled ? '1' : '0')
 
-  // Compute shadow intensity based on mode
-  const shadowAlpha = mode === 'light' ? 0.08 : 0.36
+  // Compute shadow intensity based on mode (tight — no 80px bloom)
+  const shadowAlpha = mode === 'light' ? 0.06 : 0.28
   setOverride(
     mode,
     '--glass-shadow',
-    `0 8px 32px rgba(0, 0, 0, ${shadowAlpha})`,
+    mode === 'light'
+      ? `0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 20px rgba(0, 0, 0, ${shadowAlpha})`
+      : `0 1px 3px rgba(0, 0, 0, 0.2), 0 8px 24px rgba(0, 0, 0, ${shadowAlpha})`,
   )
 
-  // Highlight edge strength
-  const highlightAlpha = mode === 'light' ? 0.35 : 0.12
+  // Highlight edge strength (dual-edge when specular on)
+  const highlightTop = mode === 'light' ? 0.42 : 0.14
+  const highlightSide = mode === 'light' ? 0.14 : 0.06
   setOverride(
     mode,
     '--glass-highlight',
     specularEnabled
-      ? `inset 0 1px 0 rgba(255, 255, 255, ${highlightAlpha})`
+      ? `inset 0 1px 0 rgba(255, 255, 255, ${highlightTop}), inset 1px 0 0 rgba(255, 255, 255, ${highlightSide}), inset 0 -1px 0 rgba(255, 255, 255, ${mode === 'light' ? 0.06 : 0.02})`
       : 'none',
   )
 

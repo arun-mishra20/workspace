@@ -299,8 +299,12 @@ function SidebarShell({
   variant = 'docked',
 }: NavigationShellProps & { variant?: 'docked' | 'floating' }) {
   const { activeItem } = useShellContext()
+  const { currentPreset } = useThemeCustomization()
   const { user } = useAuthSession()
   const isFloating = variant === 'floating'
+  // Glass theme owns blur via CSS — avoid stacking Tailwind backdrop-blur.
+  const chromeBlur =
+    currentPreset === 'glassmorphism' ? undefined : 'backdrop-blur-xl'
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') {
       return false
@@ -333,8 +337,9 @@ function SidebarShell({
           className={cn(
             'hidden md:flex md:flex-col md:transition-[width] md:duration-200',
             isFloating
-              ? 'fixed z-50 left-4 top-4 bottom-4 overflow-hidden rounded-[1.25rem] border border-border/60 bg-card/90 shadow-lg backdrop-blur-xl'
-              : 'border-r border-border/60 bg-card/70 backdrop-blur-xl md:sticky md:top-0 md:h-dvh',
+              ? 'fixed z-50 left-4 top-4 bottom-4 overflow-hidden rounded-[1.25rem] border border-border/60 bg-card/90 shadow-lg'
+              : 'border-r border-border/60 bg-card/70 md:sticky md:top-0 md:h-dvh',
+            chromeBlur,
             collapsed ? 'md:w-16' : 'md:w-64',
           )}
         >
@@ -459,7 +464,12 @@ function SidebarShell({
             isFloating && (collapsed ? 'md:pl-24' : 'md:pl-72'),
           )}
         >
-          <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl md:hidden">
+          <header
+            className={cn(
+              'sticky top-0 z-40 border-b border-border/60 bg-background/85 md:hidden',
+              chromeBlur,
+            )}
+          >
             <div className="flex h-14 items-center justify-between gap-3 px-4">
               <Logo />
               <div className="flex items-center gap-2">
@@ -478,15 +488,30 @@ function SidebarShell({
 
 function CategorizedTopNavShell({ children }: NavigationShellProps) {
   const { activeCategory, activeItem } = useShellContext()
+  const { currentPreset } = useThemeCustomization()
+  const chromeBlur =
+    currentPreset === 'glassmorphism' ? undefined : 'backdrop-blur-xl'
   const categoryItems = getNavItemsForCategory(activeCategory.id)
 
   return (
     <ShellFrame>
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl">
-        <div className="flex h-14 items-center justify-between gap-4 px-4 sm:px-6 md:px-8">
-          <div className="flex items-center gap-3">
+      <header
+        className={cn(
+          'sticky top-0 z-40 border-b border-border/60 bg-background/85',
+          chromeBlur,
+        )}
+      >
+        {/* Level 1 — logo | centered categories | actions */}
+        <div className="relative flex h-14 items-center px-4 sm:px-6 md:px-8">
+          <div className="z-10 flex min-w-0 shrink-0 items-center">
             <Logo />
-            <div className="hidden md:flex items-center gap-2">
+          </div>
+
+          <nav
+            aria-label="Primary"
+            className="pointer-events-none absolute inset-x-0 hidden justify-center md:flex"
+          >
+            <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-border/50 bg-muted/40 p-1">
               {navCategories.map((category) => {
                 const isActive = activeCategory.id === category.id
                 const firstHref =
@@ -497,7 +522,7 @@ function CategorizedTopNavShell({ children }: NavigationShellProps) {
                     <span
                       key={category.id}
                       aria-current="true"
-                      className="rounded-full bg-secondary px-3 py-1.5 text-sm text-foreground"
+                      className="rounded-full bg-foreground px-3.5 py-1.5 text-sm font-medium text-background"
                     >
                       {category.label}
                     </span>
@@ -508,28 +533,29 @@ function CategorizedTopNavShell({ children }: NavigationShellProps) {
                   <Link
                     key={category.id}
                     to={firstHref}
-                    className="rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="rounded-full px-3.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {category.label}
                   </Link>
                 )
               })}
             </div>
-          </div>
+          </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="z-10 ml-auto flex shrink-0 items-center gap-2">
             <div className="hidden md:block">
               <DesktopActionCluster />
             </div>
-            <div className="md:hidden flex items-center gap-2">
+            <div className="flex items-center gap-2 md:hidden">
               <ThemeToggle />
               <MobileNavigationDrawer />
             </div>
           </div>
         </div>
 
-        <div className="hidden md:block border-t border-border/50 px-4 sm:px-6 md:px-8">
-          <div className="flex items-center gap-2 py-3">
+        {/* Level 2 — left-aligned section links */}
+        <div className="hidden border-t border-border/50 px-4 sm:px-6 md:block md:px-8">
+          <div className="flex items-center gap-1 py-2.5">
             {categoryItems.map((item) => {
               const active = item.href === activeItem.href
               return (
@@ -560,11 +586,19 @@ function CategorizedTopNavShell({ children }: NavigationShellProps) {
 function MegaMenuShell({ children }: NavigationShellProps) {
   const location = useLocation()
   const { activeItem } = useShellContext()
+  const { currentPreset } = useThemeCustomization()
+  const chromeBlur =
+    currentPreset === 'glassmorphism' ? undefined : 'backdrop-blur-xl'
   const onActivePage = isItemActive(location.pathname, activeItem.href)
 
   return (
     <ShellFrame>
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl">
+      <header
+        className={cn(
+          'sticky top-0 z-40 border-b border-border/60 bg-background/85',
+          chromeBlur,
+        )}
+      >
         <div className="flex h-14 items-center justify-between gap-4 px-4 sm:px-6 md:px-8">
           <div className="flex items-center gap-4">
             <Logo />
@@ -668,6 +702,9 @@ function CommandBarShell({ children }: NavigationShellProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const { activeItem, activeChildHref, activeCategory } = useShellContext()
+  const { currentPreset } = useThemeCustomization()
+  const chromeBlur =
+    currentPreset === 'glassmorphism' ? undefined : 'backdrop-blur-xl'
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -684,7 +721,12 @@ function CommandBarShell({ children }: NavigationShellProps) {
 
   return (
     <ShellFrame>
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl">
+      <header
+        className={cn(
+          'sticky top-0 z-40 border-b border-border/60 bg-background/85',
+          chromeBlur,
+        )}
+      >
         <div className="flex h-14 items-center justify-between gap-4 px-4 sm:px-6 md:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <Logo />
