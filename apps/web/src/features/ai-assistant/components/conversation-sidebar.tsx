@@ -32,7 +32,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@workspace/ui/components/ui/dropdown-menu'
-import { ScrollArea } from '@workspace/ui/components/ui/scroll-area'
 import { cn } from '@workspace/ui/lib/utils'
 
 export function ConversationSidebar() {
@@ -102,9 +101,9 @@ export function ConversationSidebar() {
   const grouped = groupBy(unpinned, (c) => getGroup(c.updatedAt))
 
   return (
-    <div className="flex h-full w-fit flex-col border-r border-border/60 bg-sidebar">
-      <div className="flex items-center justify-between border-b border-border/60 px-3 py-2.5">
-        <span className="text-xs font-semibold tracking-wider text-muted-foreground/70 uppercase">
+    <div className="flex min-h-0 w-72 shrink-0 flex-col self-stretch border-r border-border/60 bg-sidebar">
+      <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
+        <span className="font-mono text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
           Threads
         </span>
         <Button
@@ -119,75 +118,73 @@ export function ConversationSidebar() {
         </Button>
       </div>
 
-      <ScrollArea className="flex-1 min-h-[calc(100dvh-10rem)]">
-        <div className="py-2 min-w-[300px]">
-          {isLoading ? (
-            <div className="px-3 py-4 text-center text-xs text-muted-foreground">
-              Loading…
-            </div>
-          ) : conversations.length === 0 ? (
-            <div className="px-3 py-4 text-center text-xs text-muted-foreground">
-              No past conversations
-            </div>
-          ) : (
-            <>
-              {pinned.length > 0 && (
-                <div className="mb-1">
-                  <p className="mb-0.5 px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
-                    Pinned
-                  </p>
-                  {pinned.map((conv) => (
-                    <ConversationRow
-                      key={conv.id}
-                      conv={conv}
-                      isActive={conversationId === conv.id}
-                      isEditing={editingId === conv.id}
-                      editTitle={editTitle}
-                      onSelect={() => void loadConversation(conv.id)}
-                      onEditTitleChange={setEditTitle}
-                      onRenameStart={() => {
-                        setEditTitle(conv.title)
-                        setEditingId(conv.id)
-                      }}
-                      onRenameCommit={() => void handleRename(conv.id)}
-                      onRenameCancel={() => setEditingId(null)}
-                      onDelete={() => void handleDelete(conv.id)}
-                      onPin={() => void handlePin(conv.id, true)}
-                    />
-                  ))}
-                </div>
-              )}
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
+        {isLoading ? (
+          <div className="px-1 py-4 text-center text-xs text-muted-foreground">
+            Loading…
+          </div>
+        ) : conversations.length === 0 ? (
+          <div className="px-1 py-4 text-center text-xs text-muted-foreground">
+            No past conversations
+          </div>
+        ) : (
+          <>
+            {pinned.length > 0 && (
+              <div className="mb-1">
+                <p className="mb-0.5 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                  Pinned
+                </p>
+                {pinned.map((conv) => (
+                  <ConversationRow
+                    key={conv.id}
+                    conv={conv}
+                    isActive={conversationId === conv.id}
+                    isEditing={editingId === conv.id}
+                    editTitle={editTitle}
+                    onSelect={() => void loadConversation(conv.id)}
+                    onEditTitleChange={setEditTitle}
+                    onRenameStart={() => {
+                      setEditTitle(conv.title)
+                      setEditingId(conv.id)
+                    }}
+                    onRenameCommit={() => void handleRename(conv.id)}
+                    onRenameCancel={() => setEditingId(null)}
+                    onDelete={() => void handleDelete(conv.id)}
+                    onPin={() => void handlePin(conv.id, true)}
+                  />
+                ))}
+              </div>
+            )}
 
-              {GROUP_ORDER.filter((g) => grouped[g]?.length).map((group) => (
-                <div key={group} className="mb-1">
-                  <p className="mb-0.5 px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
-                    {group}
-                  </p>
-                  {grouped[group]!.map((conv) => (
-                    <ConversationRow
-                      key={conv.id}
-                      conv={conv}
-                      isActive={conversationId === conv.id}
-                      isEditing={editingId === conv.id}
-                      editTitle={editTitle}
-                      onSelect={() => void loadConversation(conv.id)}
-                      onEditTitleChange={setEditTitle}
-                      onRenameStart={() => {
-                        setEditTitle(conv.title)
-                        setEditingId(conv.id)
-                      }}
-                      onRenameCommit={() => void handleRename(conv.id)}
-                      onRenameCancel={() => setEditingId(null)}
-                      onDelete={() => void handleDelete(conv.id)}
-                      onPin={() => void handlePin(conv.id, false)}
-                    />
-                  ))}
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-      </ScrollArea>
+            {GROUP_ORDER.filter((g) => grouped[g]?.length).map((group) => (
+              <div key={group} className="mb-1">
+                <p className="mb-0.5 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                  {group}
+                </p>
+                {grouped[group]!.map((conv) => (
+                  <ConversationRow
+                    key={conv.id}
+                    conv={conv}
+                    isActive={conversationId === conv.id}
+                    isEditing={editingId === conv.id}
+                    editTitle={editTitle}
+                    onSelect={() => void loadConversation(conv.id)}
+                    onEditTitleChange={setEditTitle}
+                    onRenameStart={() => {
+                      setEditTitle(conv.title)
+                      setEditingId(conv.id)
+                    }}
+                    onRenameCommit={() => void handleRename(conv.id)}
+                    onRenameCancel={() => setEditingId(null)}
+                    onDelete={() => void handleDelete(conv.id)}
+                    onPin={() => void handlePin(conv.id, false)}
+                  />
+                ))}
+              </div>
+            ))}
+          </>
+        )}
+      </div>
     </div>
   )
 }
@@ -229,7 +226,7 @@ function ConversationRow({
   return (
     <div
       className={cn(
-        'group relative mx-1 flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors',
+        'group relative flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors',
         isActive
           ? 'bg-primary/12 text-foreground font-medium'
           : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',

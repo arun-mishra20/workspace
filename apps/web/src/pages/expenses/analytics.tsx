@@ -788,31 +788,71 @@ const AnalyticsPage = () => {
 
   return (
     <MainLayout>
-      <div className="flex flex-1 flex-col p-4 sm:p-6">
+      <div className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col px-4 sm:px-6 lg:px-10">
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
           className="gap-4"
         >
-          <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 bg-background/95 px-4 sm:px-6 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="sticky top-0 z-20 -mx-4 bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/80 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
             <AnalyticsPageHeader
               isSyncing={isSyncing}
               job={job}
               onReprocess={startReprocess}
             />
 
-            <TabsList className="h-auto w-full justify-start overflow-x-auto">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="cards">Cards</TabsTrigger>
-              <TabsTrigger value="categories">Categories</TabsTrigger>
-              <TabsTrigger value="rules">Rules</TabsTrigger>
-              <TabsTrigger value="dashboards">Dashboards</TabsTrigger>
-              <TabsTrigger value="trends">Trends</TabsTrigger>
-              <TabsTrigger value="data-quality">Data Quality</TabsTrigger>
-              <TabsTrigger value="patterns">Patterns</TabsTrigger>
+            <TabsList className="mb-4 h-auto w-fit max-w-full justify-start gap-0.5 overflow-x-auto rounded-[11px] border border-border bg-muted p-1">
+              <TabsTrigger
+                value="overview"
+                className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                Overview
+              </TabsTrigger>
+              <TabsTrigger
+                value="cards"
+                className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                Cards
+              </TabsTrigger>
+              <TabsTrigger
+                value="categories"
+                className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                Categories
+              </TabsTrigger>
+              <TabsTrigger
+                value="rules"
+                className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                Rules
+              </TabsTrigger>
+              <TabsTrigger
+                value="dashboards"
+                className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                Dashboards
+              </TabsTrigger>
+              <TabsTrigger
+                value="trends"
+                className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                Trends
+              </TabsTrigger>
+              <TabsTrigger
+                value="data-quality"
+                className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                Data quality
+              </TabsTrigger>
+              <TabsTrigger
+                value="patterns"
+                className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                Patterns
+              </TabsTrigger>
             </TabsList>
 
-            <div className="py-3">
+            <div className="pb-4">
               <AnalyticsContextBar
                 activeTab={activeTab}
                 period={period}

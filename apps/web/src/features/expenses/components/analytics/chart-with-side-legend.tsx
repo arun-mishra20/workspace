@@ -39,16 +39,22 @@ export function ChartWithSideLegend({
   return (
     <div
       className={cn(
-        'grid gap-6 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)] lg:items-center',
+        // Side-by-side only when this container is wide enough (not viewport `lg`).
+        '@container grid gap-6 @[32rem]:grid-cols-[minmax(0,280px)_minmax(0,1fr)] @[32rem]:items-center',
         className,
       )}
     >
-      <div className={cn('mx-auto w-full max-w-xs lg:mx-0', chartClassName)}>
+      <div
+        className={cn(
+          'mx-auto w-full max-w-xs @[32rem]:mx-0',
+          chartClassName,
+        )}
+      >
         {children}
       </div>
 
       <div className={cn('min-w-0', legendClassName)}>
-        <div className="divide-y rounded-lg border">
+        <div className="divide-y overflow-hidden rounded-lg border">
           {items.map((item) => {
             const pct = total > 0 ? (item.amount / total) * 100 : 0
             const isOther = item.key === '__other__'
@@ -57,7 +63,7 @@ export function ChartWithSideLegend({
               <>
                 <div className="flex min-w-0 items-center gap-2.5">
                   {item.icon ? (
-                    item.icon
+                    <span className="shrink-0">{item.icon}</span>
                   ) : isOther ? (
                     <MoreHorizontal
                       className="size-3.5 shrink-0 text-muted-foreground"
@@ -76,7 +82,7 @@ export function ChartWithSideLegend({
                     {item.label}
                   </span>
                 </div>
-                <div className="flex shrink-0 items-center gap-3 text-sm tabular-nums">
+                <div className="flex shrink-0 items-center gap-2 text-sm tabular-nums sm:gap-3">
                   <span className="text-xs text-muted-foreground">
                     {pct.toFixed(1)}%
                   </span>
@@ -90,7 +96,7 @@ export function ChartWithSideLegend({
                 <Link
                   key={item.key}
                   to={item.href}
-                  className="flex items-center justify-between gap-3 px-3 py-2.5 transition-colors hover:bg-muted/50"
+                  className="flex min-w-0 items-center justify-between gap-3 px-3 py-2.5 transition-colors hover:bg-muted/50"
                 >
                   {row}
                 </Link>
@@ -100,7 +106,7 @@ export function ChartWithSideLegend({
             return (
               <div
                 key={item.key}
-                className="flex items-center justify-between gap-3 px-3 py-2.5"
+                className="flex min-w-0 items-center justify-between gap-3 px-3 py-2.5"
               >
                 {row}
               </div>

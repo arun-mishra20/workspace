@@ -114,8 +114,8 @@ function YearlyGrowthCards({ data }: { data: DividendDashboard }) {
         value={fmtCurrency(yearlyGrowth.currentYearTotal)}
         icon={<Banknote className="h-4 w-4 text-muted-foreground" />}
         description={`vs ${fmtCurrency(yearlyGrowth.previousYearTotal)} last year`}
-        descriptionClassName="text-xs text-muted-foreground"
-        valueClassName="text-2xl font-bold"
+        descriptionClassName="mt-1.5 text-xs text-muted-foreground"
+        valueClassName="font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums"
         trendData={recentDividendTrend}
         trendLabel="Recent payouts"
         formatTrendValue={fmtCurrency}
@@ -123,7 +123,9 @@ function YearlyGrowthCards({ data }: { data: DividendDashboard }) {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">YoY Growth</CardTitle>
+          <CardTitle className="text-[12.5px] font-semibold text-muted-foreground">
+            YoY growth
+          </CardTitle>
           {isPositive ? (
             <ArrowUpRight className="h-4 w-4 text-positive" />
           ) : (
@@ -132,12 +134,12 @@ function YearlyGrowthCards({ data }: { data: DividendDashboard }) {
         </CardHeader>
         <CardContent>
           <div
-            className={`text-2xl font-bold ${isPositive ? 'text-positive' : 'text-negative'}`}
+            className={`font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums ${isPositive ? 'text-positive' : 'text-negative'}`}
           >
             {isPositive ? '+' : ''}
             {yearlyGrowth.growthPercent.toFixed(1)}%
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="mt-1.5 text-xs text-muted-foreground">
             {isPositive ? '+' : ''}
             {fmtCurrency(yearlyGrowth.absoluteIncrease)} absolute
           </p>
@@ -145,12 +147,12 @@ function YearlyGrowthCards({ data }: { data: DividendDashboard }) {
       </Card>
 
       <MetricTrendCard
-        title="Monthly Avg"
+        title="Monthly avg"
         value={fmtCurrency(monthlyAverage)}
         icon={<CalendarDays className="h-4 w-4 text-muted-foreground" />}
         description="across months with payouts"
-        descriptionClassName="text-xs text-muted-foreground"
-        valueClassName="text-2xl font-bold"
+        descriptionClassName="mt-1.5 text-xs text-muted-foreground"
+        valueClassName="font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums"
         trendData={recentDividendTrend}
         trendLabel="Recent payouts"
         formatTrendValue={fmtCurrency}
@@ -158,14 +160,16 @@ function YearlyGrowthCards({ data }: { data: DividendDashboard }) {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">All-Time</CardTitle>
+          <CardTitle className="text-[12.5px] font-semibold text-muted-foreground">
+            All-time
+          </CardTitle>
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
+          <div className="font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums">
             {fmtCurrency(totalDividendAllTime)}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="mt-1.5 text-xs text-muted-foreground">
             {distinctCompanies} companies · {totalPayouts} payouts
           </p>
         </CardContent>
@@ -183,7 +187,7 @@ function LifetimeDividendPerCompany({ data }: { data: DividendDashboard }) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
+          <CardTitle className="flex items-center gap-2 font-serif text-base font-semibold tracking-tight">
             <Building2 className="h-4 w-4" />
             Lifetime Dividend by Company
           </CardTitle>
@@ -200,7 +204,7 @@ function LifetimeDividendPerCompany({ data }: { data: DividendDashboard }) {
   return (
     <Card className="overflow-hidden">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 font-serif text-base font-semibold tracking-tight">
           <Building2 className="h-4 w-4" />
           Lifetime Dividend by Company
         </CardTitle>
@@ -260,7 +264,7 @@ function MonthlyTrendChart({ data }: { data: DividendDashboard }) {
   return (
     <Card className="overflow-hidden">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 font-serif text-base font-semibold tracking-tight">
           <CalendarDays className="h-4 w-4" />
           Monthly Dividend Trend
         </CardTitle>
@@ -323,7 +327,7 @@ function TopStocksPieChart({ data }: { data: DividendDashboard }) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
+          <CardTitle className="flex items-center gap-2 font-serif text-base font-semibold tracking-tight">
             <Trophy className="h-4 w-4" />
             Top Dividend Stocks
           </CardTitle>
@@ -338,7 +342,7 @@ function TopStocksPieChart({ data }: { data: DividendDashboard }) {
   return (
     <Card className="overflow-hidden">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 font-serif text-base font-semibold tracking-tight">
           <Trophy className="h-4 w-4" />
           Top Dividend Stocks
         </CardTitle>
@@ -407,7 +411,7 @@ function PerCompanyBarChart({ data }: { data: DividendDashboard }) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
+          <CardTitle className="flex items-center gap-2 font-serif text-base font-semibold tracking-tight">
             <Building2 className="h-4 w-4" />
             Dividend by Company
           </CardTitle>
@@ -422,7 +426,7 @@ function PerCompanyBarChart({ data }: { data: DividendDashboard }) {
   return (
     <Card className="overflow-hidden">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 font-serif text-base font-semibold tracking-tight">
           <Building2 className="h-4 w-4" />
           Dividend by Company
         </CardTitle>
@@ -494,7 +498,7 @@ function YieldAnalysisChart({ data }: { data: DividendDashboard }) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
+          <CardTitle className="flex items-center gap-2 font-serif text-base font-semibold tracking-tight">
             <BarChart3 className="h-4 w-4" />
             Dividend Yield Analysis
           </CardTitle>
@@ -513,7 +517,7 @@ function YieldAnalysisChart({ data }: { data: DividendDashboard }) {
   return (
     <Card className="overflow-hidden">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 font-serif text-base font-semibold tracking-tight">
           <BarChart3 className="h-4 w-4" />
           Dividend Yield Analysis
         </CardTitle>
@@ -569,7 +573,7 @@ function RepeatPayoutTable({ data }: { data: DividendDashboard }) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
+          <CardTitle className="flex items-center gap-2 font-serif text-base font-semibold tracking-tight">
             <Repeat className="h-4 w-4" />
             Repeat Payouts
           </CardTitle>
@@ -584,7 +588,7 @@ function RepeatPayoutTable({ data }: { data: DividendDashboard }) {
   return (
     <Card className="overflow-hidden">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 font-serif text-base font-semibold tracking-tight">
           <Repeat className="h-4 w-4" />
           Repeat Payouts
         </CardTitle>
@@ -651,7 +655,7 @@ function AvgDividendPerShareChart({ data }: { data: DividendDashboard }) {
   return (
     <Card className="overflow-hidden">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 font-serif text-base font-semibold tracking-tight">
           <Banknote className="h-4 w-4" />
           Avg Dividend Per Share
         </CardTitle>
@@ -703,7 +707,7 @@ function DividendCalendar({ data }: { data: DividendDashboard }) {
   return (
     <Card className="overflow-hidden">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 font-serif text-base font-semibold tracking-tight">
           <CalendarDays className="h-4 w-4" />
           Dividend Calendar
         </CardTitle>

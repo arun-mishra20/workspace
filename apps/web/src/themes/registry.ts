@@ -204,6 +204,16 @@ const EXPRESSIVE_PRESET_DETAILS: Partial<
     cleanupPrefixes: ['--zen-'],
     loadStyles: () => import('@workspace/ui/styles/zen.css'),
   },
+  ledger: {
+    label: 'Ledger',
+    description:
+      'Paper surfaces, brass accents, and editorial serif typography for a quiet finance ledger.',
+    family: 'expressive',
+    tags: ['paper', 'finance', 'serif'],
+    styleControlId: 'ledger',
+    cleanupPrefixes: ['--ledger-'],
+    loadStyles: () => import('@workspace/ui/styles/ledger.css'),
+  },
 }
 
 const PRESET_METADATA_OVERRIDES: Partial<

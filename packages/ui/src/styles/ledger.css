@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+@layer components {
+  /* ═══════════════════════════════════════════════════════════════
+     LEDGER — Quiet finance paper
+     Soft paper ground, brass accents, editorial serif display,
+     and tabular mono figures.
+     ═══════════════════════════════════════════════════════════════ */
+
+  :root[data-theme-preset='ledger'] {
+    --ledger-hairline: #dbdfd3;
+  }
+
+  .dark[data-theme-preset='ledger'] {
+    --ledger-hairline: #2b3226;
+  }
+
+  :root[data-theme-preset='ledger'] body {
+    font-family: var(--font-sans);
+    letter-spacing: var(--tracking-normal);
+    -webkit-font-smoothing: antialiased;
+    background: var(--background);
+  }
+
+  :root[data-theme-preset='ledger'] h1,
+  :root[data-theme-preset='ledger'] h2,
+  :root[data-theme-preset='ledger'] h3 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
+
+  :root[data-theme-preset='ledger'] [data-slot='card'] {
+    border-color: var(--border);
+    box-shadow: var(--shadow-xs);
+  }
+
+  :root[data-theme-preset='ledger'] [data-slot='metric-card'],
+  :root[data-theme-preset='ledger'] [data-slot='overview-kpi-card'],
+  :root[data-theme-preset='ledger'] [data-slot='net-flow-ledger-card'],
+  :root[data-theme-preset='ledger'] [data-slot='avg-transaction-card'] {
+    background: var(--card);
+  }
+
+  :root[data-theme-preset='ledger'] .font-mono,
+  :root[data-theme-preset='ledger'] [class*='tabular-nums'] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+}

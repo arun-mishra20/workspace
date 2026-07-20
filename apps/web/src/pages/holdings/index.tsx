@@ -47,87 +47,121 @@ export default function HoldingsPage() {
 
   return (
     <MainLayout>
-      <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
-        {/* Header */}
-        <header className="flex flex-col gap-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-2">
-              <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
+      <div className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col px-4 pb-8 sm:px-6 lg:px-10">
+        <header className="pb-5">
+          <div className="flex flex-col gap-4 pt-5 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-1.5">
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
                 Holdings
               </p>
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                Investment Allocation
+              <h1 className="font-serif text-3xl font-medium italic tracking-tight text-foreground sm:text-[2.375rem] sm:leading-tight">
+                Investment allocation
               </h1>
               <p className="max-w-2xl text-sm text-muted-foreground">
-                Track your complete investment portfolio
+                Track your complete investment portfolio.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 sm:pb-1">
               <ImportGrowwDialog />
-              <Button onClick={() => setAddOpen(true)}>
+              <Button size="sm" onClick={() => setAddOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
-                Add Holding
+                Add holding
               </Button>
             </div>
           </div>
         </header>
 
-        {/* Summary Cards */}
-        <PortfolioSummary />
+        <div className="flex flex-col gap-6">
+          <PortfolioSummary />
 
-        {/* Tabs: Stocks / Mutual Funds */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full overflow-x-auto">
-            <TabsTrigger value="stocks">
-              Stocks{stockCount > 0 && ` (${stockCount})`}
-            </TabsTrigger>
-            <TabsTrigger value="mutual_funds">
-              Mutual Funds{mfCount > 0 && ` (${mfCount})`}
-            </TabsTrigger>
-            <TabsTrigger value="gold">
-              Gold{goldCount > 0 && ` (${goldCount})`}
-            </TabsTrigger>
-            <TabsTrigger value="pf">
-              Provident Fund{pfCount > 0 && ` (${pfCount})`}
-            </TabsTrigger>
-          </TabsList>
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="gap-4"
+          >
+            <TabsList className="h-auto w-fit max-w-full justify-start gap-0.5 overflow-x-auto rounded-[11px] border border-border bg-muted p-1">
+              <TabsTrigger
+                value="stocks"
+                className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                Stocks
+                {stockCount > 0 ? (
+                  <span className="ml-1.5 font-mono text-xs tabular-nums text-muted-foreground">
+                    ({stockCount})
+                  </span>
+                ) : null}
+              </TabsTrigger>
+              <TabsTrigger
+                value="mutual_funds"
+                className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                Mutual funds
+                {mfCount > 0 ? (
+                  <span className="ml-1.5 font-mono text-xs tabular-nums text-muted-foreground">
+                    ({mfCount})
+                  </span>
+                ) : null}
+              </TabsTrigger>
+              <TabsTrigger
+                value="gold"
+                className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                Gold
+                {goldCount > 0 ? (
+                  <span className="ml-1.5 font-mono text-xs tabular-nums text-muted-foreground">
+                    ({goldCount})
+                  </span>
+                ) : null}
+              </TabsTrigger>
+              <TabsTrigger
+                value="pf"
+                className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                Provident fund
+                {pfCount > 0 ? (
+                  <span className="ml-1.5 font-mono text-xs tabular-nums text-muted-foreground">
+                    ({pfCount})
+                  </span>
+                ) : null}
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="stocks" className="mt-4">
-            <HoldingsTable
-              holdings={holdings}
-              isLoading={isLoading}
-              assetType="stock"
-            />
-          </TabsContent>
+            <TabsContent value="stocks" className="mt-0">
+              <HoldingsTable
+                holdings={holdings}
+                isLoading={isLoading}
+                assetType="stock"
+              />
+            </TabsContent>
 
-          <TabsContent value="mutual_funds" className="mt-4">
-            <HoldingsTable
-              holdings={holdings}
-              isLoading={isLoading}
-              assetType="mutual_fund"
-            />
-          </TabsContent>
+            <TabsContent value="mutual_funds" className="mt-0">
+              <HoldingsTable
+                holdings={holdings}
+                isLoading={isLoading}
+                assetType="mutual_fund"
+              />
+            </TabsContent>
 
-          <TabsContent value="gold" className="mt-4">
-            <HoldingsTable
-              holdings={holdings}
-              isLoading={isLoading}
-              assetType="gold"
-            />
-          </TabsContent>
+            <TabsContent value="gold" className="mt-0">
+              <HoldingsTable
+                holdings={holdings}
+                isLoading={isLoading}
+                assetType="gold"
+              />
+            </TabsContent>
 
-          <TabsContent value="pf" className="mt-4">
-            <HoldingsTable
-              holdings={holdings}
-              isLoading={isLoading}
-              assetType="pf"
-            />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="pf" className="mt-0">
+              <HoldingsTable
+                holdings={holdings}
+                isLoading={isLoading}
+                assetType="pf"
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
 
-      {/* Add Holding Dialog */}
       <HoldingFormDialog
         open={addOpen}
         onOpenChange={setAddOpen}

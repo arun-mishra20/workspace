@@ -31,7 +31,6 @@ import {
   SelectValue,
 } from '@workspace/ui/components/ui/select'
 import { Textarea } from '@workspace/ui/components/ui/textarea'
-import { cn } from '@workspace/ui/lib/utils'
 
 type PromptCard = {
   category: string
@@ -140,218 +139,196 @@ export function DashboardChat() {
 
   const hasMessages = messages.length > 0
 
-  if (!hasMessages) {
-    return (
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        {sidebarOpen && <ConversationSidebar />}
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card">
-          {/* Page header */}
-          <div className="shrink-0 border-b border-border/60 px-6 pt-8 pb-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1.5">
-                <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
-                  AI Assistant
-                </p>
-                <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                  What would you like to explore?
-                </h1>
-                <p className="max-w-2xl text-sm text-muted-foreground">
-                  Ask about your holdings, expenses, flights, hotels, or uncover
-                  patterns across your personal data.
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-1 pt-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-8"
-                  onClick={() => setSidebarOpen((o) => !o)}
-                  aria-label={sidebarOpen ? 'Hide threads' : 'Show threads'}
-                >
-                  {sidebarOpen ? (
-                    <PanelLeftClose className="size-4" />
-                  ) : (
-                    <PanelLeftOpen className="size-4" />
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-8"
-                  onClick={startNewConversation}
-                  aria-label="New conversation"
-                >
-                  <Plus className="size-3.5" />
-                </Button>
-              </div>
-            </div>
-          </div>
+  const sidebarToggle = (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className="size-8"
+      onClick={() => setSidebarOpen((o) => !o)}
+      aria-label={sidebarOpen ? 'Hide threads' : 'Show threads'}
+    >
+      {sidebarOpen ? (
+        <PanelLeftClose className="size-4" />
+      ) : (
+        <PanelLeftOpen className="size-4" />
+      )}
+    </Button>
+  )
 
-          <div className="flex min-h-0 flex-1 items-center justify-center px-4 pb-44 pt-8 sm:px-6">
-            <div className="w-full max-w-xl space-y-8 text-center">
-              <div className="space-y-3">
-                <div className="flex items-center justify-center">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
-                    <Sparkles className="size-5 text-primary" />
-                  </div>
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Choose a prompt below or type your own question to get
-                  started.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {PROMPT_CARDS.map(({ category, Icon, prompt }) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    onClick={() =>
-                      void sendMessage(prompt, selectedModel || undefined)
-                    }
-                    disabled={isSending || !available}
-                    className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/60 p-4 text-left transition-colors hover:border-border hover:bg-card disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {category}
-                      </span>
-                      <Icon className="ml-auto size-3.5 text-muted-foreground" />
-                    </div>
-                    <p className="text-sm leading-snug text-foreground">
-                      {prompt}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <DashboardComposer
-            draft={draft}
-            isSending={isSending}
-            available={available}
-            selectedModel={selectedModel}
-            setDraft={setDraft}
-            setSelectedModel={setSelectedModel}
-            onKeyDown={handleKeyDown}
-            onSubmit={handleSubmit}
-            statusQuery={statusQuery}
-            sidebarOpen={sidebarOpen}
-          />
-        </div>
-      </div>
-    )
-  }
+  const newChatButton = (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className="size-8"
+      onClick={startNewConversation}
+      aria-label="New conversation"
+    >
+      <Plus className="size-3.5" />
+    </Button>
+  )
 
   return (
-    <div className="flex min-h-0 flex-1 overflow-hidden">
-      {sidebarOpen && <ConversationSidebar />}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
-        <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/60 px-4">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-8"
-            onClick={() => setSidebarOpen((o) => !o)}
-            aria-label={sidebarOpen ? 'Hide threads' : 'Show threads'}
-          >
-            {sidebarOpen ? (
-              <PanelLeftClose className="size-4" />
-            ) : (
-              <PanelLeftOpen className="size-4" />
-            )}
-          </Button>
+    <div className="flex h-full min-h-0 flex-1 overflow-hidden">
+      {sidebarOpen ? <ConversationSidebar /> : null}
 
-          <div className="flex items-center gap-2">
-            {statusQuery.data?.available &&
-              statusQuery.data.models.length > 0 && (
-                <Select
-                  value={selectedModel}
-                  onValueChange={setSelectedModel}
-                  disabled={isSending}
-                >
-                  <SelectTrigger className="h-7 w-auto max-w-[180px] border-border/50 bg-muted/40 text-xs">
-                    <SelectValue placeholder="Model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusQuery.data.models.map((model) => (
-                      <SelectItem key={model} value={model} className="text-xs">
-                        {model}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              onClick={startNewConversation}
-              aria-label="New conversation"
-            >
-              <Plus className="size-3.5" />
-            </Button>
-          </div>
-        </div>
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
+        {!hasMessages ? (
+          <>
+            <div className="shrink-0 px-4 pt-6 sm:px-6">
+              <div className="mx-auto flex w-full max-w-3xl items-start justify-between gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+                    Workspace
+                  </p>
+                  <h1 className="font-serif text-3xl font-medium italic tracking-tight text-foreground sm:text-[2.375rem] sm:leading-tight">
+                    What would you like to explore?
+                  </h1>
+                  <p className="max-w-2xl text-sm text-muted-foreground">
+                    Ask about your holdings, expenses, flights, hotels, or
+                    uncover patterns across your personal data.
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1 pt-1">
+                  {sidebarToggle}
+                  {newChatButton}
+                </div>
+              </div>
+            </div>
 
-        <div
-          ref={scrollContainerRef}
-          className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-44 sm:px-6 sm:py-6 sm:pb-48"
-        >
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 pb-6">
-            {messages.map((message) => (
-              <div key={message.id}>
-                {message.role === 'user' ? (
-                  <div className="flex justify-end">
-                    <div className="max-w-[88%] rounded-2xl bg-primary px-4 py-3 text-sm text-primary-foreground sm:max-w-[80%]">
-                      <div className="whitespace-pre-wrap leading-6">
-                        {message.content}
+            <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-4 py-8 sm:px-6">
+              <div className="w-full max-w-3xl space-y-8 text-center">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-center">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+                      <Sparkles className="size-5 text-primary" />
+                    </div>
+                  </div>
+                  <p className="mx-auto max-w-xl text-sm leading-relaxed text-muted-foreground">
+                    Choose a prompt below or type your own question to get
+                    started.
+                  </p>
+                </div>
+
+                <div className="mx-auto grid max-w-xl grid-cols-2 gap-3">
+                  {PROMPT_CARDS.map(({ category, Icon, prompt }) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() =>
+                        void sendMessage(prompt, selectedModel || undefined)
+                      }
+                      disabled={isSending || !available}
+                      className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {category}
+                        </span>
+                        <Icon className="ml-auto size-3.5 text-muted-foreground" />
                       </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex gap-3">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card">
-                      <Sparkles className="size-3.5 text-primary" />
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-3 pt-0.5 text-sm">
-                      <AssistantMessage
-                        content={message.content}
-                        isStreaming={message.isStreaming}
-                        activeTools={message.activeTools}
-                        onSuggestedAction={(action) =>
-                          void sendMessage(action, selectedModel || undefined)
-                        }
-                      />
-                      {!message.isStreaming && (
-                        <>
-                          <AssistantFeedback messageId={message.id} />
-                          <AssistantAnalysisTrace
-                            analysis={message.analysis}
-                            toolsUsed={message.toolsUsed}
+                      <p className="text-sm leading-snug text-foreground">
+                        {prompt}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/60 px-4 sm:px-6">
+              <div className="mx-auto flex w-full max-w-3xl items-center justify-between">
+                {sidebarToggle}
+                <div className="flex items-center gap-2">
+                  {statusQuery.data?.available &&
+                    statusQuery.data.models.length > 0 && (
+                      <Select
+                        value={selectedModel}
+                        onValueChange={setSelectedModel}
+                        disabled={isSending}
+                      >
+                        <SelectTrigger className="h-7 w-auto max-w-[180px] border-border/50 bg-muted/40 text-xs">
+                          <SelectValue placeholder="Model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statusQuery.data.models.map((model) => (
+                            <SelectItem
+                              key={model}
+                              value={model}
+                              className="text-xs"
+                            >
+                              {model}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  {newChatButton}
+                </div>
+              </div>
+            </div>
+
+            <div
+              ref={scrollContainerRef}
+              className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6"
+            >
+              <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 pb-6">
+                {messages.map((message) => (
+                  <div key={message.id}>
+                    {message.role === 'user' ? (
+                      <div className="flex justify-end">
+                        <div className="max-w-[88%] rounded-2xl bg-primary px-4 py-3 text-sm text-primary-foreground sm:max-w-[80%]">
+                          <div className="whitespace-pre-wrap leading-6">
+                            {message.content}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-3">
+                        <div className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card">
+                          <Sparkles className="size-3.5 text-primary" />
+                        </div>
+                        <div className="min-w-0 flex-1 space-y-3 pt-0.5 text-sm">
+                          <AssistantMessage
+                            content={message.content}
+                            isStreaming={message.isStreaming}
+                            activeTools={message.activeTools}
+                            onSuggestedAction={(action) =>
+                              void sendMessage(
+                                action,
+                                selectedModel || undefined,
+                              )
+                            }
                           />
-                        </>
-                      )}
-                    </div>
+                          {!message.isStreaming && (
+                            <>
+                              <AssistantFeedback messageId={message.id} />
+                              <AssistantAnalysisTrace
+                                analysis={message.analysis}
+                                toolsUsed={message.toolsUsed}
+                              />
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
+                ))}
 
-            {error && (
-              <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                {error}
-              </div>
-            )}
+                {error ? (
+                  <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                    {error}
+                  </div>
+                ) : null}
 
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+          </>
+        )}
 
         <DashboardComposer
           draft={draft}
@@ -363,8 +340,7 @@ export function DashboardChat() {
           onKeyDown={handleKeyDown}
           onSubmit={handleSubmit}
           statusQuery={statusQuery}
-          compact
-          sidebarOpen={sidebarOpen}
+          compact={hasMessages}
         />
       </div>
     </div>
@@ -385,7 +361,6 @@ type DashboardComposerProps = {
     isLoading: boolean
   }
   compact?: boolean
-  sidebarOpen?: boolean
 }
 
 function DashboardComposer({
@@ -399,17 +374,11 @@ function DashboardComposer({
   onSubmit,
   statusQuery,
   compact = false,
-  sidebarOpen = false,
 }: DashboardComposerProps) {
   return (
-    <div
-      className={cn(
-        'pointer-events-none fixed bottom-0 right-0 z-40 px-3 pb-3 transition-[left] duration-200 sm:px-6 sm:pb-6',
-        sidebarOpen ? 'left-64' : 'left-0',
-      )}
-    >
-      <div className="pointer-events-auto relative mx-auto max-w-3xl">
-        <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/95 shadow-[0_-10px_40px_rgba(0,0,0,0.08)] backdrop-blur-xl">
+    <div className="shrink-0 border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/80 sm:px-6 sm:py-4">
+      <div className="mx-auto w-full max-w-3xl">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <Textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}

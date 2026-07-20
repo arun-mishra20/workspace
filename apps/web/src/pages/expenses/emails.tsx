@@ -12,7 +12,11 @@ import { format } from 'date-fns'
 
 import { MainLayout } from '@/components/layouts'
 import { readStoredPageSize, writeStoredPageSize } from '@/lib/pagination'
-import { DataTable, DataTablePagination, SortableColumnHeader } from '@/components/data-table'
+import {
+  DataTable,
+  DataTablePagination,
+  SortableColumnHeader,
+} from '@/components/data-table'
 import { connectGmail } from '@/features/expenses/api/connect-gmail'
 import { disconnectGmail } from '@/features/expenses/api/disconnect-gmail'
 import { fetchGmailStatus } from '@/features/expenses/api/gmail-status'
@@ -28,7 +32,11 @@ import { BulkActionsToolbar } from '@/features/expenses/components/bulk-actions-
 import { CreditCardFilter } from '@/features/expenses/components/credit-card-filter'
 import { LlmCategorizeDialog } from '@/features/expenses/components/llm-categorize-dialog'
 import { fetchCreditCards } from '@/features/expenses/api/credit-cards'
-import { CATEGORY_OPTIONS, getSubcategoryLabel, SUBCATEGORY_OPTIONS } from '@/features/expenses/constants/category-options'
+import {
+  CATEGORY_OPTIONS,
+  getSubcategoryLabel,
+  SUBCATEGORY_OPTIONS,
+} from '@/features/expenses/constants/category-options'
 import { Badge } from '@workspace/ui/components/ui/badge'
 import { Button } from '@workspace/ui/components/ui/button'
 import { Calendar } from '@workspace/ui/components/ui/calendar'
@@ -277,10 +285,7 @@ const buildExpenseColumns = (
     ),
     cell: ({ row }) => (
       <div className="flex gap-2 items-center max-w-72">
-        <TransactionCategoryTile
-          category={row.original.category}
-          size="sm"
-        />
+        <TransactionCategoryTile category={row.original.category} size="sm" />
         <div className="min-w-0 flex flex-col gap-1">
           <div className="font-medium text-foreground truncate">
             {row.original.merchant}
@@ -457,7 +462,9 @@ const ExpenseEmailsPage = () => {
   const [expensePageSize, setExpensePageSize] = useState(() =>
     readStoredPageSize(20),
   )
-  const [emailPageSize, setEmailPageSize] = useState(() => readStoredPageSize(20))
+  const [emailPageSize, setEmailPageSize] = useState(() =>
+    readStoredPageSize(20),
+  )
   const navigate = useNavigate()
 
   // ── Row selection ──
@@ -763,7 +770,9 @@ const ExpenseEmailsPage = () => {
       listExpenses({
         page: 1,
         page_size: 100,
-        ...(filterCategory === 'uncategorized' && { category: 'uncategorized' }),
+        ...(filterCategory === 'uncategorized' && {
+          category: 'uncategorized',
+        }),
         ...(filterReview === 'true' && { review: 'true' }),
       }),
     enabled: showAiCategorizePrompt && activeView === 'expense',
@@ -922,44 +931,47 @@ const ExpenseEmailsPage = () => {
 
   return (
     <MainLayout>
-      <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
-        <header className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
-              Expenses
-            </p>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-              Expenses
-            </h1>
-            <p className="max-w-2xl text-sm text-muted-foreground">
-              View derived expense transactions and source emails.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              variant="default"
-              onClick={() => connectMutation.mutate()}
-              disabled={connectMutation.isPending}
-            >
-              <MailSearch />
-              {statusQuery.data?.connected
-                ? 'Reconnect Gmail'
-                : 'Connect Gmail'}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => disconnectMutation.mutate()}
-              disabled={
-                !statusQuery.data?.connected || disconnectMutation.isPending
-              }
-            >
-              <Unplug />
-              Disconnect Gmail
-            </Button>
-            <div className="flex flex-col gap-2">
+      <div className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col px-4 pb-8 sm:px-6 lg:px-10">
+        <header className="pb-5">
+          <div className="flex flex-col gap-4 pt-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex flex-col gap-1.5">
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+                Expenses
+              </p>
+              <h1 className="font-serif text-3xl font-medium italic tracking-tight text-foreground sm:text-[2.375rem] sm:leading-tight">
+                Expense inbox
+              </h1>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                View derived expense transactions and source emails.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 lg:pb-1">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => connectMutation.mutate()}
+                disabled={connectMutation.isPending}
+              >
+                <MailSearch />
+                {statusQuery.data?.connected
+                  ? 'Reconnect Gmail'
+                  : 'Connect Gmail'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => disconnectMutation.mutate()}
+                disabled={
+                  !statusQuery.data?.connected || disconnectMutation.isPending
+                }
+              >
+                <Unplug />
+                Disconnect
+              </Button>
               <div className="flex items-center gap-1">
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => startSync()}
                   disabled={!statusQuery.data?.connected || isSyncing}
                   className="relative overflow-hidden"
@@ -997,13 +1009,14 @@ const ExpenseEmailsPage = () => {
                     <Button
                       variant="outline"
                       size="icon"
+                      className="size-9"
                       disabled={!statusQuery.data?.connected || isSyncing}
                     >
                       <MoreVertical className="h-4 w-4" />
                       <span className="sr-only">Sync options</span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent align="start" className="w-auto p-3 relative">
+                  <PopoverContent align="end" className="w-auto p-3 relative">
                     <div className="space-y-3">
                       <Calendar
                         mode="single"
@@ -1031,90 +1044,95 @@ const ExpenseEmailsPage = () => {
                   </PopoverContent>
                 </Popover>
               </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                onClick={() => startReprocess(false)}
-                disabled={isSyncing}
-                className="relative overflow-hidden"
-              >
-                <RotateCw />
-                {isSyncing && job?.query === '__reprocess__' && (
-                  <div
-                    className="absolute inset-y-0 left-0 bg-primary/20 transition-all duration-300"
-                    style={{
-                      width: syncProgressWidth,
-                    }}
-                  />
-                )}
-                <span className="relative z-10">
-                  {job?.query === '__reprocess__' &&
-                  job?.status === 'processing' &&
-                  job.totalEmails ? (
-                    <>
-                      Reprocessing (
-                      <AnimatedNumber value={displayedProcessedEmails} /> /{' '}
-                      {job.totalEmails})
-                    </>
-                  ) : job?.query === '__reprocess__' &&
-                    job?.status === 'completed' ? (
-                    'Reprocessed'
-                  ) : (
-                    'Reprocess'
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => startReprocess(false)}
+                  disabled={isSyncing}
+                  className="relative overflow-hidden"
+                >
+                  <RotateCw />
+                  {isSyncing && job?.query === '__reprocess__' && (
+                    <div
+                      className="absolute inset-y-0 left-0 bg-primary/20 transition-all duration-300"
+                      style={{
+                        width: syncProgressWidth,
+                      }}
+                    />
                   )}
-                </span>
-              </Button>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    disabled={isSyncing}
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                    <span className="sr-only">Reprocess options</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="start" className="w-72 p-3">
-                  <div className="space-y-2">
+                  <span className="relative z-10">
+                    {job?.query === '__reprocess__' &&
+                    job?.status === 'processing' &&
+                    job.totalEmails ? (
+                      <>
+                        Reprocessing (
+                        <AnimatedNumber
+                          value={displayedProcessedEmails}
+                        /> / {job.totalEmails})
+                      </>
+                    ) : job?.query === '__reprocess__' &&
+                      job?.status === 'completed' ? (
+                      'Reprocessed'
+                    ) : (
+                      'Reprocess'
+                    )}
+                  </span>
+                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
                     <Button
-                      variant="ghost"
-                      className="h-auto w-full justify-start px-2 py-2 text-left whitespace-normal"
-                      onClick={() => startReprocess(true)}
+                      variant="outline"
+                      size="icon"
+                      className="size-9"
                       disabled={isSyncing}
                     >
-                      <div className="space-y-1">
-                        <p className="font-medium">Force refresh all</p>
-                        <p className="text-xs text-muted-foreground">
-                          Re-parses every stored email, including ones already
-                          processed. Use after parser updates.
-                        </p>
-                      </div>
+                      <MoreVertical className="h-4 w-4" />
+                      <span className="sr-only">Reprocess options</span>
                     </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-72 p-3">
+                    <div className="space-y-2">
+                      <Button
+                        variant="ghost"
+                        className="h-auto w-full justify-start px-2 py-2 text-left whitespace-normal"
+                        onClick={() => startReprocess(true)}
+                        disabled={isSyncing}
+                      >
+                        <div className="space-y-1">
+                          <p className="font-medium">Force refresh all</p>
+                          <p className="text-xs text-muted-foreground">
+                            Re-parses every stored email, including ones already
+                            processed. Use after parser updates.
+                          </p>
+                        </div>
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-            {statusQuery.data?.connected ? (
-              <Badge
-                className="flex gap-0 items-center p-1 pr-2"
-                variant={'outline'}
-              >
-                <Dot className="text-teal-500 size-6" />
-                <p className="-ml-2">
-                  Connected
-                  {statusQuery.data.email ? ` • ${statusQuery.data.email}` : ''}
-                </p>
-              </Badge>
-            ) : (
-              <Badge variant="outline">Not connected</Badge>
-            )}
+              {statusQuery.data?.connected ? (
+                <Badge
+                  className="flex gap-0 items-center p-1 pr-2"
+                  variant="outline"
+                >
+                  <Dot className="text-positive size-6" />
+                  <p className="-ml-2">
+                    Connected
+                    {statusQuery.data.email
+                      ? ` · ${statusQuery.data.email}`
+                      : ''}
+                  </p>
+                </Badge>
+              ) : (
+                <Badge variant="outline">Not connected</Badge>
+              )}
+            </div>
           </div>
 
           {syncError ? (
-            <Alert variant="destructive" className="max-w-2xl">
+            <Alert variant="destructive" className="mt-4 max-w-2xl">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>
                 {requiresGmailReconnect ? 'Reconnect Gmail' : 'Sync failed'}
@@ -1145,46 +1163,56 @@ const ExpenseEmailsPage = () => {
         <Tabs
           value={activeView}
           onValueChange={(value) => setActiveView(value as ExpenseView)}
+          className="gap-4"
         >
-          <Card className="border-border/60">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base font-semibold">
-                {activeView === 'expense' ? 'All Expenses' : 'Recent Emails'}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-2">
+            <TabsList className="h-auto w-fit max-w-full justify-start gap-0.5 overflow-x-auto rounded-[11px] border border-border bg-muted p-1">
+              <TabsTrigger
+                value="expense"
+                className="gap-1.5 rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                <IndianRupee className="size-4" />
+                Expense
+              </TabsTrigger>
+              <TabsTrigger
+                value="emails"
+                className="gap-1.5 rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                <Send className="size-4" />
+                Emails
+              </TabsTrigger>
+            </TabsList>
+            <div className="flex flex-wrap items-center gap-2">
+              {activeView === 'expense' ? <MerchantCategorizeDialog /> : null}
+              <Badge variant="outline" className="font-mono tabular-nums">
+                {activeView === 'expense'
+                  ? (expensesData?.total ?? 0)
+                  : (emailData?.total ?? 0)}{' '}
+                total
+              </Badge>
+              <Badge variant="secondary" className="font-mono tabular-nums">
+                Page{' '}
+                {activeView === 'expense'
+                  ? expensePageIndex + 1
+                  : emailPageIndex + 1}{' '}
+                of{' '}
+                {activeView === 'expense'
+                  ? expenseTable.getPageCount() || 1
+                  : emailTable.getPageCount() || 1}
+              </Badge>
+            </div>
+          </div>
+
+          <Card className="border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="font-serif text-base font-semibold tracking-tight">
+                {activeView === 'expense' ? 'All expenses' : 'Recent emails'}
               </CardTitle>
-              <div className="flex flex-wrap items-center gap-2 justify-center">
-                {activeView === 'expense' && <MerchantCategorizeDialog />}
-                <TabsList className="ml-2">
-                  <TabsTrigger value="expense" className="flex gap-1">
-                    <IndianRupee className="size-4" />
-                    Expense
-                  </TabsTrigger>
-                  <TabsTrigger value="emails" className="flex gap-1">
-                    <Send className="size-4" />
-                    Emails
-                  </TabsTrigger>
-                </TabsList>
-                <Badge variant="outline">
-                  {activeView === 'expense'
-                    ? (expensesData?.total ?? 0)
-                    : (emailData?.total ?? 0)}{' '}
-                  total
-                </Badge>
-                <Badge variant="secondary">
-                  Page{' '}
-                  {activeView === 'expense'
-                    ? expensePageIndex + 1
-                    : emailPageIndex + 1}{' '}
-                  of{' '}
-                  {activeView === 'expense'
-                    ? expenseTable.getPageCount() || 1
-                    : emailTable.getPageCount() || 1}
-                </Badge>
-              </div>
             </CardHeader>
             <CardContent>
               {/* ── Filter bar (expense tab only) ── */}
               {activeView === 'expense' && (
-                <div className="flex flex-wrap items-center gap-2 mb-4">
+                <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[14px] border border-border bg-muted/40 px-3 py-2.5">
                   {returnTo ? (
                     <Button variant="outline" size="sm" className="h-9" asChild>
                       <Link to={returnTo}>
@@ -1287,11 +1315,13 @@ const ExpenseEmailsPage = () => {
                     <span>
                       {expensesData?.total ?? 0} transaction
                       {(expensesData?.total ?? 0) === 1 ? '' : 's'} match this
-                      filter. AI suggestions are opt-in — review before applying.
+                      filter. AI suggestions are opt-in — review before
+                      applying.
                     </span>
                     <Button size="sm" onClick={() => setQueueLlmOpen(true)}>
                       <Sparkles className="mr-2 size-4" />
-                      Categorize up to {Math.min(aiQueueData?.data.length ?? 0, 100)}
+                      Categorize up to{' '}
+                      {Math.min(aiQueueData?.data.length ?? 0, 100)}
                     </Button>
                   </AlertDescription>
                 </Alert>

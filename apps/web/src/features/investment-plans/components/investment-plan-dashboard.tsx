@@ -109,7 +109,7 @@ export function InvestmentPlanDashboard() {
 
   if (workspace.listQuery.isLoading) {
     return (
-      <div className="space-y-4 p-4 md:p-6">
+      <div className="mx-auto w-full max-w-[1360px] space-y-4 px-4 pt-5 sm:px-6 lg:px-10">
         <Skeleton className="h-10 w-64" />
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
@@ -123,7 +123,7 @@ export function InvestmentPlanDashboard() {
 
   if (workspace.listQuery.isError) {
     return (
-      <div className="p-4 md:p-6">
+      <div className="mx-auto w-full max-w-[1360px] px-4 pt-5 sm:px-6 lg:px-10">
         <Alert variant="destructive">
           <AlertTitle>Could not load plans</AlertTitle>
           <AlertDescription>
@@ -139,9 +139,14 @@ export function InvestmentPlanDashboard() {
 
   if (workspace.summaries.length === 0) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-6 text-center">
-        <div className="space-y-2 max-w-md">
-          <h1 className="text-2xl font-semibold tracking-tight">Create your investment plan</h1>
+      <div className="mx-auto flex min-h-[60vh] w-full max-w-[1360px] flex-col items-center justify-center gap-4 px-4 py-6 text-center sm:px-6 lg:px-10">
+        <div className="max-w-md space-y-2">
+          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+            Projections
+          </p>
+          <h1 className="font-serif text-3xl font-medium italic tracking-tight text-foreground">
+            Create your investment plan
+          </h1>
           <p className="text-sm text-muted-foreground">
             Plans persist across devices. Seeded asset categories are ready — set balances, goals, and assumptions next.
           </p>
@@ -155,7 +160,7 @@ export function InvestmentPlanDashboard() {
 
   return (
     <FormProvider {...workspace.form}>
-      <div className="space-y-6 p-4 md:p-6">
+      <div className="mx-auto w-full max-w-[1360px] space-y-6 px-4 pb-8 sm:px-6 lg:px-10">
         <MemoPlanHeader
           summaries={workspace.summaries}
           selectedPlanId={workspace.selectedPlanId}
@@ -180,19 +185,48 @@ export function InvestmentPlanDashboard() {
           </Alert>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => setEditor('assets')}>
-            Assets
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => setEditor('goals')}>
-            Goals
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => setEditor('events')}>
-            Cash events
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => setEditor('assumptions')}>
-            Assumptions
-          </Button>
+        <div className="flex flex-wrap items-center gap-2 rounded-[14px] border border-border bg-card px-3 py-2.5">
+          <div className="inline-flex items-center rounded-[9px] border border-border bg-muted p-0.5">
+            <Button
+              type="button"
+              variant={editor === 'assets' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 rounded-md px-3 text-xs font-semibold shadow-none"
+              onClick={() => setEditor('assets')}
+            >
+              Assets
+            </Button>
+            <Button
+              type="button"
+              variant={editor === 'goals' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 rounded-md px-3 text-xs font-semibold shadow-none"
+              onClick={() => setEditor('goals')}
+            >
+              Goals
+            </Button>
+            <Button
+              type="button"
+              variant={editor === 'events' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 rounded-md px-3 text-xs font-semibold shadow-none"
+              onClick={() => setEditor('events')}
+            >
+              Cash events
+            </Button>
+            <Button
+              type="button"
+              variant={editor === 'assumptions' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 rounded-md px-3 text-xs font-semibold shadow-none"
+              onClick={() => setEditor('assumptions')}
+            >
+              Assumptions
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground sm:ml-auto">
+            Edit plan inputs in focused sheets
+          </p>
         </div>
 
         {detailLoading ? (

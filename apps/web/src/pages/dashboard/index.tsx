@@ -4,7 +4,7 @@ import { DashboardChat } from '@/features/ai-assistant/components/dashboard-chat
 const Dashboard = () => {
   return (
     <MainLayout hideAiPanel>
-      <div className="flex min-h-0 flex-1">
+      <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
         <DashboardChat />
       </div>
     </MainLayout>

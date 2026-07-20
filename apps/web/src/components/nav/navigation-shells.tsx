@@ -288,7 +288,9 @@ function MobileNavigationDrawer({ className }: { className?: string }) {
 
 function ShellFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-dvh bg-background text-foreground">{children}</div>
+    <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
+      {children}
+    </div>
   )
 }
 
@@ -324,7 +326,7 @@ function SidebarShell({
 
   return (
     <ShellFrame>
-      <div className={cn('min-h-dvh', !isFloating && 'flex')}>
+      <div className={cn('flex min-h-0 flex-1', isFloating && 'min-h-dvh')}>
         <aside
           data-slot="sidebar"
           data-variant={isFloating ? 'floating' : 'docked'}
@@ -453,7 +455,7 @@ function SidebarShell({
 
         <div
           className={cn(
-            'flex min-w-0 flex-1 flex-col',
+            'flex min-h-0 min-w-0 flex-1 flex-col',
             isFloating && (collapsed ? 'md:pl-24' : 'md:pl-72'),
           )}
         >
@@ -467,7 +469,7 @@ function SidebarShell({
             </div>
           </header>
 
-          <main className="flex flex-1 flex-col">{children}</main>
+          <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</main>
         </div>
       </div>
     </ShellFrame>
@@ -550,7 +552,7 @@ function CategorizedTopNavShell({ children }: NavigationShellProps) {
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col">{children}</main>
+      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</main>
     </ShellFrame>
   )
 }
@@ -657,7 +659,7 @@ function MegaMenuShell({ children }: NavigationShellProps) {
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col">{children}</main>
+      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</main>
     </ShellFrame>
   )
 }
@@ -803,7 +805,7 @@ function CommandBarShell({ children }: NavigationShellProps) {
         </CommandList>
       </CommandDialog>
 
-      <main className="flex flex-1 flex-col">{children}</main>
+      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</main>
     </ShellFrame>
   )
 }

@@ -19,29 +19,32 @@ export function AnalyticsPageHeader({
   job,
   onReprocess,
 }: AnalyticsPageHeaderProps) {
-  const reprocessLabel =
-    isSyncing && job?.totalEmails
-      ? `Reprocessing (${job.processedEmails}/${job.totalEmails})`
-      : job?.status === 'completed'
-        ? 'Reprocessed'
-        : 'Reprocess Emails'
+  const reprocessLabel = (() => {
+    if (isSyncing && job?.totalEmails) {
+      return `Reprocessing (${job.processedEmails}/${job.totalEmails})`
+    }
+    if (job?.status === 'completed') {
+      return 'Reprocessed'
+    }
+    return 'Reprocess emails'
+  })()
 
   return (
-    <header className="-mx-4 sm:-mx-6 px-4 sm:px-6 pb-4">
-      <div className="flex flex-col gap-4 pt-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-2">
-          <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
+    <header className="pb-5">
+      <div className="flex flex-col gap-4 pt-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-1.5">
+          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
             Expenses
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            Analytics
+          <h1 className="font-serif text-3xl font-medium italic tracking-tight text-foreground sm:text-[2.375rem] sm:leading-tight">
+            Spending ledger
           </h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
             Spending patterns, category breakdowns and trends.
           </p>
         </div>
 
-        <div className="flex items-center gap-1 sm:pt-1">
+        <div className="flex items-center gap-2 sm:pb-1">
           <Button
             variant="outline"
             size="sm"
@@ -57,7 +60,7 @@ export function AnalyticsPageHeader({
               <Button
                 variant="outline"
                 size="icon"
-                className="size-8"
+                className="size-9"
                 disabled={isSyncing}
               >
                 <MoreVertical className="h-4 w-4" />
@@ -73,7 +76,9 @@ export function AnalyticsPageHeader({
                   disabled={isSyncing}
                 >
                   <div className="flex items-center gap-2">
-                    <RotateCw className={isSyncing ? 'size-4 animate-spin' : 'size-4'} />
+                    <RotateCw
+                      className={isSyncing ? 'size-4 animate-spin' : 'size-4'}
+                    />
                     <span className="font-medium">{reprocessLabel}</span>
                   </div>
                 </Button>

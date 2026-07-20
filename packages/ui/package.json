@@ -107,6 +107,7 @@
     "./styles/art-deco.css": "./src/styles/art-deco.css",
     "./styles/synthwave.css": "./src/styles/synthwave.css",
     "./styles/zen.css": "./src/styles/zen.css",
+    "./styles/ledger.css": "./src/styles/ledger.css",
     "./postcss.config": "./postcss.config.mjs",
     "./lib/*": "./src/lib/*.ts",
     "./components/*": "./src/components/*.tsx",

@@ -130,12 +130,12 @@ function SectionHeader({
   return (
     <div className="space-y-1 pt-2">
       <Separator />
-      <h2 className="pt-2 text-lg font-semibold tracking-tight text-foreground">
+      <h2 className="pt-2 font-serif text-lg font-semibold tracking-tight text-foreground">
         {title}
       </h2>
-      {description && (
+      {description ? (
         <p className="text-sm text-muted-foreground">{description}</p>
-      )}
+      ) : null}
     </div>
   )
 }
@@ -147,16 +147,18 @@ function SummaryCards({ data }: { data: BusAnalytics }) {
     <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+          <CardTitle className="text-[12.5px] font-semibold text-muted-foreground">
+            Total spent
+          </CardTitle>
           <span data-slot="badge">
             <IndianRupee className="text-primary h-4 w-4" />
           </span>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
+          <div className="font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums">
             {fmtCurrency(data.totalSpent)}
           </div>
-          <p className="text-muted-foreground text-xs">
+          <p className="mt-1.5 text-xs text-muted-foreground">
             across {data.totalTrips} trips
           </p>
         </CardContent>
@@ -164,42 +166,54 @@ function SummaryCards({ data }: { data: BusAnalytics }) {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Avg Fare</CardTitle>
+          <CardTitle className="text-[12.5px] font-semibold text-muted-foreground">
+            Avg fare
+          </CardTitle>
           <span data-slot="badge">
             <TrendingUp className="text-primary h-4 w-4" />
           </span>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{fmtCurrency(data.avgFare)}</div>
-          <p className="text-muted-foreground text-xs">per bus trip</p>
+          <div className="font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums">
+            {fmtCurrency(data.avgFare)}
+          </div>
+          <p className="mt-1.5 text-xs text-muted-foreground">per bus trip</p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Unique Buses</CardTitle>
+          <CardTitle className="text-[12.5px] font-semibold text-muted-foreground">
+            Unique buses
+          </CardTitle>
           <span data-slot="badge">
             <Bus className="text-primary h-4 w-4" />
           </span>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{data.uniqueBuses}</div>
-          <p className="text-muted-foreground text-xs">different bus numbers</p>
+          <div className="font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums">
+            {data.uniqueBuses}
+          </div>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            different bus numbers
+          </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Trip Range</CardTitle>
+          <CardTitle className="text-[12.5px] font-semibold text-muted-foreground">
+            Trip range
+          </CardTitle>
           <span data-slot="badge">
             <Calendar className="text-primary h-4 w-4" />
           </span>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
+          <div className="font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums">
             {data.firstTrip ? format(parseISO(data.firstTrip), 'dd MMM') : '—'}
           </div>
-          <p className="text-muted-foreground text-xs">
+          <p className="mt-1.5 text-xs text-muted-foreground">
             {data.lastTrip
               ? `to ${format(parseISO(data.lastTrip), 'dd MMM yyyy')}`
               : 'no trips yet'}
@@ -638,14 +652,16 @@ function InvestmentSummaryCards({ data }: { data: InvestmentAnalytics }) {
     <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Invested</CardTitle>
+          <CardTitle className="text-[12.5px] font-semibold text-muted-foreground">
+            Total invested
+          </CardTitle>
           <IndianRupee className="text-muted-foreground h-4 w-4" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
+          <div className="font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums">
             {fmtCurrency(data.totalInvested)}
           </div>
-          <p className="text-muted-foreground text-xs">
+          <p className="mt-1.5 text-xs text-muted-foreground">
             across {data.transactionCount} transactions
           </p>
         </CardContent>
@@ -653,14 +669,16 @@ function InvestmentSummaryCards({ data }: { data: InvestmentAnalytics }) {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Avg Investment</CardTitle>
+          <CardTitle className="text-[12.5px] font-semibold text-muted-foreground">
+            Avg investment
+          </CardTitle>
           <TrendingUp className="text-muted-foreground h-4 w-4" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
+          <div className="font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums">
             {fmtCurrency(data.avgInvestment)}
           </div>
-          <p className="text-muted-foreground text-xs">
+          <p className="mt-1.5 text-xs text-muted-foreground">
             {data.avgDaysBetweenInvestments
               ? `every ${Math.round(data.avgDaysBetweenInvestments)} days`
               : 'per transaction'}
@@ -670,16 +688,16 @@ function InvestmentSummaryCards({ data }: { data: InvestmentAnalytics }) {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Consistency Score
+          <CardTitle className="text-[12.5px] font-semibold text-muted-foreground">
+            Consistency score
           </CardTitle>
           <Activity className="text-muted-foreground h-4 w-4" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
+          <div className="font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums">
             {Math.round(data.consistencyScore)}%
           </div>
-          <p className="text-muted-foreground text-xs">
+          <p className="mt-1.5 text-xs text-muted-foreground">
             months with investments
           </p>
         </CardContent>
@@ -687,16 +705,18 @@ function InvestmentSummaryCards({ data }: { data: InvestmentAnalytics }) {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
+          <CardTitle className="text-[12.5px] font-semibold text-muted-foreground">
+            Recent activity
+          </CardTitle>
           <Calendar className="text-muted-foreground h-4 w-4" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
+          <div className="font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums">
             {data.daysSinceLastInvestment !== null
               ? `${data.daysSinceLastInvestment}d`
               : '—'}
           </div>
-          <p className="text-muted-foreground text-xs">
+          <p className="mt-1.5 text-xs text-muted-foreground">
             {data.lastInvestment
               ? `since ${format(parseISO(data.lastInvestment), 'dd MMM')}`
               : 'no investments yet'}
@@ -1431,63 +1451,102 @@ function InvestmentsPatternTab({ period }: { period: AnalyticsPeriod }) {
 
 const PatternsPage = () => {
   const [period, setPeriod] = useState<AnalyticsPeriod>('year')
+  const [activeTab, setActiveTab] = useState('bus')
+  const showPeriodFilter = activeTab === 'bus' || activeTab === 'investments'
 
   return (
     <MainLayout>
-      <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
-        <header className="flex flex-col gap-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex flex-col gap-2">
-              <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
-                Patterns
+      <div className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col px-4 sm:px-6 lg:px-10">
+        <header className="pb-5">
+          <div className="flex flex-col gap-4 pt-5 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-1.5">
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+                Habits
               </p>
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                Spending Patterns
+              <h1 className="font-serif text-3xl font-medium italic tracking-tight text-foreground sm:text-[2.375rem] sm:leading-tight">
+                Spending patterns
               </h1>
               <p className="max-w-2xl text-sm text-muted-foreground">
-                Discover insights from your recurring spending habits
+                Discover insights from your recurring spending habits.
               </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {PERIODS.map((p) => (
-                <Button
-                  key={p.value}
-                  size="sm"
-                  variant={period === p.value ? 'default' : 'outline'}
-                  onClick={() => setPeriod(p.value)}
-                >
-                  {p.label}
-                </Button>
-              ))}
             </div>
           </div>
         </header>
 
-        <Tabs defaultValue="bus">
-          <TabsList className="w-full overflow-x-auto">
-            <TabsTrigger value="bus" className="gap-2">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="gap-4 pb-8"
+        >
+          <TabsList className="mb-4 h-auto w-fit max-w-full justify-start gap-0.5 overflow-x-auto rounded-[11px] border border-border bg-muted p-1">
+            <TabsTrigger
+              value="bus"
+              className="gap-2 rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+            >
               <Bus className="h-4 w-4" />
               Bus
             </TabsTrigger>
-            <TabsTrigger value="investments" className="gap-2">
+            <TabsTrigger
+              value="investments"
+              className="gap-2 rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+            >
               <TrendingUp className="h-4 w-4" />
               Investments
             </TabsTrigger>
-            <TabsTrigger value="principal" className="gap-2">
+            <TabsTrigger
+              value="principal"
+              className="gap-2 rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+            >
               <Wallet className="h-4 w-4" />
               Principal
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="bus" className="mt-6">
+          {showPeriodFilter ? (
+            <div className="mb-6 flex flex-col gap-3 rounded-[14px] border border-border bg-card px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <div className="hidden items-center rounded-[9px] border border-border bg-muted p-0.5 sm:inline-flex">
+                {PERIODS.map((p) => (
+                  <Button
+                    key={p.value}
+                    variant={period === p.value ? 'default' : 'ghost'}
+                    size="sm"
+                    className="h-7 rounded-md px-3 text-xs font-semibold shadow-none"
+                    onClick={() => setPeriod(p.value)}
+                  >
+                    {p.label}
+                  </Button>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2 sm:hidden">
+                {PERIODS.map((p) => (
+                  <Button
+                    key={p.value}
+                    size="sm"
+                    variant={period === p.value ? 'default' : 'outline'}
+                    onClick={() => setPeriod(p.value)}
+                  >
+                    {p.label}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Showing:{' '}
+                <span className="font-medium text-foreground">
+                  {PERIODS.find((p) => p.value === period)?.label ?? period}
+                </span>
+              </p>
+            </div>
+          ) : null}
+
+          <TabsContent value="bus" className="mt-0">
             <BusPatternTab period={period} />
           </TabsContent>
 
-          <TabsContent value="investments" className="mt-6">
+          <TabsContent value="investments" className="mt-0">
             <InvestmentsPatternTab period={period} />
           </TabsContent>
 
-          <TabsContent value="principal" className="mt-6">
+          <TabsContent value="principal" className="mt-0">
             <PrincipalInvestmentTab />
           </TabsContent>
         </Tabs>

@@ -41,7 +41,9 @@ export function PlanPortfolioSection({ plan, finalSnapshot }: PlanPortfolioSecti
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Portfolio</CardTitle>
+        <CardTitle className="font-serif text-lg font-semibold tracking-tight">
+          Portfolio
+        </CardTitle>
         <CardDescription>
           Present versus projected mix. Unallocated remains explicitly outside goal buckets.
         </CardDescription>

@@ -8,6 +8,7 @@ import {
 import { Skeleton } from '@workspace/ui/components/ui/skeleton'
 import { usePortfolioSummary } from '@/features/holdings/api/holdings'
 import { formatCurrency } from '@/lib/utils'
+import { cn } from '@workspace/ui/lib/utils'
 
 export function PortfolioSummary() {
   const { data: summary, isLoading } = usePortfolioSummary()
@@ -22,7 +23,7 @@ export function PortfolioSummary() {
               <Skeleton className="h-4 w-4 rounded" />
             </CardHeader>
             <CardContent>
-              <Skeleton className="h-7 w-32" />
+              <Skeleton className="h-9 w-32" />
             </CardContent>
           </Card>
         ))}
@@ -38,11 +39,13 @@ export function PortfolioSummary() {
     <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Invested</CardTitle>
+          <CardTitle className="text-[12.5px] font-semibold text-muted-foreground">
+            Total invested
+          </CardTitle>
           <Wallet className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
+          <div className="font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums">
             {formatCurrency(summary.totalInvestedValue)}
           </div>
         </CardContent>
@@ -50,11 +53,13 @@ export function PortfolioSummary() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Current Value</CardTitle>
+          <CardTitle className="text-[12.5px] font-semibold text-muted-foreground">
+            Current value
+          </CardTitle>
           <BarChart3 className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
+          <div className="font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums">
             {formatCurrency(summary.totalCurrentValue)}
           </div>
         </CardContent>
@@ -62,7 +67,9 @@ export function PortfolioSummary() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Returns</CardTitle>
+          <CardTitle className="text-[12.5px] font-semibold text-muted-foreground">
+            Total returns
+          </CardTitle>
           {isPositive ? (
             <TrendingUp className="h-4 w-4 text-positive" />
           ) : (
@@ -71,7 +78,10 @@ export function PortfolioSummary() {
         </CardHeader>
         <CardContent>
           <div
-            className={`text-2xl font-bold ${isPositive ? 'text-positive' : 'text-negative'}`}
+            className={cn(
+              'font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums',
+              isPositive ? 'text-positive' : 'text-negative',
+            )}
           >
             {formatCurrency(summary.totalReturns)}
           </div>
@@ -80,7 +90,9 @@ export function PortfolioSummary() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Returns %</CardTitle>
+          <CardTitle className="text-[12.5px] font-semibold text-muted-foreground">
+            Returns %
+          </CardTitle>
           {isPositive ? (
             <TrendingUp className="h-4 w-4 text-positive" />
           ) : (
@@ -89,7 +101,10 @@ export function PortfolioSummary() {
         </CardHeader>
         <CardContent>
           <div
-            className={`text-2xl font-bold ${isPositive ? 'text-positive' : 'text-negative'}`}
+            className={cn(
+              'font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums',
+              isPositive ? 'text-positive' : 'text-negative',
+            )}
           >
             {summary.totalReturnsPercentage.toFixed(2)}%
           </div>

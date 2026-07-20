@@ -15,7 +15,9 @@ export function PlanGoalRail({ goals, results }: PlanGoalRailProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Goals</CardTitle>
+          <CardTitle className="font-serif text-lg font-semibold tracking-tight">
+            Goals
+          </CardTitle>
           <CardDescription>Add a named goal to track readiness and funding gaps.</CardDescription>
         </CardHeader>
       </Card>

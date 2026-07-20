@@ -42,55 +42,77 @@ export default function DividendsPage() {
 
   return (
     <MainLayout>
-      <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
-        {/* Header */}
-        <header className="flex flex-col gap-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-2">
-              <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
+      <div className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col px-4 pb-8 sm:px-6 lg:px-10">
+        <header className="pb-5">
+          <div className="flex flex-col gap-4 pt-5 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-1.5">
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
                 Dividends
               </p>
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                Dividend Income
+              <h1 className="font-serif text-3xl font-medium italic tracking-tight text-foreground sm:text-[2.375rem] sm:leading-tight">
+                Dividend income
               </h1>
               <p className="max-w-2xl text-sm text-muted-foreground">
-                Track and analyze your dividend income across all holdings
+                Track and analyze your dividend income across all holdings.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <Select
-                value={String(selectedYear)}
-                onValueChange={(v) => setSelectedYear(Number(v))}
-              >
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {yearOptions.map((y) => (
-                    <SelectItem key={y} value={String(y)}>
-                      FY {y}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex flex-wrap items-center gap-2 sm:pb-1">
               <ImportDividendsDialog />
             </div>
           </div>
         </header>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full overflow-x-auto">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="all">All Dividends</TabsTrigger>
-          </TabsList>
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="gap-4"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <TabsList className="h-auto w-fit max-w-full justify-start gap-0.5 overflow-x-auto rounded-[11px] border border-border bg-muted p-1">
+              <TabsTrigger
+                value="overview"
+                className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                Overview
+              </TabsTrigger>
+              <TabsTrigger
+                value="all"
+                className="rounded-lg px-3.5 py-2 text-[13px] data-[state=active]:bg-card data-[state=active]:shadow-sm"
+              >
+                All dividends
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="overview" className="mt-4">
+            {activeTab === 'overview' ? (
+              <div className="flex items-center gap-2 rounded-[14px] border border-border bg-card px-3 py-2">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Year
+                </span>
+                <Select
+                  value={String(selectedYear)}
+                  onValueChange={(v) => setSelectedYear(Number(v))}
+                >
+                  <SelectTrigger className="h-8 w-[110px]" size="sm">
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        FY {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+          </div>
+
+          <TabsContent value="overview" className="mt-0">
             <DividendDashboardView year={selectedYear} />
           </TabsContent>
 
-          <TabsContent value="all" className="mt-4">
+          <TabsContent value="all" className="mt-0">
             <DividendsTable />
           </TabsContent>
         </Tabs>

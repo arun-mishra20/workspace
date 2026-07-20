@@ -39,13 +39,13 @@ export default function ThemeSettingsPage() {
   }
   return (
     <MainLayout>
-      <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
-        <header className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
-              Theme Editor
+      <div className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col px-4 pb-8 sm:px-6 lg:px-10">
+        <header className="pb-5">
+          <div className="flex flex-col gap-1.5 pt-5">
+            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+              Workspace
             </p>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+            <h1 className="font-serif text-3xl font-medium italic tracking-tight text-foreground sm:text-[2.375rem] sm:leading-tight">
               Customize
             </h1>
             <p className="max-w-2xl text-sm text-muted-foreground">
@@ -57,7 +57,9 @@ export default function ThemeSettingsPage() {
           {/* LEFT: Controls */}
           <Card className="flex flex-col lg:sticky lg:top-6 lg:max-h-[calc(100dvh)]">
             <CardHeader>
-              <CardTitle>Controls</CardTitle>
+              <CardTitle className="font-serif text-lg font-semibold tracking-tight">
+                Controls
+              </CardTitle>
               <CardDescription>Layout, presets, and variables</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden py-4">
@@ -81,7 +83,9 @@ export default function ThemeSettingsPage() {
             <CardHeader>
               <div className="flex w-full justify-between">
                 <div>
-                  <CardTitle>Live Preview and Customization</CardTitle>
+                  <CardTitle className="font-serif text-lg font-semibold tracking-tight">
+                    Live Preview and Customization
+                  </CardTitle>
                   <CardDescription>
                     Your components using this theme
                   </CardDescription>

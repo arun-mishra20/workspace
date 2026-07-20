@@ -156,25 +156,29 @@ export default function PlaygroundPage() {
 
   return (
     <MainLayout>
-      <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
-        <header className="flex flex-col gap-2">
-          <p className="text-sm uppercase tracking-[0.12em] text-muted-foreground">
-            Playground
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            Email Query + Parser
-          </h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            Fetch up to 20 emails for an ad-hoc Gmail query, run your parser
-            function on each email, and inspect extracted key-value output as
-            JSON.
-          </p>
+      <div className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col px-4 pb-8 sm:px-6 lg:px-10">
+        <header className="pb-5">
+          <div className="flex flex-col gap-1.5 pt-5">
+            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+              Workspace
+            </p>
+            <h1 className="font-serif text-3xl font-medium italic tracking-tight text-foreground sm:text-[2.375rem] sm:leading-tight">
+              Email query + parser
+            </h1>
+            <p className="max-w-3xl text-sm text-muted-foreground">
+              Fetch up to 20 emails for an ad-hoc Gmail query, run your parser
+              function on each email, and inspect extracted key-value output as
+              JSON.
+            </p>
+          </div>
         </header>
 
         <div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
           <Card>
             <CardHeader>
-              <CardTitle>Input</CardTitle>
+              <CardTitle className="font-serif text-lg font-semibold tracking-tight">
+                Input
+              </CardTitle>
               <CardDescription>
                 Configure query, fetch size, and parser code.
               </CardDescription>
@@ -260,7 +264,9 @@ export default function PlaygroundPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>JSON Output</CardTitle>
+              <CardTitle className="font-serif text-lg font-semibold tracking-tight">
+                JSON Output
+              </CardTitle>
               <CardDescription>
                 Shows fetched emails initially, then parsed key-value results
                 after running parser code.

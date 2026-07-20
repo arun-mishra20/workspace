@@ -34,7 +34,9 @@ export function PlanInsights({ plan, projection }: PlanInsightsProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Insights</CardTitle>
+        <CardTitle className="font-serif text-lg font-semibold tracking-tight">
+          Insights
+        </CardTitle>
         <CardDescription>Actionable findings from the shared projection engine.</CardDescription>
       </CardHeader>
       <CardContent>

@@ -1,12 +1,6 @@
 import { useMemo, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import {
-  ArrowDownRight,
-  ArrowUpRight,
-  ClipboardList,
-  Receipt,
-} from 'lucide-react'
-import {
   Bar,
   BarChart,
   CartesianGrid,
@@ -33,7 +27,10 @@ import { DaySpendExplorerSection } from '@/features/expenses/components/analytic
 import { SpendHeatmapCalendar } from '@/features/expenses/components/analytics/spend-heatmap-calendar'
 import { PeriodComparisonSection } from '@/features/expenses/components/analytics/period-comparison-section'
 import { RankedSpendListCard } from '@/features/expenses/components/analytics/ranked-spend-list-card'
-import { SummaryCard } from '@/features/expenses/components/analytics/summary-card'
+import { OverviewKpiCard } from '@/features/expenses/components/analytics/overview-kpi-card'
+import { NetFlowLedgerCard } from '@/features/expenses/components/analytics/net-flow-ledger-card'
+import { AvgTransactionCard } from '@/features/expenses/components/analytics/avg-transaction-card'
+import { ReviewQueueBanner } from '@/features/expenses/components/analytics/review-queue-banner'
 import {
   fmtCompact,
   fmtCurrency,
@@ -74,7 +71,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@workspace/ui/components/ui/chart'
-import { Separator } from '@workspace/ui/components/ui/separator'
 import { Skeleton } from '@workspace/ui/components/ui/skeleton'
 
 interface AnalyticsOverviewTabProps {
@@ -533,69 +529,99 @@ export function AnalyticsOverviewTab({
     )
   }
 
+  const priorWindow = periodLabel(period)
+    .replace(/^Last /i, '')
+    .toLowerCase()
+
+  const spentChangeSubtitle = (() => {
+    if (!summary) return
+    const base = `${summary.transactionCount} transactions`
+    if (!periodComparison) {
+      return `${base} · ${formatSpendExclusionSummary(spendExclusions)}`
+    }
+    const change = periodComparison.changes.spentChange
+    let vsPrior = `same as prior ${priorWindow}`
+    if (change < 0) {
+      vsPrior = `lower than prior ${priorWindow}`
+    } else if (change > 0) {
+      vsPrior = `higher than prior ${priorWindow}`
+    }
+    return `${base} · ${vsPrior}`
+  })()
+
+  const receivedChangeSubtitle = (() => {
+    if (!summary) return
+    if (!periodComparison) {
+      return formatSpendExclusionSummary(spendExclusions)
+    }
+    const change = periodComparison.changes.receivedChange
+    if (change > 0) {
+      return `higher than prior ${priorWindow}`
+    }
+    if (change < 0) {
+      return `lower than prior ${priorWindow}`
+    }
+    return `same as prior ${priorWindow}`
+  })()
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard
-          title="Total Spent"
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.15fr]">
+        <OverviewKpiCard
+          title="Total spent"
           value={summary ? fmtCurrency(summary.totalSpent) : undefined}
-          icon={<ArrowDownRight className="size-4 text-destructive" />}
-          subtitle={
-            summary
-              ? `${summary.transactionCount} transactions · ${formatSpendExclusionSummary(spendExclusions)}`
-              : undefined
-          }
+          subtitle={spentChangeSubtitle}
           loading={summaryLoading}
+          changePercent={periodComparison?.changes.spentChange}
+          decreaseIsGood
           trendData={recentSpentTrend}
-          formatTrendValue={fmtCurrency}
+          trendColor="var(--color-negative)"
         />
-        <SummaryCard
-          title="Total Received"
+        <OverviewKpiCard
+          title="Total received"
           value={summary ? fmtCurrency(summary.totalReceived) : undefined}
-          icon={<ArrowUpRight className="size-4 text-chart-2" />}
-          subtitle={
-            summary ? `Net flow: ${fmtCurrency(summary.netFlow)}` : undefined
-          }
+          subtitle={receivedChangeSubtitle}
           loading={summaryLoading}
+          changePercent={periodComparison?.changes.receivedChange}
           trendData={recentReceivedTrend}
-          formatTrendValue={fmtCurrency}
+          trendColor="var(--color-positive)"
         />
-        <SummaryCard
-          title="Avg Transaction"
-          value={summary ? fmtCurrency(summary.avgTransaction) : undefined}
-          icon={<Receipt className="size-4 text-chart-3" />}
-          subtitle={summary ? `Top: ${summary.topMerchant}` : undefined}
+        <NetFlowLedgerCard
+          netFlow={summary?.netFlow}
+          totalReceived={summary?.totalReceived}
+          totalSpent={summary?.totalSpent}
+          periodLabel={periodLabel(period)}
           loading={summaryLoading}
-        />
-        <SummaryCard
-          title="Pending Review"
-          value={summary ? String(summary.reviewPending) : undefined}
-          icon={<ClipboardList className="size-4 text-chart-4" />}
-          subtitle={
-            summary
-              ? `Top category: ${summary.topCategory.replace(/_/g, ' ')}`
-              : undefined
-          }
-          loading={summaryLoading}
-          footer={
-            summary && summary.reviewPending > 0 ? (
-              <Link
-                to={drillDown({ period, cardLast4: selectedCardLast4, review: 'true' })}
-                className="text-xs text-primary hover:underline"
-              >
-                Open review queue →
-              </Link>
-            ) : undefined
-          }
         />
       </div>
 
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-        <Card className="lg:col-span-2 overflow-hidden">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-[1fr_1.6fr]">
+        <AvgTransactionCard
+          avgTransaction={summary?.avgTransaction}
+          transactionCount={summary?.transactionCount}
+          topMerchant={summary?.topMerchant}
+          loading={summaryLoading}
+        />
+        <ReviewQueueBanner
+          reviewPending={summary?.reviewPending}
+          topCategory={summary?.topCategory}
+          href={drillDown({
+            period,
+            cardLast4: selectedCardLast4,
+            review: 'true',
+          })}
+          loading={summaryLoading}
+        />
+      </div>
+
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-[2.15fr_1fr]">
+        <Card className="overflow-hidden">
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <CardTitle className="text-base">Daily Spending</CardTitle>
+                <CardTitle className="font-serif text-lg font-semibold tracking-tight">
+                  Daily spending
+                </CardTitle>
                 <CardDescription>
                   Debits and credits per day. Click a point to explore that day.
                 </CardDescription>
@@ -618,11 +644,13 @@ export function AnalyticsOverviewTab({
           <CardContent>{renderDailyContent()}</CardContent>
         </Card>
 
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <CardTitle className="text-base">Payment Modes</CardTitle>
+                <CardTitle className="font-serif text-base font-semibold tracking-tight">
+                  Payment modes
+                </CardTitle>
                 <CardDescription>How you pay</CardDescription>
               </div>
               <ChartCardToolbar
@@ -634,7 +662,6 @@ export function AnalyticsOverviewTab({
                 onTopNChange={setModeTopN}
               />
             </div>
-            <Separator className="w-full mt-2" />
           </CardHeader>
           <CardContent>{renderModeContent()}</CardContent>
         </Card>

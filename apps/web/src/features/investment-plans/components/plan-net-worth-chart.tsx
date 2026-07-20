@@ -51,7 +51,9 @@ export function PlanNetWorthChart({ projection, viewMode, onViewModeChange }: Pl
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
         <div className="space-y-1">
-          <CardTitle>Net worth timeline</CardTitle>
+          <CardTitle className="font-serif text-lg font-semibold tracking-tight">
+            Net worth timeline
+          </CardTitle>
           <CardDescription>
             {viewMode === 'real' ? 'Today’s money' : 'Nominal'} projection with contributions versus gains.
           </CardDescription>

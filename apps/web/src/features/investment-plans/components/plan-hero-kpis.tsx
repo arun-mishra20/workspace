@@ -10,7 +10,11 @@ interface PlanHeroKpisProps {
   showReal: boolean
 }
 
-export function PlanHeroKpis({ projection, monthlyInvestment, showReal }: PlanHeroKpisProps) {
+export function PlanHeroKpis({
+  projection,
+  monthlyInvestment,
+  showReal,
+}: PlanHeroKpisProps) {
   const { summary, goals } = projection
   const onTrack = goals.filter((goal) => goal.onTrack).length
   const cards = [
@@ -21,7 +25,9 @@ export function PlanHeroKpis({ projection, monthlyInvestment, showReal }: PlanHe
     },
     {
       label: showReal ? 'Projected (today ₹)' : 'Projected net worth',
-      value: fmtCurrency(showReal ? summary.finalRealValue : summary.finalNominalValue),
+      value: fmtCurrency(
+        showReal ? summary.finalRealValue : summary.finalNominalValue,
+      ),
       icon: TrendingUp,
     },
     {
@@ -37,19 +43,28 @@ export function PlanHeroKpis({ projection, monthlyInvestment, showReal }: PlanHe
   ]
 
   return (
-    <section aria-label="Plan summary" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <section
+      aria-label="Plan summary"
+      className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"
+    >
       {cards.map(({ label, value, icon: Icon }) => (
-        <div key={label} className="rounded-xl border bg-card p-4 space-y-2">
+        <div
+          key={label}
+          className="space-y-2 rounded-[14px] border border-border bg-card p-4"
+        >
           <div className="flex items-center gap-2 text-muted-foreground">
             <Icon className="size-4" aria-hidden />
-            <span className="text-xs font-medium">{label}</span>
+            <span className="text-[12.5px] font-semibold">{label}</span>
           </div>
-          <p className="text-xl font-semibold tabular-nums tracking-tight">{value}</p>
+          <p className="font-mono text-[1.8rem] font-semibold tracking-tight tabular-nums">
+            {value}
+          </p>
         </div>
       ))}
       <p className="sr-only">
-        Projected XIRR {fmtXirr(summary.projectedXirr)}. Weighted assumed annual return{' '}
-        {(summary.weightedExpectedAnnualReturnBps / 100).toFixed(1)} percent.
+        Projected XIRR {fmtXirr(summary.projectedXirr)}. Weighted assumed annual
+        return {(summary.weightedExpectedAnnualReturnBps / 100).toFixed(1)}{' '}
+        percent.
       </p>
     </section>
   )

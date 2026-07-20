@@ -60,6 +60,7 @@ export type ThemeStyleControlId =
   | 'art-deco'
   | 'synthwave'
   | 'zen'
+  | 'ledger'
 
 export interface ThemePresetPreview {
   light: string[]

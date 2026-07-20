@@ -97,6 +97,22 @@ export const PRESET_SEMANTIC_OVERRIDES: Partial<Record<string, ThemePreset>> = {
       '--success': 'oklch(0.62 0.08 145)',
     },
   ),
+  ledger: semantic(
+    {
+      '--positive': '#2E6F4E',
+      '--negative': '#A8462E',
+      '--info': '#3B5A63',
+      '--warning': '#AD8A2E',
+      '--success': '#2E6F4E',
+    },
+    {
+      '--positive': '#5FC08C',
+      '--negative': '#E2896A',
+      '--info': '#7FAFBE',
+      '--warning': '#E3BE5C',
+      '--success': '#5FC08C',
+    },
+  ),
   editorial: semantic(
     {
       '--positive': 'oklch(0.45 0.06 145)',
